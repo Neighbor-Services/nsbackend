@@ -19,6 +19,12 @@ class UserAdmin(BaseUserAdmin, ModelAdmin):
         ('Permissions', {'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),
         ('Important dates', {'fields': ('last_login', 'created_at')}),
     )
+    add_fieldsets = (
+        (None, {
+            'classes': ('wide',),
+            'fields': ('email', 'password1', 'password2', 'is_staff', 'is_active'),
+        }),
+    )
     readonly_fields = ('created_at',)
 
 class PortfolioInline(TabularInline):
