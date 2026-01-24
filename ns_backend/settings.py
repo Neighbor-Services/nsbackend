@@ -344,9 +344,31 @@ UNFOLD = {
                         "link": reverse_lazy("admin:accounts_profile_changelist"),
                     },
                     {
+                        "title": _("About Info"),
+                        "icon": "info",
+                        "link": reverse_lazy("admin:accounts_about_changelist"),
+                    },
+                    {
                         "title": _("Groups"),
                         "icon": "groups",
                         "link": reverse_lazy("admin:auth_group_changelist"),
+                    },
+                ],
+            },
+            {
+                "title": _("Service Catalog"),
+                "separator": True,
+                "collapsible": True,
+                "items": [
+                    {
+                        "title": _("Categories"),
+                        "icon": "category",
+                        "link": reverse_lazy("admin:services_category_changelist"),
+                    },
+                    {
+                        "title": _("Catalog Services"),
+                        "icon": "list_alt",
+                        "link": reverse_lazy("admin:services_catalogservice_changelist"),
                     },
                 ],
             },
@@ -410,6 +432,11 @@ UNFOLD = {
                 "collapsible": True,
                 "items": [
                     {
+                        "title": _("Customers"),
+                        "icon": "account_circle",
+                        "link": reverse_lazy("admin:payments_customer_changelist"),
+                    },
+                    {
                         "title": _("Wallets"),
                         "icon": "account_balance_wallet",
                         "link": reverse_lazy("admin:payments_wallet_changelist"),
@@ -459,6 +486,23 @@ UNFOLD = {
                 ],
             },
             {
+                "title": _("Moderation"),
+                "separator": True,
+                "collapsible": True,
+                "items": [
+                    {
+                        "title": _("Reports"),
+                        "icon": "report",
+                        "link": reverse_lazy("admin:moderation_report_changelist"),
+                    },
+                    {
+                        "title": _("Provider Verifications"),
+                        "icon": "verified_user",
+                        "link": reverse_lazy("admin:moderation_providerverification_changelist"),
+                    },
+                ],
+            },
+            {
                 "title": _("System"),
                 "separator": True,
                 "collapsible": True,
@@ -467,11 +511,6 @@ UNFOLD = {
                         "title": _("Audit Logs"),
                         "icon": "history",
                         "link": reverse_lazy("admin:audit_auditlog_changelist"),
-                    },
-                     {
-                        "title": _("Reports"),
-                        "icon": "report",
-                        "link": reverse_lazy("admin:moderation_report_changelist"),
                     },
                 ],
             },
