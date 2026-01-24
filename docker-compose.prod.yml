@@ -24,7 +24,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     env_file:
-      - ./backend/.env
+      - ./.env
 
   redis:
     image: redis:7-alpine
