@@ -43,6 +43,14 @@ DEBUG = True
 
 ALLOWED_HOSTS = [ 'localhost', 'api.neighborservice.com', 'www.neighborservice.com', 'neighborservice.com', '127.0.0.1', '172.21.96.1', '192.168.240.1', '10.110.14.133', '10.199.240.133', '172.21.96.1']
 
+CSRF_TRUSTED_ORIGINS = [
+    'https://neighborservice.com',
+    'https://www.neighborservice.com',
+    'https://api.neighborservice.com',
+    'http://localhost:3000',
+    'http://localhost:8000',
+    'http://localhost:8080',
+]
 
 # Application definition
 
