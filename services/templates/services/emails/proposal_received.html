@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>New Proposal Received</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background-color: #f4f4f4; color: #333333;">
+    <!-- Preheader -->
+    <div style="display: none; max-height: 0; overflow: hidden;">
+        You have a new proposal from {{ provider_name }} for {{ request_title }}.
+    </div>
+
+    <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="min-width: 100%;">
+        <tr>
+            <td style="padding: 20px 0;">
+                <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="600" style="margin: 0 auto; background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); overflow: hidden;">
+                    <!-- Header -->
+                    <tr>
+                        <td style="background-color: #1a1a1a; padding: 30px 40px; text-align: center;">
+                            <a href="https://neighborservice.com" style="text-decoration: none;">
+                                <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: 600;">Neighbor Service</h1>
+                            </a>
+                        </td>
+                    </tr>
+                    
+                    <!-- Content -->
+                    <tr>
+                        <td style="padding: 40px;">
+                            <h2 style="margin-top: 0; font-size: 20px; color: #333333;">New Proposal Received!</h2>
+                            <p style="margin: 20px 0; font-size: 16px; line-height: 24px; color: #666666;">
+                                Hello {{ seeker_name }},
+                            </p>
+                            <p style="margin: 0 0 20px; font-size: 16px; line-height: 24px; color: #666666;">
+                                Good news! <strong>{{ provider_name }}</strong> has submitted a proposal for your request.
+                            </p>
+                            
+                            <!-- Request Details Card -->
+                            <div style="background-color: #f9f9f9; border-left: 4px solid #1a1a1a; padding: 20px; margin-bottom: 25px;">
+                                <p style="margin: 0 0 10px; font-size: 14px; color: #999999; text-transform: uppercase; letter-spacing: 1px;">Request</p>
+                                <h3 style="margin: 0 0 10px; font-size: 18px; color: #333333;">{{ request_title }}</h3>
+                                <p style="margin: 0; font-size: 15px; color: #666666;">Proposed Price: <strong>${{ price }}</strong></p>
+                            </div>
+
+                            <p style="margin: 20px 0; font-size: 16px; line-height: 24px; color: #666666;">
+                                Review their profile and message to see if they're a good fit for your job.
+                            </p>
+                            
+                            <!-- CTA Button -->
+                            <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+                                <tr>
+                                    <td align="center" style="padding: 20px 0;">
+                                        <a href="https://neighborservice.com/app/requests/{{ request_id }}" style="background-color: #1a1a1a; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 4px; font-weight: bold; display: inline-block;">View Proposal</a>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                    
+                    <!-- Footer -->
+                    <tr>
+                        <td style="padding: 30px 40px; background-color: #f9f9f9; text-align: center; border-top: 1px solid #eeeeee;">
+                            <p style="margin: 0 0 10px; font-size: 12px; color: #999999;">
+                                Questions? <a href="mailto:support@neighborservice.com" style="color: #666666; text-decoration: underline;">Contact Support</a>
+                            </p>
+                            <p style="margin: 0; font-size: 12px; color: #999999;">
+                                &copy; {% now "Y" %} Neighbor Service.<br>
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

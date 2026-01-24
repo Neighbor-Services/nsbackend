@@ -1,0 +1,222 @@
+import json
+from django.core.serializers.json import DjangoJSONEncoder
+from channels.generic.websocket import AsyncWebsocketConsumer
+from channels.db import database_sync_to_async
+from .models import Conversation, Message
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
+
+class ChatConsumer(AsyncWebsocketConsumer):
+    async def connect(self):
+        self.conversation_id = self.scope['url_route']['kwargs']['conversation_id']
+        self.user = self.scope['user']
+
+        # Reject connection if user is anonymous
+        if self.user.is_anonymous:
+            await self.close()
+            return
+
+        # Resolve conversation instance
+        self.conversation = await self.get_or_create_conversation(self.conversation_id)
+        if not self.conversation:
+            await self.close()
+            return
+
+        # Use the actual UUID for the group name
+        self.room_group_name = f'chat_{self.conversation.id}'
+
+        # Join room group
+        await self.channel_layer.group_add(
+            self.room_group_name,
+            self.channel_name
+        )
+
+        await self.accept()
+
+        # Broadcast online status
+        await self.channel_layer.group_send(
+            self.room_group_name,
+            {
+                'type': 'chat_status',
+                'status_data': {
+                    'type': 'presence',
+                    'user_id': str(self.user.id),
+                    'status': 'online'
+                }
+            }
+        )
+
+    async def disconnect(self, close_code):
+        # Broadcast offline status (only if was joined and authenticated and room joined)
+        if hasattr(self, 'user') and not self.user.is_anonymous and hasattr(self, 'room_group_name'):
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    'type': 'chat_status',
+                    'status_data': {
+                        'type': 'presence',
+                        'user_id': str(self.user.id),
+                        'status': 'offline'
+                    }
+                }
+            )
+
+        # Leave room group
+        if hasattr(self, 'room_group_name'):
+            await self.channel_layer.group_discard(
+                self.room_group_name,
+                self.channel_name
+            )
+
+    # Receive message from WebSocket
+    async def receive(self, text_data):
+        data = json.loads(text_data)
+        message_type = data.get('type', 'message') # Default to message
+
+        if message_type == 'typing':
+            is_typing = data.get('is_typing', False)
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    'type': 'chat_status',
+                    'status_data': {
+                        'type': 'typing',
+                        'user_id': str(self.user.id),
+                        'is_typing': is_typing
+                    }
+                }
+            )
+            return
+
+        if not self.user.is_authenticated:
+            return
+            
+        # Save message to database and get full object
+        message_obj = await self.save_message(self.user, data)
+        
+        # Trigger persistent notification for the receiver
+        receiver = await self.get_receiver(message_obj)
+        if receiver:
+            await self.trigger_notification(receiver, message_obj)
+
+        # Serialize the message and participants for the frontend
+        serialized_chat_message = await self.get_serialized_chat_message(message_obj, self.conversation_id)
+        # Sanitize UUIDs to strings for Channel Layer compatibility
+        serialized_chat_message = json.loads(json.dumps(serialized_chat_message, cls=DjangoJSONEncoder))
+
+        # Send message to room group
+        await self.channel_layer.group_send(
+            self.room_group_name,
+            {
+                'type': 'chat_message',
+                'chat_message_data': serialized_chat_message
+            }
+        )
+
+    # Receive message from room group
+    async def chat_message(self, event):
+        chat_message_data = event['chat_message_data']
+        # Add type for frontend discrimination
+        chat_message_data['type'] = 'message'
+        await self.send(text_data=json.dumps(chat_message_data, cls=DjangoJSONEncoder))
+
+    # Receive status update from room group
+    async def chat_status(self, event):
+        status_data = event['status_data']
+        await self.send(text_data=json.dumps(status_data, cls=DjangoJSONEncoder))
+
+    @database_sync_to_async
+    def get_receiver(self, message_obj):
+        return message_obj.conversation.participants.exclude(id=message_obj.sender.id).first()
+
+    @database_sync_to_async
+    def trigger_notification(self, user, message_obj):
+        from notifications.utils import send_notification
+        # Don't send notification if the user has many sessions on the same room
+        # (Though send_notification will broadcast to all sessions of the user)
+        send_notification(
+            user=user,
+            title=f"New Message",
+            message=message_obj.message or "You have a new message",
+            notification_type="MESSAGE",
+            data={
+                "conversation_id": str(self.conversation.id),
+                "sender_id": str(message_obj.sender.id)
+            }
+        )
+
+    @database_sync_to_async
+    def get_serialized_chat_message(self, message_obj, original_id=None):
+        from chat.serializers import MessageSerializer
+        from accounts.serializers import ProfileSerializer
+        
+        # Pass original_id (could be combined string) to context for consistency
+        message_data = MessageSerializer(message_obj, context={'original_id': original_id}).data
+        sender_profile = ProfileSerializer(message_obj.sender.profile).data
+        
+        # Find receiver
+        receiver = message_obj.conversation.participants.exclude(id=message_obj.sender.id).first()
+        receiver_profile = ProfileSerializer(receiver.profile).data if receiver else None
+        
+        return {
+            'message': message_data,
+            'sender': sender_profile,
+            'receiver': receiver_profile
+        }
+
+    @database_sync_to_async
+    def get_or_create_conversation(self, conversation_id):
+        # Try as UUID first
+        try:
+            import uuid
+            val = uuid.UUID(conversation_id, version=4)
+            return Conversation.objects.filter(id=val).first()
+        except ValueError:
+            # Handle user1_user2 pattern
+            if '_' in conversation_id:
+                uids = conversation_id.split('_')
+                if len(uids) == 2:
+                    try:
+                        user1 = User.objects.get(id=uids[0])
+                        user2 = User.objects.get(id=uids[1])
+                        
+                        # Find existing conversation
+                        conversation = Conversation.objects.filter(participants=user1).filter(participants=user2).first()
+                        if not conversation:
+                            # Create new if doesn't exist
+                            conversation = Conversation.objects.create()
+                            conversation.participants.add(user1, user2)
+                        return conversation
+                    except User.DoesNotExist:
+                        return None
+            return None
+
+    @database_sync_to_async
+    def save_message(self, user, data):
+        img_file = None
+        if data.get('image'):
+            try:
+                import base64
+                from django.core.files.base import ContentFile
+                img_data = base64.b64decode(data['image'])
+                file_name = data.get('filename') or 'image.jpg'
+                img_file = ContentFile(img_data, name=file_name)
+            except Exception:
+                pass
+
+        return Message.objects.create(
+            conversation=self.conversation,
+            sender=user,
+            content=data.get('message', '') or '',
+            message=data.get('message', '') or '',
+            is_calender=data.get('is_calender') or False,
+            with_image=data.get('with_image') or False,
+            with_image_and_text=data.get('with_image_and_text') or False,
+            calender_start_date=data.get('calender_start_date'),
+            calender_end_date=data.get('calender_end_date'),
+            calender_date=data.get('calender_date'),
+            media_url=data.get('media_url'),
+            image=img_file,
+            file_name=data.get('filename')
+        )

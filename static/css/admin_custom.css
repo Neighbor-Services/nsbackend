@@ -1,0 +1,80 @@
+/* Premium Admin Custom Styles */
+
+:root {
+    --brand-orange: #FCA34D;
+    --brand-orange-dark: #E88F3A;
+    --dark-bg: #0B0E14;
+    --dark-surface: #151921;
+    --dark-border: rgba(255, 255, 255, 0.08);
+    --glass-bg: rgba(255, 255, 255, 0.03);
+    --glass-border: rgba(255, 255, 255, 0.05);
+}
+
+/* Glassmorphism for Dark Mode */
+.dark body {
+    background-color: var(--dark-bg) !important;
+}
+
+.dark .bg-white, 
+.dark .bg-gray-50,
+.dark .dark\:bg-gray-800 {
+    background-color: var(--dark-surface) !important;
+    backdrop-filter: blur(12px);
+}
+
+.dark .border-gray-100,
+.dark .dark\:border-gray-700 {
+    border-color: var(--dark-border) !important;
+}
+
+/* Premium KPI Cards */
+.kpi-card {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    background: linear-gradient(135deg, var(--glass-bg) 0%, rgba(255, 255, 255, 0.01) 100%) !important;
+}
+
+.kpi-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+    border-color: rgba(252, 163, 77, 0.3) !important;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--dark-bg);
+}
+
+::-webkit-scrollbar-thumb {
+    background: #2D3748;
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #4A5568;
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+    animation: fadeIn 0.5s ease-out forwards;
+}
+
+/* Typography Refinement */
+.dark h1, .dark h2, .dark h3 {
+    letter-spacing: -0.025em;
+}
+
+/* Sidebar Hover Effects */
+.unfold-sidebar-item:hover {
+    background-color: rgba(252, 163, 77, 0.1) !important;
+    color: var(--brand-orange) !important;
+}

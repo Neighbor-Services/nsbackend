@@ -1,0 +1,256 @@
+{% extends 'unfold/layouts/base.html' %}
+{% load i18n unfold static %}
+
+{% block breadcrumbs %}{% endblock %}
+
+{% block extrahead %}
+    <link rel="stylesheet" href="{% static 'css/admin_custom.css' %}">
+{% endblock %}
+
+{% block title %}
+    {% trans 'Dashboard' %} | {{ site_title|default:_('Django site admin') }}
+{% endblock %}
+
+{% block content %}
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <div class="flex flex-col gap-10 animate-fade-in">
+        <!-- KPIs -->
+        {% if kpi %}
+            <div class="flex flex-wrap -mx-4">
+                {% for item in kpi %}
+                    <div class="w-full sm:w-1/2 lg:w-1/4 px-4 mb-8">
+                        <div class="kpi-card relative bg-white dark:bg-gray-800 rounded-3xl p-6 shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden group">
+                            <!-- Background Gradient Blob -->
+                            <div class="absolute -right-6 -top-6 w-32 h-32 bg-gradient-to-br from-primary-500/10 to-transparent dark:from-primary-500/20 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-500"></div>
+                            
+                            <div class="relative z-10 flex flex-col h-full justify-between">
+                                <div>
+                                    <h3 class="text-xs font-bold tracking-widest text-gray-400 dark:text-gray-500 uppercase mb-2">
+                                        {{ item.title }}
+                                    </h3>
+                                    <div class="text-3xl font-black text-gray-900 dark:text-white tracking-tight">
+                                        {{ item.metric }}
+                                    </div>
+                                </div>
+                                
+                                {% if item.footer %}
+                                    <div class="mt-4 flex items-center gap-2">
+                                        {% if '+' in item.footer %}
+                                            <div class="flex items-center gap-1.5 text-xs font-bold text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-500/10 px-2.5 py-1 rounded-full border border-primary-100 dark:border-primary-500/20">
+                                                <span class="material-symbols-outlined text-[16px]">trending_up</span>
+                                                {{ item.footer }}
+                                            </div>
+                                        {% else %}
+                                            <div class="flex items-center gap-1.5 text-xs font-medium text-gray-400 dark:text-gray-500">
+                                                <span class="material-symbols-outlined text-[16px]">info</span>
+                                                {{ item.footer }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                {% endif %}
+                            </div>
+
+                            {% if item.icon %}
+                                <div class="absolute right-4 bottom-4 opacity-[0.03] dark:opacity-[0.08] group-hover:scale-110 group-hover:rotate-12 transition-all duration-500">
+                                     <span class="material-symbols-outlined text-primary-600 dark:text-primary-400 text-[100px] leading-none">
+                                        {{ item.icon }}
+                                    </span>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <!-- Analytics Graph -->
+        <div class="w-full mb-8">
+            <div class="bg-white dark:bg-gray-800 rounded-3xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+                 <div class="flex items-center justify-between mb-6">
+                    <div>
+                        <h3 class="text-lg font-bold text-gray-900 dark:text-white">Revenue Analytics</h3>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Transaction volume over the last 30 days</p>
+                    </div>
+                     <div class="flex items-center gap-2">
+                        <span class="px-3 py-1 bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 text-xs font-bold rounded-full border border-primary-100 dark:border-primary-500/20">
+                            Live Data
+                        </span>
+                     </div>
+                </div>
+                <div class="relative h-96 w-full">
+                    <canvas id="revenueChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 gap-8">
+            {% for app in available_apps %}
+                <div class="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-sm rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-md">
+                    <div class="px-6 py-5 border-b border-gray-100 dark:border-gray-700 bg-gray-50/30 dark:bg-gray-800/50 flex items-center justify-between">
+                        <h3 class="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-3">
+                             {% if app.icon %}
+                                <span class="material-symbols-outlined text-primary-500 text-2xl">{{ app.icon }}</span>
+                             {% endif %}
+                            {{ app.name }}
+                        </h3>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                            <thead class="text-xs text-gray-500 uppercase bg-gray-50/20 dark:bg-gray-900/10 dark:text-gray-400">
+                                <tr>
+                                    <th scope="col" class="px-6 py-4 font-semibold">{% trans 'Model' %}</th>
+                                    <th scope="col" class="px-6 py-4 text-right font-semibold">{% trans 'Actions' %}</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
+                                {% for model in app.models %}
+                                <tr class="bg-white dark:bg-gray-800/80 hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors duration-200">
+                                    <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
+                                        <a href="{{ model.admin_url }}" class="hover:text-primary-600 dark:hover:text-primary-400 flex items-center gap-3 group">
+                                            <span class="material-symbols-outlined text-[10px] text-gray-300 group-hover:text-primary-500 transition-colors">circle</span>
+                                            {{ model.name }}
+                                        </a>
+                                    </th>
+                                    <td class="px-6 py-4 text-right">
+                                        <div class="flex justify-end gap-3">
+                                            {% if model.add_url %}
+                                                <a href="{{ model.add_url }}" class="inline-flex items-center px-3 py-1.5 text-xs font-bold text-center text-primary-700 bg-primary-50 rounded-lg hover:bg-primary-100 focus:ring-2 focus:outline-none focus:ring-primary-300 dark:bg-primary-500/10 dark:text-primary-400 dark:hover:bg-primary-500/20 border border-primary-100 dark:border-primary-500/20 transition-all">
+                                                    <span class="material-symbols-outlined text-sm mr-1.5">add</span>
+                                                    {% trans 'Add' %}
+                                                </a>
+                                            {% endif %}
+                                            {% if model.admin_url %}
+                                                <a href="{{ model.admin_url }}" class="inline-flex items-center px-3 py-1.5 text-xs font-bold text-center text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 hover:text-primary-600 focus:ring-2 focus:outline-none focus:ring-gray-100 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700 dark:hover:text-white transition-all">
+                                                    <span class="material-symbols-outlined text-sm mr-1.5">edit</span>
+                                                    {% trans 'Change' %}
+                                                </a>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const ctx = document.getElementById('revenueChart').getContext('2d');
+            
+            // Premium Orange Gradient for the chart
+            const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+            gradient.addColorStop(0, 'rgba(252, 163, 77, 0.4)'); // Brand Orange
+            gradient.addColorStop(1, 'rgba(252, 163, 77, 0)');
+
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: {{ chart_labels|safe }},
+                    datasets: [{
+                        label: 'Revenue',
+                        data: {{ chart_data|safe }},
+                        borderWidth: 4,
+                        borderColor: '#FCA34D', // Brand Orange
+                        backgroundColor: gradient,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 0,
+                        pointHoverRadius: 8,
+                        pointHoverBackgroundColor: '#FCA34D',
+                        pointHoverBorderColor: '#fff',
+                        pointHoverBorderWidth: 3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: {
+                        duration: 2000,
+                        easing: 'easeOutQuart'
+                    },
+                    interaction: {
+                        intersect: false,
+                        mode: 'index',
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(11, 14, 20, 0.95)',
+                            titleColor: '#FCA34D',
+                            titleFont: {
+                                size: 14,
+                                weight: 'bold',
+                                family: "'Outfit', sans-serif"
+                            },
+                            bodyFont: {
+                                size: 14,
+                                family: "'Inter', sans-serif"
+                            },
+                            padding: 16,
+                            cornerRadius: 12,
+                            displayColors: false,
+                            borderWidth: 1,
+                            borderColor: 'rgba(252, 163, 77, 0.2)',
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed.y !== null) {
+                                        label += new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(context.parsed.y);
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                display: false,
+                                drawBorder: false
+                            },
+                            ticks: {
+                                color: '#718096',
+                                font: {
+                                    size: 12
+                                },
+                                maxTicksLimit: 12
+                            }
+                        },
+                        y: {
+                            border: {
+                                display: false
+                            },
+                            grid: {
+                                color: 'rgba(113, 128, 150, 0.1)',
+                                drawBorder: false
+                            },
+                            ticks: {
+                                color: '#718096',
+                                font: {
+                                    size: 12
+                                },
+                                callback: function(value, index, values) {
+                                    if (value >= 1000) {
+                                        return '$' + (value / 1000) + 'k';
+                                    }
+                                    return '$' + value;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+{% endblock %}

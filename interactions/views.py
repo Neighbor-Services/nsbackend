@@ -1,0 +1,193 @@
+from rest_framework import viewsets, permissions, status
+from rest_framework.decorators import action
+from rest_framework_simplejwt.authentication import JWTAuthentication
+from rest_framework.response import Response
+from django.db import models, transaction
+import decimal
+from .models import Favorite, Review, Appointment, Dispute
+from .serializers import FavoriteSerializer, ReviewSerializer, AppointmentSerializer, DisputeSerializer
+from payments.models import Wallet, WalletTransaction
+from accounts.models import Profile
+
+class FavoriteViewSet(viewsets.ModelViewSet):
+    queryset = Favorite.objects.select_related('user', 'favorite_user').all()
+    serializer_class = FavoriteSerializer
+    permission_classes = (permissions.IsAuthenticated,)
+    authentication_classes = (JWTAuthentication,)
+
+    def get_queryset(self):
+        return self.queryset.filter(user=self.request.user)
+
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+    def create(self, request, *args, **kwargs):
+        # Handle "provider" key from frontend
+        favorite_user_id = request.data.get('provider') or request.data.get('favorite_user_id')
+        if not favorite_user_id:
+            return Response({"error": "favorite_user_id or provider required"}, status=status.HTTP_400_BAD_REQUEST)
+            
+        favorite, created = Favorite.objects.get_or_create(
+            user=request.user,
+            favorite_user_id=favorite_user_id
+        )
+        serializer = self.get_serializer(favorite)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+class ReviewViewSet(viewsets.ModelViewSet):
+    queryset = Review.objects.select_related('reviewer', 'provider', 'provider__profile').all()
+    serializer_class = ReviewSerializer
+    permission_classes = (permissions.IsAuthenticated,)
+    authentication_classes = (JWTAuthentication,)
+
+    def get_queryset(self):
+        queryset = self.queryset
+        provider_id = self.request.query_params.get('provider', None)
+        if provider_id is not None:
+            queryset = queryset.filter(
+                models.Q(provider__id=provider_id) | 
+                models.Q(provider__profile__id=provider_id)
+            )
+        return queryset
+
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
+    def perform_create(self, serializer):
+        review = serializer.save(reviewer=self.request.user)
+        # Update provider's average rating
+        provider = review.provider
+        reviews = Review.objects.filter(provider=provider)
+        total_reviews = reviews.count()
+        avg_rating = sum([r.rating for r in reviews]) / total_reviews
+        
+        provider.profile.average_rating = avg_rating
+        provider.profile.total_reviews = total_reviews
+        provider.profile.save()
+
+class AppointmentViewSet(viewsets.ModelViewSet):
+    queryset = Appointment.objects.select_related('seeker', 'provider', 'seeker__profile', 'provider__profile').all()
+    serializer_class = AppointmentSerializer
+    permission_classes = (permissions.IsAuthenticated,)
+    authentication_classes = (JWTAuthentication,)
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            wrapped_data = self._wrap_appointments(serializer.data, request.user)
+            return self.get_paginated_response(wrapped_data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(self._wrap_appointments(serializer.data, request.user))
+
+    @action(detail=True, methods=['post'])
+    def complete(self, request, pk=None):
+        appointment = self.get_object()
+        
+        # Security: Only Seeker or Provider can complete
+        if request.user not in [appointment.seeker, appointment.provider]:
+            return Response({'error': 'Not authorized'}, status=status.HTTP_401_UNAUTHORIZED)
+            
+        if appointment.status == 'COMPLETED':
+            return Response({'error': 'Appointment already completed'}, status=status.HTTP_400_BAD_REQUEST)
+
+        with transaction.atomic():
+            appointment.status = 'COMPLETED'
+            appointment.save()
+            
+            if appointment.is_funded:
+                # Release funds to Provider's Wallet
+                amount = request.data.get('amount')
+                if not amount:
+                    return Response({'error': 'Completion amount required to release funds'}, status=status.HTTP_400_BAD_REQUEST)
+                
+                try:
+                    amount_decimal = decimal.Decimal(str(amount))
+                except (decimal.InvalidOperation, ValueError):
+                    return Response({'error': 'Invalid amount format'}, status=status.HTTP_400_BAD_REQUEST)
+                
+                # Calculate Commission
+                # Tiers: FREE (20%), SILVER (15%), GOLD (10%), PLATINUM (5%)
+                tier = appointment.provider.profile.subscription_tier or 'FREE'
+                commission_rates = {
+                    'FREE': 0.20,
+                    'SILVER': 0.15,
+                    'GOLD': 0.10,
+                    'PLATINUM': 0.05
+                }
+                rate = commission_rates.get(tier, 0.20)
+                commission = amount_decimal * decimal.Decimal(str(rate))
+                net_amount = amount_decimal - commission
+                
+                # Update Provider Wallet
+                wallet, _ = Wallet.objects.get_or_create(user=appointment.provider)
+                wallet.balance += net_amount
+                wallet.save()
+                
+                # Create Transaction Record
+                WalletTransaction.objects.create(
+                    wallet=wallet,
+                    amount=net_amount,
+                    transaction_type='CREDIT',
+                    description=f'Job Completion: {appointment.title or "Service"}',
+                    status='COMPLETED',
+                    reference_id=str(appointment.id)
+                )
+                
+                return Response({
+                    'status': 'appointment completed',
+                    'funds_released': str(net_amount),
+                    'commission_deducted': str(commission)
+                })
+                
+            return Response({'status': 'appointment completed'})
+
+    def _wrap_appointments(self, data, current_user):
+        wrapped = []
+        for item in data:
+            seeker_profile = item.get('seeker_profile')
+            provider_profile = item.get('provider_profile')
+            
+            if str(item.get('seeker')) == str(current_user.id):
+                user_profile = provider_profile
+            else:
+                user_profile = seeker_profile
+                
+            wrapped.append({
+                "appointment": item,
+                "user": user_profile
+            })
+        return wrapped
+
+    def get_queryset(self):
+        return self.queryset.filter(seeker=self.request.user) | self.queryset.filter(provider=self.request.user)
+
+class DisputeViewSet(viewsets.ModelViewSet):
+    queryset = Dispute.objects.select_related('raised_by', 'defendant', 'appointment').all()
+    serializer_class = DisputeSerializer
+    permission_classes = (permissions.IsAuthenticated,)
+    authentication_classes = (JWTAuthentication,)
+
+    def get_queryset(self):
+        return self.queryset.filter(models.Q(raised_by=self.request.user) | models.Q(defendant=self.request.user))
+
+    def create(self, request, *args, **kwargs):
+        print(f"Dispute creation request data: {request.data}")
+        serializer = self.get_serializer(data=request.data)
+        try:
+            serializer.is_valid(raise_exception=True)
+            self.perform_create(serializer)
+            headers = self.get_success_headers(serializer.data)
+            return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+        except Exception as e:
+            print(f"Dispute creation error: {str(e)}")
+            print(f"Serializer errors: {serializer.errors if hasattr(serializer, 'errors') else 'No errors'}")
+            raise
+
+    def perform_create(self, serializer):
+        serializer.save(raised_by=self.request.user)
