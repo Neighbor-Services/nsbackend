@@ -36,7 +36,7 @@ class RegisterView(generics.CreateAPIView):
         # Automatically create a profile for the user
         Profile.objects.create(user=user)
         
-        otp = str(random.randint(100000, 999999))
+        otp = str(random.randint(1000, 9999))
         user.otp_code = otp
         user.otp_expiry = timezone.now() + timedelta(minutes=10)
         user.save()
@@ -76,7 +76,7 @@ class ResendOTPView(generics.GenericAPIView):
             email = serializer.validated_data['email']
             user = User.objects.filter(email=email).first()
             if user:
-                otp = str(random.randint(100000, 999999))
+                otp = str(random.randint(1000, 9999))
                 user.otp_code = otp
                 user.otp_expiry = timezone.now() + timedelta(minutes=10)
                 user.save()
@@ -138,7 +138,7 @@ class PasswordResetRequestView(generics.GenericAPIView):
             email = serializer.validated_data['email']
             user = User.objects.filter(email=email).first()
             if user:
-                otp = str(random.randint(100000, 999999))
+                otp = str(random.randint(1000, 9999))
                 user.otp_code = otp
                 user.otp_expiry = timezone.now() + timedelta(minutes=10)
                 user.save()

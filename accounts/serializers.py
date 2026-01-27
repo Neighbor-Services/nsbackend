@@ -36,12 +36,12 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
 
 class PasswordResetOTPSerializer(serializers.Serializer):
     email = serializers.EmailField(required=True)
-    otp_code = serializers.CharField(max_length=6, required=True)
+    otp_code = serializers.CharField(max_length=4, required=True)
     new_password = serializers.CharField(required=True)
 
 class OTPSerializer(serializers.Serializer):
     email = serializers.EmailField(required=True)
-    otp_code = serializers.CharField(max_length=6, required=True)
+    otp_code = serializers.CharField(max_length=4, required=True)
 
 class ResendOTPSerializer(serializers.Serializer):
     email = serializers.EmailField(required=True)
