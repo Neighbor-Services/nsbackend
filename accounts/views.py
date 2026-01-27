@@ -15,12 +15,15 @@ from .serializers import (
     ServicePackageSerializer, AboutSerializer,
     PasswordChangeSerializer, PasswordResetRequestSerializer, 
     PasswordResetConfirmSerializer, PasswordResetOTPSerializer,
-    OTPSerializer, ResendOTPSerializer
+    OTPSerializer, ResendOTPSerializer, CustomTokenObtainPairSerializer
 )
 from .utils import send_otp_email
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters
 from .filters import ProfileFilter
+
+class CustomTokenObtainPairView(TokenObtainPairView):
+    serializer_class = CustomTokenObtainPairSerializer
 
 class RegisterView(generics.CreateAPIView):
     queryset = User.objects.all()

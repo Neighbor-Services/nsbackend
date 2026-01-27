@@ -1,5 +1,13 @@
 from rest_framework import serializers
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from .models import Profile, PortfolioItem, ServicePackage, User, About
+
+class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+    def validate(self, attrs):
+        data = super().validate(attrs)
+        if not self.user.is_verified:
+            raise serializers.ValidationError("Email not verified. Please verify your email before logging in.")
+        return data
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:

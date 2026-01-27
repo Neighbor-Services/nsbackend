@@ -6,7 +6,8 @@ from .views import (
     ServicePackageViewSet, ResendOTPView, ChangePasswordView, 
     PasswordResetRequestView, PasswordResetConfirmView,
     PasswordResetOTPConfirmView, AboutViewSet,
-    VerifyOTPView, VerifyEmailView, GoogleLoginView
+    VerifyOTPView, VerifyEmailView, GoogleLoginView,
+    CustomTokenObtainPairView
 )
 
 router = DefaultRouter()
@@ -20,7 +21,7 @@ urlpatterns = [
     path('verify-otp/', VerifyOTPView.as_view(), name='verify_otp'),
     path('resend-otp/', ResendOTPView.as_view(), name='resend_otp'),
     path('verify/<str:uidb64>/<str:token>/', VerifyEmailView.as_view(), name='verify_email'),
-    path('login/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('login/', CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('change-password/', ChangePasswordView.as_view(), name='change_password'),
     path('password-reset/', PasswordResetRequestView.as_view(), name='password_reset'),
