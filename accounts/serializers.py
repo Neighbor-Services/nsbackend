@@ -88,7 +88,7 @@ class SimpleProfileSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Profile
-        fields = ['id', 'user', 'user_type', 'profile_picture_url', 'first_name', 'last_name', 'catalog_service_name', 'service', 'average_rating', 'total_reviews', 'is_identity_verified']
+        fields = ['id', 'user', 'user_type', 'profile_picture_url', 'first_name', 'last_name', 'catalog_service_name', 'service', 'average_rating', 'total_reviews', 'is_identity_verified', 'preferred_payment_mode']
         read_only_fields = ('average_rating', 'total_reviews', 'is_identity_verified')
 
 class ProfileSerializer(serializers.ModelSerializer):
