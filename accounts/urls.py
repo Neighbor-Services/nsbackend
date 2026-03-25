@@ -7,7 +7,7 @@ from .views import (
     PasswordResetRequestView, PasswordResetConfirmView,
     PasswordResetOTPConfirmView, AboutViewSet,
     VerifyOTPView, VerifyEmailView, GoogleLoginView,
-    CustomTokenObtainPairView
+    CustomTokenObtainPairView, LegalDocumentView
 )
 
 router = DefaultRouter()
@@ -28,5 +28,6 @@ urlpatterns = [
     path('password-reset-confirm/', PasswordResetConfirmView.as_view(), name='password_reset_confirm'),
     path('password-reset-otp-confirm/', PasswordResetOTPConfirmView.as_view(), name='password_reset_otp_confirm'),
     path('login-google/', GoogleLoginView.as_view(), name='login_google'),
+    path('legal/', LegalDocumentView.as_view(), name='legal_document'),
     path('', include(router.urls)),
 ]

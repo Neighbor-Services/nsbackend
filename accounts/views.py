@@ -9,13 +9,14 @@ from django.contrib.auth.tokens import default_token_generator
 import random
 from django.utils import timezone
 from datetime import timedelta
-from .models import User, Profile, PortfolioItem, ServicePackage, About
+from .models import User, Profile, PortfolioItem, ServicePackage, About, LegalDocument
 from .serializers import (
     UserSerializer, ProfileSerializer, PortfolioItemSerializer, 
     ServicePackageSerializer, AboutSerializer,
     PasswordChangeSerializer, PasswordResetRequestSerializer, 
     PasswordResetConfirmSerializer, PasswordResetOTPSerializer,
-    OTPSerializer, ResendOTPSerializer, CustomTokenObtainPairSerializer
+    OTPSerializer, ResendOTPSerializer, CustomTokenObtainPairSerializer,
+    LegalDocumentSerializer
 )
 from .utils import send_otp_email
 from django_filters.rest_framework import DjangoFilterBackend
@@ -409,3 +410,25 @@ class GoogleLoginView(generics.GenericAPIView):
             
         except ValueError as e:
             return Response({"detail": f"Invalid token: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class LegalDocumentView(generics.GenericAPIView):
+    """Public endpoint to get Terms & Conditions or Privacy Policy."""
+    permission_classes = (permissions.AllowAny,)
+    serializer_class = LegalDocumentSerializer
+
+    def get(self, request):
+        doc_type = request.query_params.get('type', '').upper()
+        if doc_type not in ('TERMS', 'PRIVACY'):
+            return Response(
+                {"detail": "type must be TERMS or PRIVACY"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        doc = LegalDocument.objects.filter(doc_type=doc_type, is_active=True).first()
+        if not doc:
+            return Response(
+                {"detail": "Document not found."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        serializer = self.get_serializer(doc)
+        return Response(serializer.data)

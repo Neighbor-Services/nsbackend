@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
-from .models import Profile, PortfolioItem, ServicePackage, User, About
+from .models import Profile, PortfolioItem, ServicePackage, User, About, LegalDocument
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     def validate(self, attrs):
@@ -116,3 +116,10 @@ class ProfileSerializer(serializers.ModelSerializer):
         model = Profile
         fields = '__all__'
         read_only_fields = ('average_rating', 'total_reviews', 'is_identity_verified')
+
+
+class LegalDocumentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = LegalDocument
+        fields = ('id', 'doc_type', 'title', 'content', 'version', 'updated_at')
+

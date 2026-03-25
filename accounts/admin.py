@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from unfold.admin import ModelAdmin, StackedInline, TabularInline
-from .models import User, Profile, PortfolioItem, About
+from .models import User, Profile, PortfolioItem, About, LegalDocument
 
 class ProfileInline(StackedInline):
     model = Profile
@@ -72,3 +72,23 @@ class PortfolioItemAdmin(ModelAdmin):
 
 # admin.site.unregister(User) # BaseUserAdmin was not registered yet in this file
 admin.site.register(User, UserAdmin)
+
+
+@admin.register(LegalDocument)
+class LegalDocumentAdmin(ModelAdmin):
+    list_display = ('doc_type', 'title', 'version', 'is_active', 'updated_at')
+    list_filter = ('doc_type', 'is_active')
+    search_fields = ('title', 'content')
+    list_editable = ('is_active',)
+    readonly_fields = ('created_at', 'updated_at')
+    fieldsets = (
+        ('Document Info', {
+            'fields': ('doc_type', 'title', 'version', 'is_active')
+        }),
+        ('Content', {
+            'fields': ('content',)
+        }),
+        ('Timestamps', {
+            'fields': ('created_at', 'updated_at'),
+        }),
+    )

@@ -187,3 +187,27 @@ class PerformanceBadge(models.Model):
 
     def __str__(self):
         return f"{self.name} for {self.profile.user.email}"
+
+
+class LegalDocument(models.Model):
+    DOC_TYPES = (
+        ('TERMS', 'Terms & Conditions'),
+        ('PRIVACY', 'Privacy Policy'),
+    )
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    doc_type = models.CharField(max_length=10, choices=DOC_TYPES)
+    title = models.CharField(max_length=255)
+    content = models.TextField()
+    version = models.CharField(max_length=20, default='1.0')
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-updated_at']
+        verbose_name = 'Legal Document'
+        verbose_name_plural = 'Legal Documents'
+
+    def __str__(self):
+        return f"{self.get_doc_type_display()} v{self.version}"
