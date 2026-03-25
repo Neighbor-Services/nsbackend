@@ -9,7 +9,11 @@ from django.contrib.auth.tokens import default_token_generator
 import random
 from django.utils import timezone
 from datetime import timedelta
-from .models import User, Profile, PortfolioItem, ServicePackage, About, LegalDocument
+from django.core.cache import cache
+from .models import (
+    User, Profile, About, PortfolioItem, ServicePackage,
+    LegalDocument
+)
 from .serializers import (
     UserSerializer, ProfileSerializer, PortfolioItemSerializer, 
     ServicePackageSerializer, AboutSerializer,
@@ -424,11 +428,19 @@ class LegalDocumentView(generics.GenericAPIView):
                 {"detail": "type must be TERMS or PRIVACY"},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        docs = LegalDocument.objects.filter(doc_type=doc_type, is_active=True).order_by('created_at')
-        if not docs.exists():
-            return Response(
-                {"detail": "Documents not found."},
-                status=status.HTTP_404_NOT_FOUND
-            )
-        serializer = self.get_serializer(docs, many=True)
-        return Response(serializer.data)
+
+        cache_key = f"legal_docs_{doc_type}"
+        data = cache.get(cache_key)
+
+        if data is None:
+            docs = LegalDocument.objects.filter(doc_type=doc_type, is_active=True).order_by('created_at')
+            if not docs.exists():
+                return Response(
+                    {"detail": "Documents not found."},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+            serializer = self.get_serializer(docs, many=True)
+            data = serializer.data
+            cache.set(cache_key, data, 60 * 60 * 24)  # Cache for 24 hours
+
+        return Response(data)

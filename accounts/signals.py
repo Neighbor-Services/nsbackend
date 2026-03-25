@@ -1,6 +1,7 @@
-from django.db.models.signals import post_save
+from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
-from .models import Profile, ServicePackage, PortfolioItem
+from django.core.cache import cache
+from .models import Profile, ServicePackage, PortfolioItem, LegalDocument
 from services.ai_matching import EmbeddingService
 import logging
 
@@ -34,3 +35,10 @@ def trigger_portfolio_ai_analysis(sender, instance, created, **kwargs):
     if created and instance.image:
         from .tasks import analyze_portfolio_image_task
         analyze_portfolio_image_task.delay(instance.id)
+
+@receiver([post_save, post_delete], sender=LegalDocument)
+def invalidate_legal_docs_cache(sender, instance, **kwargs):
+    """Clear cache for both TERMS and PRIVACY when any document is changed."""
+    cache.delete("legal_docs_TERMS")
+    cache.delete("legal_docs_PRIVACY")
+    logger.info(f"Invalidated legal documents cache due to change in {instance}")

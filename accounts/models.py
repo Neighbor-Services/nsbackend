@@ -208,6 +208,9 @@ class LegalDocument(models.Model):
         ordering = ['-updated_at']
         verbose_name = 'Legal Document'
         verbose_name_plural = 'Legal Documents'
+        indexes = [
+            models.Index(fields=['doc_type', 'is_active', 'created_at']),
+        ]
 
     def __str__(self):
         return f"{self.get_doc_type_display()} v{self.version}"
