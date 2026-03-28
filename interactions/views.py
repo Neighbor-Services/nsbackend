@@ -152,7 +152,25 @@ class AppointmentViewSet(viewsets.ModelViewSet):
                     'commission_deducted': str(commission)
                 })
                 
-            return Response({'status': 'appointment completed'})
+    def create(self, request, *args, **kwargs):
+        # Log incoming creation request
+        print(f"Appointment creation request data: {request.data}")
+        serializer = self.get_serializer(data=request.data)
+        try:
+            serializer.is_valid(raise_exception=True)
+            self.perform_create(serializer)
+            headers = self.get_success_headers(serializer.data)
+            return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+        except Exception as e:
+            print(f"Appointment creation error: {str(e)}")
+            if hasattr(serializer, 'errors'):
+                print(f"Serializer errors: {serializer.errors}")
+            return Response({'error': str(e), 'details': getattr(serializer, 'errors', {})}, status=status.HTTP_400_BAD_REQUEST)
+
+    def perform_create(self, serializer):
+        # If user is a provider, ensure they are set as the provider
+        # Frontend might pass provider ID, but we should verify it matches if possible
+        serializer.save()
 
     def _wrap_appointments(self, data, current_user):
         wrapped = []
