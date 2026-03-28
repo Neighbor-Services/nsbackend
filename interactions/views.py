@@ -158,9 +158,12 @@ class AppointmentViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(data=request.data)
         try:
             serializer.is_valid(raise_exception=True)
-            self.perform_create(serializer)
+            instance = serializer.save()
+            # Wrap the newly created appointment for the response
+            serializer = self.get_serializer(instance)
+            wrapped_data = self._wrap_appointments([serializer.data], request.user)[0]
             headers = self.get_success_headers(serializer.data)
-            return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+            return Response(wrapped_data, status=status.HTTP_201_CREATED, headers=headers)
         except Exception as e:
             print(f"Appointment creation error: {str(e)}")
             if hasattr(serializer, 'errors'):
@@ -168,9 +171,8 @@ class AppointmentViewSet(viewsets.ModelViewSet):
             return Response({'error': str(e), 'details': getattr(serializer, 'errors', {})}, status=status.HTTP_400_BAD_REQUEST)
 
     def perform_create(self, serializer):
-        # If user is a provider, ensure they are set as the provider
-        # Frontend might pass provider ID, but we should verify it matches if possible
-        serializer.save()
+        # The logic is now inside create for better response wrapping
+        pass
 
     def _wrap_appointments(self, data, current_user):
         wrapped = []
