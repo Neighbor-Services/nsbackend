@@ -85,6 +85,13 @@ class AppointmentViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(queryset, many=True)
         return Response(self._wrap_appointments(serializer.data, request.user))
 
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance)
+        # Wrap single appointment similar to list format
+        wrapped_data = self._wrap_appointments([serializer.data], request.user)[0]
+        return Response(wrapped_data)
+
     @action(detail=True, methods=['post'])
     def complete(self, request, pk=None):
         appointment = self.get_object()
@@ -153,19 +160,25 @@ class AppointmentViewSet(viewsets.ModelViewSet):
             seeker_profile = item.get('seeker_profile')
             provider_profile = item.get('provider_profile')
             
-            if str(item.get('seeker')) == str(current_user.id):
+            # robust comparison of UUIDs
+            is_seeker = str(item.get('seeker')) == str(current_user.id)
+            
+            if is_seeker:
                 user_profile = provider_profile
+                role = 'seeker'
             else:
                 user_profile = seeker_profile
+                role = 'provider'
                 
             wrapped.append({
                 "appointment": item,
-                "user": user_profile
+                "user": user_profile,
+                "role": role
             })
         return wrapped
 
     def get_queryset(self):
-        return self.queryset.filter(seeker=self.request.user) | self.queryset.filter(provider=self.request.user)
+        return self.queryset.filter(models.Q(seeker=self.request.user) | models.Q(provider=self.request.user))
 
 class DisputeViewSet(viewsets.ModelViewSet):
     queryset = Dispute.objects.select_related('raised_by', 'defendant', 'appointment').all()
