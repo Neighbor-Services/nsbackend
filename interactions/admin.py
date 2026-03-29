@@ -10,8 +10,8 @@ class DisputeAdmin(ModelAdmin):
 
 @admin.register(Appointment)
 class AppointmentAdmin(ModelAdmin):
-    list_display = ('title', 'seeker', 'provider', 'status', 'scheduled_time')
-    list_filter = ('status', 'scheduled_time')
+    list_display = ('title', 'seeker', 'provider', 'status')
+    list_filter = ('status')
     search_fields = ('title', 'seeker__email', 'provider__email')
     readonly_fields = ('created_at', 'updated_at')
     
@@ -23,7 +23,7 @@ class AppointmentAdmin(ModelAdmin):
             'fields': ('seeker', 'provider')
         }),
         ('Schedule', {
-            'fields': ('scheduled_time', ('start_date', 'end_date'), 'appointment_date')
+            'fields': ('appointment_date')
         }),
         ('Content', {
             'fields': ('description',)
