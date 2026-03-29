@@ -13,7 +13,7 @@ fi
 
 # Run database migrations
 echo "Running database migrations..."
-python sync_dates.py
+
 python manage.py makemigrations
 python manage.py migrate --noinput
 

@@ -11,7 +11,7 @@ class DisputeAdmin(ModelAdmin):
 @admin.register(Appointment)
 class AppointmentAdmin(ModelAdmin):
     list_display = ('title', 'seeker', 'provider', 'status')
-    list_filter = ('status')
+    list_filter = ('status',)
     search_fields = ('title', 'seeker__email', 'provider__email')
     readonly_fields = ('created_at', 'updated_at')
     
@@ -23,7 +23,7 @@ class AppointmentAdmin(ModelAdmin):
             'fields': ('seeker', 'provider')
         }),
         ('Schedule', {
-            'fields': ('appointment_date')
+            'fields': ('appointment_date',)
         }),
         ('Content', {
             'fields': ('description',)
