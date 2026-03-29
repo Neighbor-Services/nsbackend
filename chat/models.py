@@ -21,8 +21,6 @@ class Message(models.Model):
     with_image = models.BooleanField(default=False)
     is_calender = models.BooleanField(default=False)
     with_image_and_text = models.BooleanField(default=False)
-    calender_start_date = models.DateTimeField(null=True, blank=True)
-    calender_end_date = models.DateTimeField(null=True, blank=True)
     calender_date = models.DateTimeField(null=True, blank=True)
     media_url = models.URLField(blank=True, null=True)
     image = models.ImageField(upload_to='chat_images/', blank=True, null=True)
