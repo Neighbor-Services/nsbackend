@@ -14,7 +14,7 @@ fi
 # Run database migrations
 echo "Running database migrations..."
 
-python manage.py makemigrations
+python manage.py makemigrations 
 python manage.py migrate --noinput
 
 # Collect static files

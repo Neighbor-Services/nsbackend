@@ -139,10 +139,12 @@ class ReviewSerializer(serializers.ModelSerializer):
         return data
 
 from django.db import models
+from services.serializers import ServiceRequestSerializer
 
 class AppointmentSerializer(serializers.ModelSerializer):
     seeker_profile = SimpleProfileSerializer(source='seeker.profile', read_only=True)
     provider_profile = SimpleProfileSerializer(source='provider.profile', read_only=True)
+    service_request_details = ServiceRequestSerializer(source='service_request', read_only=True)
 
     class Meta:
         model = Appointment
