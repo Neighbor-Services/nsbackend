@@ -54,7 +54,11 @@ class Appointment(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def save(self, *args, **kwargs):
-        if self._state.adding is False:
+        if self._state.adding:
+            # For new appointments, if not already set, link the service request from the proposal
+            if not self.service_request and self.proposal:
+                self.service_request = self.proposal.request
+        else:
             # It's an update, increment version
             self.version += 1
         super().save(*args, **kwargs)

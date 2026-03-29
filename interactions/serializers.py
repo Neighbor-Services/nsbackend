@@ -144,7 +144,14 @@ from services.serializers import ServiceRequestSerializer
 class AppointmentSerializer(serializers.ModelSerializer):
     seeker_profile = SimpleProfileSerializer(source='seeker.profile', read_only=True)
     provider_profile = SimpleProfileSerializer(source='provider.profile', read_only=True)
-    service_request_details = ServiceRequestSerializer(source='service_request', read_only=True)
+    service_request_details = serializers.SerializerMethodField()
+
+    def get_service_request_details(self, obj):
+        if obj.service_request:
+            return ServiceRequestSerializer(obj.service_request, context=self.context).data
+        if obj.proposal and obj.proposal.request:
+            return ServiceRequestSerializer(obj.proposal.request, context=self.context).data
+        return None
 
     class Meta:
         model = Appointment
