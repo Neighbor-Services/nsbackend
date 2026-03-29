@@ -60,7 +60,7 @@ class Appointment(models.Model):
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"Appointment: {self.seeker.email} & {self.provider.email} at {self.scheduled_time}"
+        return f"Appointment: {self.seeker.email} & {self.provider.email} at {self.appointment_date}"
 
 class Dispute(models.Model):
     STATUS_CHOICES = (

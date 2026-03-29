@@ -39,7 +39,7 @@ class MessageSerializer(serializers.ModelSerializer):
         fields = (
             'id', 'chat_room_id', 'sender', 'receiver', 'sender_email', 'message', 'content',
             'with_image', 'is_calender', 'with_image_and_text',
-            'calender_start_date', 'calender_end_date', 'calender_date',
+            'calender_date',
             'media_url', 'image', 'file_name', 'read', 'is_seen',
             'created_at', 'updated_at'
         )

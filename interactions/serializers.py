@@ -153,21 +153,14 @@ class AppointmentSerializer(serializers.ModelSerializer):
         # Prevent duplicate appointments
         seeker = data.get('seeker')
         provider = data.get('provider')
-        scheduled_time = data.get('scheduled_time')
-        start_date = data.get('start_date')
+        appointment_date = data.get('appointment_date')
         
-        # Use start_date if scheduled_time is not provided (depending on frontend usage)
-        check_time = scheduled_time or start_date
-        
-        if seeker and provider and check_time:
-            # Check for existing appointment with same seeker, provider and time (within 1 minute buffer?)
-            # Exact match is safer for now as "Add to Calendar" passes exact same time.
+        if seeker and provider and appointment_date:
+            # Check for existing appointment with same seeker, provider and date
             duplicates = Appointment.objects.filter(
                 seeker=seeker,
                 provider=provider,
-                # Check either scheduled_time or start_date matching
-            ).filter(
-                models.Q(scheduled_time=check_time) | models.Q(start_date=check_time)
+                appointment_date=appointment_date
             ).exclude(status='CANCELLED')
 
             if self.instance:
