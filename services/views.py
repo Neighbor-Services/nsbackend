@@ -1,4 +1,5 @@
 from django.db.models import Q
+from django.db import transaction
 from rest_framework import viewsets, permissions, status
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework.decorators import action
@@ -167,42 +168,41 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
         
         proposal_id = request.data.get('proposal_id')
         try:
-            proposal = Proposal.objects.get(id=proposal_id, request=service_request)
-            proposal.is_approved = True
-            proposal.save()
-            # Do NOT set service_request.status = 'IN_PROGRESS' yet. 
-            # This will be done in the Stripe webhook after funding.
-            
-            # Notify Provider
-            desc = service_request.description[:20] if service_request.description else "service request"
-            send_notification(
-                user=proposal.provider,
-                sender=request.user,
-                title="Proposal Accepted",
-                message=f"Your proposal for {desc}... has been accepted!",
-                notification_type="PROPOSAL",
-                data={"proposal_id": str(proposal.id), "request_id": str(service_request.id)}
-            )
-            
-            # Send Email to Provider (async via Celery)
-            send_proposal_approval_email_task.delay(str(proposal.id))
+            with transaction.atomic():
+                proposal = Proposal.objects.select_for_update().get(id=proposal_id, request=service_request)
+                proposal.is_approved = True
+                proposal.save()
+                
+                # Check if an appointment already exists for this proposal
+                appointment = Appointment.objects.filter(proposal=proposal).first()
+                if not appointment:
+                    appointment = Appointment.objects.create(
+                        seeker=service_request.user,
+                        provider=proposal.provider,
+                        title=service_request.title,
+                        description=service_request.description,
+                        appointment_date=service_request.scheduled_time, # Fixed: scheduled_time -> appointment_date
+                        service_request=service_request,
+                        total_price=service_request.price or 0.00,
+                        proposal=proposal
+                    )
 
-            # Create Appointment
-            appointment = Appointment.objects.create(
-                seeker=service_request.user,
-                provider=proposal.provider,
-                title=service_request.title,
-                description=service_request.description,
-                scheduled_time=service_request.scheduled_time,
-                service_request=service_request,
-                total_price=service_request.price or 0.00,
-                proposal=proposal
-            )
-
-            # Send Email with .ics (async via Celery)
-            from interactions.tasks import send_appointment_confirmation_email_task
-            send_appointment_confirmation_email_task.delay(str(appointment.id))
-            
+                # Notify Provider
+                desc = service_request.description[:20] if service_request.description else "service request"
+                send_notification(
+                    user=proposal.provider,
+                    sender=request.user,
+                    title="Proposal Accepted",
+                    message=f"Your proposal for {desc}... has been accepted!",
+                    notification_type="PROPOSAL",
+                    data={"proposal_id": str(proposal.id), "request_id": str(service_request.id)}
+                )
+                
+                # Send Emails
+                send_proposal_approval_email_task.delay(str(proposal.id))
+                from interactions.tasks import send_appointment_confirmation_email_task
+                send_appointment_confirmation_email_task.delay(str(appointment.id))
+                
             return Response({'status': 'proposal approved'})
         except Proposal.DoesNotExist:
             return Response({'error': 'Proposal not found'}, status=status.HTTP_404_NOT_FOUND)
@@ -216,11 +216,15 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
         # Find approved proposal
         approved_proposal = Proposal.objects.filter(request=service_request, is_approved=True).first()
         if approved_proposal:
-            approved_proposal.is_approved = False
-            approved_proposal.save()
-            
-            service_request.status = 'OPEN'
-            service_request.save()
+            with transaction.atomic():
+                approved_proposal.is_approved = False
+                approved_proposal.save()
+                
+                service_request.status = 'OPEN'
+                service_request.save()
+
+                # Delete associated appointment
+                Appointment.objects.filter(proposal=approved_proposal).delete()
             
             return Response({'status': 'approval cancelled'})
         return Response({'error': 'No approved proposal found'}, status=status.HTTP_404_NOT_FOUND)

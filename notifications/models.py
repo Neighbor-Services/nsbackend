@@ -8,6 +8,7 @@ class Notification(models.Model):
         ('APPOINTMENT', 'Appointment Update'),
         ('MESSAGE', 'New Message'),
         ('SYSTEM', 'System Alert'),
+        ('DIRECT_REQUEST', 'Direct Service Request'),
     )
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
