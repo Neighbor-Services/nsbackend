@@ -8,6 +8,7 @@ from .models import Favorite, Review, Appointment, Dispute
 from .serializers import FavoriteSerializer, ReviewSerializer, AppointmentSerializer, DisputeSerializer
 from payments.models import Wallet, WalletTransaction
 from accounts.models import Profile
+from notifications.utils import send_notification
 
 class FavoriteViewSet(viewsets.ModelViewSet):
     queryset = Favorite.objects.select_related('user', 'favorite_user').all()
@@ -66,7 +67,17 @@ class ReviewViewSet(viewsets.ModelViewSet):
         
         provider.profile.average_rating = avg_rating
         provider.profile.total_reviews = total_reviews
+        provider.profile.total_reviews = total_reviews
         provider.profile.save()
+
+        # Notify Provider
+        send_notification(
+            user=provider,
+            title="New Review!",
+            message=f"A seeker has left you a {review.rating}-star review.",
+            notification_type="SYSTEM", # Or add 'REVIEW' type later
+            data={"review_id": str(review.id)}
+        )
 
 class AppointmentViewSet(viewsets.ModelViewSet):
     queryset = Appointment.objects.select_related('seeker', 'provider', 'seeker__profile', 'provider__profile').all()
@@ -146,6 +157,15 @@ class AppointmentViewSet(viewsets.ModelViewSet):
                     reference_id=str(appointment.id)
                 )
                 
+                # Notify Seeker
+                send_notification(
+                    user=appointment.seeker,
+                    title="Service Completed!",
+                    message=f"The provider has marked your service '{appointment.title}' as completed.",
+                    notification_type="APPOINTMENT",
+                    data={"appointment_id": str(appointment.id)}
+                )
+                
                 return Response({
                     'status': 'appointment completed',
                     'funds_released': str(net_amount),
@@ -162,6 +182,15 @@ class AppointmentViewSet(viewsets.ModelViewSet):
             # Wrap the newly created appointment for the response
             serializer = self.get_serializer(instance)
             wrapped_data = self._wrap_appointments([serializer.data], request.user)[0]
+            # Notify Provider of new appointment
+            send_notification(
+                user=instance.provider,
+                title="New Appointment!",
+                message=f"You have a new appointment for {instance.title}.",
+                notification_type="APPOINTMENT",
+                data={"appointment_id": str(instance.id)}
+            )
+
             headers = self.get_success_headers(serializer.data)
             return Response(wrapped_data, status=status.HTTP_201_CREATED, headers=headers)
         except Exception as e:
@@ -223,4 +252,12 @@ class DisputeViewSet(viewsets.ModelViewSet):
             raise
 
     def perform_create(self, serializer):
-        serializer.save(raised_by=self.request.user)
+        dispute = serializer.save(raised_by=self.request.user)
+        # Notify Defendant
+        send_notification(
+            user=dispute.defendant,
+            title="Dispute Raised",
+            message=f"A dispute has been raised against you for an appointment.",
+            notification_type="SYSTEM",
+            data={"dispute_id": str(dispute.id)}
+        )

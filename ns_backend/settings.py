@@ -526,3 +526,10 @@ STRIPE_WEBHOOK_SECRET = os.environ.get('STRIPE_WEBHOOK_SECRET')
 
 # OpenAI Configuration
 OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
+
+# APNS Configuration (Native Apple Push)
+APNS_KEY_ID = os.environ.get('APNS_KEY_ID', '')
+APNS_TEAM_ID = os.environ.get('APNS_TEAM_ID', '')
+APNS_BUNDLE_ID = os.environ.get('APNS_BUNDLE_ID', 'com.neighborservicesolutionsllc.nsapp')
+APNS_KEY_PATH = os.environ.get('APNS_KEY_PATH', os.path.join(BASE_DIR, 'notifications', 'keys', 'apns.p8'))
+APNS_USE_SANDBOX = os.environ.get('APNS_USE_SANDBOX', 'True') == 'True'

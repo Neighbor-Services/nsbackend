@@ -2,8 +2,8 @@ from rest_framework import viewsets, permissions, status
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from .models import Notification
-from .serializers import NotificationSerializer
+from .models import Notification, DeviceToken
+from .serializers import NotificationSerializer, DeviceTokenSerializer
 
 class NotificationViewSet(viewsets.ModelViewSet):
     queryset = Notification.objects.select_related('user').all()
@@ -28,3 +28,28 @@ class NotificationViewSet(viewsets.ModelViewSet):
     def mark_all_as_read(self, request):
         self.get_queryset().update(is_read=True)
         return Response({'status': 'all notifications marked as read'})
+
+class DeviceTokenViewSet(viewsets.ModelViewSet):
+    queryset = DeviceToken.objects.all()
+    serializer_class = DeviceTokenSerializer
+    permission_classes = (permissions.IsAuthenticated,)
+    authentication_classes = (JWTAuthentication,)
+
+    def get_queryset(self):
+        return self.queryset.filter(user=self.request.user)
+
+    def perform_create(self, serializer):
+        # Upsert: if token exists, update user and device_id.
+        token = self.request.data.get('token')
+        device_id = self.request.data.get('device_id')
+        platform = self.request.data.get('platform')
+
+        DeviceToken.objects.update_or_create(
+            token=token,
+            defaults={
+                'user': self.request.user,
+                'device_id': device_id,
+                'platform': platform,
+                'is_active': True
+            }
+        )

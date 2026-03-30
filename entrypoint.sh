@@ -27,4 +27,8 @@ if [ "$DJANGO_SUPERUSER_EMAIL" ] && [ "$DJANGO_SUPERUSER_PASSWORD" ]; then
     python manage.py create_superuser_if_none
 fi
 
+# Start Celery worker
+echo "Starting Celery worker..."
+celery -A nsbackend worker -l info &
+
 exec "$@"
