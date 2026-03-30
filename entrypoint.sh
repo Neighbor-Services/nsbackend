@@ -29,6 +29,6 @@ fi
 
 # Start Celery worker
 echo "Starting Celery worker..."
-celery -A nsbackend worker -l info &
+celery -A ns_backend worker -l info &
 
 exec "$@"

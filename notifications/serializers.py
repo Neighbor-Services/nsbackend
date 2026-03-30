@@ -1,3 +1,4 @@
+from rest_framework import serializers
 from .models import Notification, DeviceToken
 from accounts.serializers import SimpleProfileSerializer
 
