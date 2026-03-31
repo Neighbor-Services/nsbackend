@@ -39,9 +39,7 @@
                             <div style="background-color: #f9f9f9; border-left: 4px solid #F05A28; padding: 20px; margin-bottom: 25px;">
                                 <p style="margin: 0 0 10px; font-size: 14px; color: #999999; text-transform: uppercase; letter-spacing: 1px;">Request Details</p>
                                 <h3 style="margin: 0 0 10px; font-size: 18px; color: #333333;">{{ request_title }}</h3>
-                                {% if price %}
-                                <p style="margin: 0 0 5px; font-size: 15px; color: #666666;">Budget: <strong>${{ price }}</strong></p>
-                                {% endif %}
+                            
                                 {% if scheduled_time %}
                                 <p style="margin: 0 0 5px; font-size: 15px; color: #666666;">Preferred Time: {{ scheduled_time }}</p>
                                 {% endif %}
