@@ -73,6 +73,7 @@ class ReviewViewSet(viewsets.ModelViewSet):
         # Notify Provider
         send_notification(
             user=provider,
+            sender=review.reviewer,
             title="New Review!",
             message=f"A seeker has left you a {review.rating}-star review.",
             notification_type="SYSTEM", # Or add 'REVIEW' type later
@@ -160,6 +161,7 @@ class AppointmentViewSet(viewsets.ModelViewSet):
                 # Notify Seeker
                 send_notification(
                     user=appointment.seeker,
+                    sender=appointment.provider,
                     title="Service Completed!",
                     message=f"The provider has marked your service '{appointment.title}' as completed.",
                     notification_type="APPOINTMENT",
@@ -185,6 +187,7 @@ class AppointmentViewSet(viewsets.ModelViewSet):
             # Notify Provider of new appointment
             send_notification(
                 user=instance.provider,
+                sender=request.user,
                 title="New Appointment!",
                 message=f"You have a new appointment for {instance.title}.",
                 notification_type="APPOINTMENT",
@@ -256,6 +259,7 @@ class DisputeViewSet(viewsets.ModelViewSet):
         # Notify Defendant
         send_notification(
             user=dispute.defendant,
+            sender=self.request.user,
             title="Dispute Raised",
             message=f"A dispute has been raised against you for an appointment.",
             notification_type="SYSTEM",

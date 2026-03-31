@@ -139,6 +139,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         # (Though send_notification will broadcast to all sessions of the user)
         send_notification(
             user=user,
+            sender=message_obj.sender,
             title=f"New Message",
             message=message_obj.message or "You have a new message",
             notification_type="MESSAGE",
