@@ -3,7 +3,7 @@ services:
     build:
       context: ./
       dockerfile: Dockerfile.prod
-    command: daphne -b 127.0.0.1 -p 8080 ns_backend.asgi:application
+    command: daphne -b 0.0.0.0 -p 8000 ns_backend.asgi:application
     volumes:
       - static_volume:/app/static
       - media_volume:/app/media
