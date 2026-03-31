@@ -31,10 +31,10 @@ RUN chmod +x /app/entrypoint.sh
 COPY . .
 
 # Expose port
-EXPOSE 8080
+EXPOSE 8000
 
 # Set entrypoint
 ENTRYPOINT ["sh", "/app/entrypoint.sh"]
 
 # Run server (default command, can be overridden by docker-compose)
-CMD ["python", "manage.py", "runserver", "127.0.0.1:8080"]
+CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
