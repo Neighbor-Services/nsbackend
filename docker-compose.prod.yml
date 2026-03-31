@@ -35,6 +35,23 @@ services:
     expose:
       - 6379
 
+  worker:
+    build:
+      context: ./
+      dockerfile: Dockerfile.prod
+    command: celery -A ns_backend worker --loglevel=info
+    env_file:
+      - ./.env
+    environment:
+      - POSTGRES_HOST=db
+      - REDIS_HOST=redis
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    depends_on:
+      - db
+      - redis
+    restart: always
+
   nginx:
     image: nginx:1.25-alpine
     volumes:

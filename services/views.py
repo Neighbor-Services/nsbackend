@@ -161,7 +161,12 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'])
     def approve_proposal(self, request, pk=None):
-        service_request = self.get_object()
+        try:
+            # Skip the ViewSet's heavy get_queryset logic for simple approval
+            service_request = ServiceRequest.objects.get(pk=pk)
+        except ServiceRequest.DoesNotExist:
+             return Response({'error': 'Request not found'}, status=status.HTTP_404_NOT_FOUND)
+
         if service_request.user != request.user:
             return Response({'error': 'Not authorized'}, status=status.HTTP_401_UNAUTHORIZED)
         
