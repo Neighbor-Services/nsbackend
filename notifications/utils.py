@@ -100,38 +100,13 @@ def send_notification(user, title, message, notification_type, data=None, sender
         data=data
     )
     
-    # 2. Send to WebSocket
-    channel_layer = get_channel_layer()
-    group_name = f"user_{user.id}"
+    # 2. Enqueue Background Delivery
+    # We use transaction.on_commit to ensure the task only runs after the notification
+    # is successfully saved and committed to the database.
+    from .tasks import send_notification_delivery_task
+    from django.db import transaction
     
-    from django.core.serializers.json import DjangoJSONEncoder
-    
-    # Serialize the notification data for the websocket
-    raw_data = NotificationSerializer(notification).data
-    # msgpack cannot serialize UUID objects; round-trip to strip complex primitives.
-    # We use DjangoJSONEncoder which handles UUID, Decimal, and datetime objects.
-    serialized_data = json.loads(json.dumps(raw_data, cls=DjangoJSONEncoder))
-    
-    async_to_sync(channel_layer.group_send)(
-        group_name,
-        {
-            "type": "notification_message",
-            "message": serialized_data
-        }
-    )
+    def trigger_task():
+        send_notification_delivery_task.delay(str(notification.id))
 
-    # 3. Send to Native Push (iOS via APNs)
-    ios_tokens = DeviceToken.objects.filter(user=user, platform='IOS', is_active=True)
-    for device_token in ios_tokens:
-        # We run this in a fire-and-forget manner or we can use a worker.
-        # Since we use async_to_sync above, we'll do the same for the APNs call
-        # for immediate execution, or ideally this should be a Celery task.
-        try:
-            async_to_sync(send_apns_notification)(
-                device_token.token, 
-                title, 
-                message, 
-                data
-            )
-        except Exception as e:
-            logger.error(f"Could not trigger APNs for {user.email}: {e}")
+    transaction.on_commit(trigger_task)
