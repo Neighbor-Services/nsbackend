@@ -104,8 +104,13 @@ def send_notification(user, title, message, notification_type, data=None, sender
     channel_layer = get_channel_layer()
     group_name = f"user_{user.id}"
     
+    from django.core.serializers.json import DjangoJSONEncoder
+    
     # Serialize the notification data for the websocket
-    serialized_data = NotificationSerializer(notification).data
+    raw_data = NotificationSerializer(notification).data
+    # msgpack cannot serialize UUID objects; round-trip to strip complex primitives.
+    # We use DjangoJSONEncoder which handles UUID, Decimal, and datetime objects.
+    serialized_data = json.loads(json.dumps(raw_data, cls=DjangoJSONEncoder))
     
     async_to_sync(channel_layer.group_send)(
         group_name,
