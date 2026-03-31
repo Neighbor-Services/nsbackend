@@ -33,6 +33,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         )
 
         await self.accept()
+        print(f"WS Accepted: Profile {self.user.email} joined conversation {self.conversation_id}")
 
         # Broadcast online status
         await self.channel_layer.group_send(
@@ -61,6 +62,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                     }
                 }
             )
+            print(f"WS Disconnected: Profile {self.user.email} left conversation {self.conversation_id}")
 
         # Leave room group
         if hasattr(self, 'room_group_name'):
@@ -213,8 +215,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
             is_calender=data.get('is_calender') or False,
             with_image=data.get('with_image') or False,
             with_image_and_text=data.get('with_image_and_text') or False,
-            calender_start_date=data.get('calender_start_date'),
-            calender_end_date=data.get('calender_end_date'),
             calender_date=data.get('calender_date'),
             media_url=data.get('media_url'),
             image=img_file,
