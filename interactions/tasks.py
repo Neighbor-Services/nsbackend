@@ -12,7 +12,7 @@ def send_appointment_reminder_email(appointment, reminder_type):
     subject = f'Reminder: {appointment.title or "Service Appointment"} ({reminder_type})'
     
     # Format time for display
-    start_time = appointment.scheduled_time or appointment.appointment_date
+    start_time = appointment.appointment_date
     if not start_time:
         return False
         
@@ -96,7 +96,7 @@ def check_upcoming_appointments():
     
     upcoming_day = Appointment.objects.filter(
         status='SCHEDULED',
-        scheduled_time__range=(day_start, day_end),
+        appointment_date__range=(day_start, day_end),
         reminder_day_sent=False
     )
     
@@ -110,7 +110,7 @@ def check_upcoming_appointments():
     
     upcoming_hour = Appointment.objects.filter(
         status='SCHEDULED',
-        scheduled_time__range=(hour_start, hour_end),
+        appointment_date__range=(hour_start, hour_end),
         reminder_hour_sent=False
     )
     

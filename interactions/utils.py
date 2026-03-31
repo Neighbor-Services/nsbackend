@@ -6,7 +6,7 @@ def generate_ics_content(appointment):
     """
     Generates iCalendar (.ics) content for the given appointment.
     """
-    start_time = appointment.scheduled_time or appointment.appointment_date
+    start_time = appointment.appointment_date
     if not start_time:
         return None
         
@@ -45,7 +45,7 @@ def send_appointment_confirmation_email(appointment):
     body = (
         f"Hello,\n\n"
         f"An appointment has been confirmed between {appointment.seeker.email} and {appointment.provider.email}.\n\n"
-        f"Scheduled Time: {appointment.scheduled_time.strftime('%B %d, %Y at %I:%M %p') if appointment.scheduled_time else appointment.appointment_date}\n\n"
+        f"Scheduled Time: {appointment.appointment_date.strftime('%B %d, %Y at %I:%M %p') if appointment.appointment_date else 'TBD'}\n\n"
         f"Please find the calendar invite attached.\n\n"
         f"Best regards,\nNeighbor Service Team"
     )
