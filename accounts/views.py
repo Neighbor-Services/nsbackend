@@ -530,7 +530,15 @@ def apple_callback_view(request):
         <head><title>Sign In with Apple</title></head>
         <body>
           <script>
-            window.location.href = "signinwithapple://callback?{query_string}";
+            // For Android Chrome, the recommended way is the intent:// scheme
+            var intentUrl = "intent://callback?{query_string}#Intent;package=com.neighborservicesolutionsllc.nsapp;scheme=signinwithapple;end;";
+            
+            window.location.href = intentUrl;
+            
+            // Fallback for iOS or other browsers
+            setTimeout(function() {{
+                window.location.href = "signinwithapple://callback?{query_string}";
+            }}, 1000);
           </script>
         </body>
         </html>
