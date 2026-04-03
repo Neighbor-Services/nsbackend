@@ -21,6 +21,7 @@ from django.conf.urls.static import static
 from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
 
 from payments.views import SubscriptionViewSet
+from accounts.views import apple_callback_view
 
 urlpatterns = [
     path('admin/', admin.path if hasattr(admin, 'path') else admin.site.urls),
@@ -39,6 +40,8 @@ urlpatterns = [
     path('api/v1/customer/', include('payments.urls')),
     path('api/v1/subscription/', include('payments.urls')),
     path('api/v1/consultations/', include('consultations.urls')),
+    
+    path('callbacks/apple', apple_callback_view, name='apple_callback'),
     
     # API Documentation
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),

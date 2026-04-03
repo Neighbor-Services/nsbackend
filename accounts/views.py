@@ -1,5 +1,8 @@
 from rest_framework import generics, viewsets, permissions, status
 from rest_framework.decorators import action
+from django.http import HttpResponse
+from django.views.decorators.csrf import csrf_exempt
+from urllib.parse import urlencode
 from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainPairView
 from django.contrib.auth import update_session_auth_hash
@@ -369,6 +372,7 @@ class PasswordResetOTPConfirmView(generics.GenericAPIView):
 from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
 from rest_framework_simplejwt.tokens import RefreshToken
+import jwt
 
 class GoogleLoginView(generics.GenericAPIView):
     permission_classes = (permissions.AllowAny,)
@@ -416,6 +420,70 @@ class GoogleLoginView(generics.GenericAPIView):
             return Response({"detail": f"Invalid token: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
 
 
+class AppleLoginView(generics.GenericAPIView):
+    permission_classes = (permissions.AllowAny,)
+    
+    def post(self, request):
+        token = request.data.get('id_token')
+        if not token:
+             return Response({"detail": "id_token is required"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            apple_jwks_url = 'https://appleid.apple.com/auth/keys'
+            jwks_client = jwt.PyJWKClient(apple_jwks_url)
+            signing_key = jwks_client.get_signing_key_from_jwt(token)
+            
+            # Verify the token
+            decoded = jwt.decode(
+                token,
+                signing_key.key,
+                algorithms=["RS256"],
+                options={"verify_aud": False}
+            )
+            
+            email = decoded.get('email')
+            if not email:
+                return Response({"detail": "No email provided by Apple check."}, status=status.HTTP_400_BAD_REQUEST)
+                
+            # Upsert user
+            user, created = User.objects.get_or_create(email=email, defaults={
+                'is_verified': True
+            })
+            
+            # Apple only provides name on the first login, so frontend should pass it
+            first_name = request.data.get("first_name", "")
+            last_name = request.data.get("last_name", "")
+            
+            if created:
+                user.set_unusable_password()
+                user.save()
+                Profile.objects.create(user=user, first_name=first_name, last_name=last_name)
+            else:
+                if not user.is_verified:
+                    user.is_verified = True
+                    user.save()
+            
+            refresh = RefreshToken.for_user(user)
+            return Response({
+                'access': str(refresh.access_token),
+                'refresh': str(refresh),
+                'authentication_token': str(refresh.access_token),
+                'user': UserSerializer(user).data
+            }, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            return Response({"detail": f"Invalid token: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class DeleteAccountView(generics.DestroyAPIView):
+    permission_classes = (permissions.IsAuthenticated,)
+    
+    def delete(self, request, *args, **kwargs):
+        user = request.user
+        user.delete()
+        return Response({"detail": "Account deleted successfully."}, status=status.HTTP_200_OK)
+
+
 class LegalDocumentView(generics.GenericAPIView):
     """Public endpoint to get Terms & Conditions or Privacy Policy."""
     permission_classes = (permissions.AllowAny,)
@@ -444,3 +512,28 @@ class LegalDocumentView(generics.GenericAPIView):
             cache.set(cache_key, data, 60 * 60 * 24)  # Cache for 24 hours
 
         return Response(data)
+
+@csrf_exempt
+def apple_callback_view(request):
+    """
+    Apple Sign In callback view for Android.
+    Apple sends a POST request with token data here. We bounce it back
+    to the Android app using a custom intent scheme.
+    """
+    if request.method == 'POST':
+        data = request.POST.dict()
+        query_string = urlencode(data)
+        
+        html = f"""
+        <!DOCTYPE html>
+        <html>
+        <head><title>Sign In with Apple</title></head>
+        <body>
+          <script>
+            window.location.href = "signinwithapple://callback?{query_string}";
+          </script>
+        </body>
+        </html>
+        """
+        return HttpResponse(html)
+    return HttpResponse("This endpoint only accepts POST requests from Apple.", status=405)
