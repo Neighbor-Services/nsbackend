@@ -57,7 +57,7 @@ class CatalogServiceViewSet(viewsets.ModelViewSet):
             serializer.save()
 
 class ServiceRequestViewSet(viewsets.ModelViewSet):
-    queryset = ServiceRequest.objects.select_related('user', 'catalog_service', 'catalog_service__category').all()
+    queryset = ServiceRequest.objects.select_related('user', 'user__profile', 'catalog_service', 'catalog_service__category').all()
     serializer_class = ServiceRequestSerializer
     permission_classes = (permissions.IsAuthenticated,)
     authentication_classes = (JWTAuthentication,)
@@ -100,8 +100,13 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
         # Prevent duplicates due to the M2M NOT criteria evaluation
         queryset = queryset.distinct()
         
-        # Prefetch related data for serialization
-        queryset = queryset.prefetch_related('proposals', 'proposals__provider')
+        # Prefetch related data for serialization (eliminates N+1 queries)
+        queryset = queryset.prefetch_related(
+            'proposals',
+            'proposals__provider',
+            'proposals__provider__profile',
+            'appointments',
+        )
         
         lat = self.request.query_params.get('lat')
         lng = self.request.query_params.get('lng')

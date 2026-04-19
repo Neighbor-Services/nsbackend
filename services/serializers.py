@@ -59,16 +59,24 @@ class ServiceRequestSerializer(serializers.ModelSerializer):
     )
 
     def get_proposals_count(self, obj):
-        return obj.proposals.count()
+        return len(obj.proposals.all())
 
     def get_approved_user(self, obj):
-        approved_proposal = obj.proposals.filter(is_approved=True).first()
+        approved_proposal = next(
+            (p for p in obj.proposals.all() if p.is_approved), None
+        )
         if approved_proposal:
-            return ProfileSerializer(approved_proposal.provider.profile, context=self.context).data
+            try:
+                return ProfileSerializer(
+                    approved_proposal.provider.profile,
+                    context=self.context,
+                ).data
+            except Exception:
+                return None
         return None
 
     def get_approved(self, obj):
-        return obj.proposals.filter(is_approved=True).exists()
+        return any(p.is_approved for p in obj.proposals.all())
 
     def get_image_url(self, obj):
         if obj.image:
@@ -103,12 +111,14 @@ class ServiceRequestSerializer(serializers.ModelSerializer):
         return None
 
     def get_appointment_id(self, obj):
-        appointment = obj.appointments.first() # Using related_name='appointments'
-        return str(appointment.id) if appointment else None
+        appointments = obj.appointments.all()
+        first = appointments[0] if appointments else None
+        return str(first.id) if first else None
 
     def get_is_funded(self, obj):
-        appointment = obj.appointments.first()
-        return appointment.is_funded if appointment else False
+        appointments = obj.appointments.all()
+        first = appointments[0] if appointments else None
+        return first.is_funded if first else False
 
     class Meta:
         model = ServiceRequest
