@@ -107,6 +107,11 @@ class MessageViewSet(viewsets.ModelViewSet):
                 queryset = queryset.filter(conversation=conversation)
             else:
                 queryset = queryset.none()
+                
+        # Filter by after query param for incremental sync
+        after_param = self.request.query_params.get('after')
+        if after_param:
+            queryset = queryset.filter(created_at__gt=after_param)
             
         page = self.paginate_queryset(queryset)
         if page is not None:

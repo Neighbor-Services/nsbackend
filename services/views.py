@@ -77,22 +77,28 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
         if self.request.query_params.get('user_me'):
             queryset = queryset.filter(user=user)
         else:
-            # Show OPEN requests to public/providers
-            # BUT always show owner's own requests if authenticated
+            # EXCLUDE requests that already have an approved proposal
+            unapproved = ~Q(proposals__is_approved=True)
+
             if user.is_authenticated:
                 targeted_only = self.request.query_params.get('targeted') == 'true'
                 
                 if targeted_only:
-                     queryset = queryset.filter(target_provider=user, status='OPEN')
+                     queryset = queryset.filter(
+                         Q(target_provider=user) & Q(status='OPEN') & unapproved
+                     )
                 else:
-                    # Show OPEN requests that are public (target_provider=None) OR targeted to me
-                    # Also show my own requests
+                    # Show OPEN, UNAPPROVED requests that are public (target_provider=None) 
+                    # Also show my own requests unconditionally
                     queryset = queryset.filter(
-                        (Q(status='OPEN') & Q(target_provider__isnull=True)) |
+                        (Q(status='OPEN') & Q(target_provider__isnull=True) & unapproved) |
                         Q(user=user)
                     )
             else:
-                queryset = queryset.filter(status='OPEN', target_provider__isnull=True)
+                queryset = queryset.filter(Q(status='OPEN') & Q(target_provider__isnull=True) & unapproved)
+        
+        # Prevent duplicates due to the M2M NOT criteria evaluation
+        queryset = queryset.distinct()
         
         # Prefetch related data for serialization
         queryset = queryset.prefetch_related('proposals', 'proposals__provider')
