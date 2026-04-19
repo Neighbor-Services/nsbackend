@@ -109,8 +109,8 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
         )
         
         import math
-        from django.db.models import F
-        from django.db.models.functions import ACos, Cos, Radians, Sin
+        from django.db.models import F, FloatField
+        from django.db.models.functions import ACos, Cos, Radians, Sin, Cast
 
         lat = self.request.query_params.get('lat')
         lng = self.request.query_params.get('lng')
@@ -122,13 +122,19 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
             lat_rad = math.radians(lat)
             lng_rad = math.radians(lng)
 
+            # Cast DecimalField columns to float so Django can infer the
+            # output type of the arithmetic expression without ambiguity.
+            lat_col = Cast(F('latitude'), FloatField())
+            lng_col = Cast(F('longitude'), FloatField())
+
             # Always annotate with DB-level distance when lat/lng are present.
             # This avoids the slow per-object Python fallback in the serializer.
             queryset = queryset.annotate(
                 distance=6371 * ACos(
-                    Sin(lat_rad) * Sin(Radians(F('latitude'))) +
-                    Cos(lat_rad) * Cos(Radians(F('latitude'))) *
-                    Cos(Radians(F('longitude')) - lng_rad)
+                    Sin(lat_rad) * Sin(Radians(lat_col)) +
+                    Cos(lat_rad) * Cos(Radians(lat_col)) *
+                    Cos(Radians(lng_col) - lng_rad),
+                    output_field=FloatField(),
                 )
             )
 
@@ -146,6 +152,7 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
                 ).order_by('distance')
 
         return queryset
+
 
 
     def perform_create(self, serializer):
