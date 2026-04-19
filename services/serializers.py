@@ -87,28 +87,13 @@ class ServiceRequestSerializer(serializers.ModelSerializer):
         return None
 
     def get_distance(self, obj):
-        # 1. Prefer DB annotation if available (Consistency)
+        # Distance is annotated at the DB level in get_queryset when lat/lng are
+        # provided. No Python-level fallback — that was causing one haversine
+        # call per object on every list request.
         if hasattr(obj, 'distance') and obj.distance is not None:
-            # print(f"DEBUG: Using DB Distance: {obj.distance}")
             return obj.distance
-
-        request = self.context.get('request')
-        if not request:
-            return None
-            
-        lat = request.query_params.get('lat')
-        lng = request.query_params.get('lng')
-        
-        if lat and lng:
-            from ns_backend.utils import haversine_distance
-            try:
-                dist = haversine_distance(lat, lng, obj.latitude, obj.longitude)
-                print(f"DEBUG: Calc Distance: User({lat}, {lng}) -> Target({obj.latitude}, {obj.longitude}) = {dist} km")
-                return dist
-            except Exception as e:
-                print(f"DEBUG: Distance Calc Error: {e}")
-                return None
         return None
+
 
     def get_appointment_id(self, obj):
         appointments = obj.appointments.all()

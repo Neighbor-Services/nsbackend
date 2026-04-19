@@ -108,49 +108,45 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
             'appointments',
         )
         
+        import math
+        from django.db.models import F
+        from django.db.models.functions import ACos, Cos, Radians, Sin
+
         lat = self.request.query_params.get('lat')
         lng = self.request.query_params.get('lng')
         radius = self.request.query_params.get('radius')
 
-        if lat and lng and radius:
-            radius = float(radius)
+        if lat and lng:
             lat = float(lat)
             lng = float(lng)
-            
-            # 1. Bounding Box Filter (Fast index-based optimization)
-            # 1 degree of latitude is ~111km
-            lat_delta = radius / 111.0
-            # 1 degree of longitude is ~111km * cos(lat)
-            import math
-            lng_delta = radius / (111.0 * math.cos(math.radians(lat)))
-            
-            queryset = queryset.filter(
-                latitude__gte=lat - lat_delta,
-                latitude__lte=lat + lat_delta,
-                longitude__gte=lng - lng_delta,
-                longitude__lte=lng + lng_delta
-            )
-            
-            # 2. Database-level Distance Calculation
-            # This is much faster than a Python loop
-            from django.db.models import F
-            from django.db.models.functions import ACos, Cos, Radians, Sin
-            
-            # Using the spherical law of cosines in Django ORM
-            # distance = 6371 * acos(sin(lat1) * sin(lat2) + cos(lat1) * cos(lat2) * cos(lon2 - lon1))
-            
             lat_rad = math.radians(lat)
             lng_rad = math.radians(lng)
-            
+
+            # Always annotate with DB-level distance when lat/lng are present.
+            # This avoids the slow per-object Python fallback in the serializer.
             queryset = queryset.annotate(
                 distance=6371 * ACos(
                     Sin(lat_rad) * Sin(Radians(F('latitude'))) +
                     Cos(lat_rad) * Cos(Radians(F('latitude'))) *
                     Cos(Radians(F('longitude')) - lng_rad)
                 )
-            ).filter(distance__lte=radius).order_by('distance')
-            
+            )
+
+            if radius:
+                radius = float(radius)
+                # Bounding-box pre-filter (fast index scan)
+                lat_delta = radius / 111.0
+                lng_delta = radius / (111.0 * math.cos(math.radians(lat)))
+                queryset = queryset.filter(
+                    latitude__gte=lat - lat_delta,
+                    latitude__lte=lat + lat_delta,
+                    longitude__gte=lng - lng_delta,
+                    longitude__lte=lng + lng_delta,
+                    distance__lte=radius,
+                ).order_by('distance')
+
         return queryset
+
 
     def perform_create(self, serializer):
         service_request = serializer.save(user=self.request.user)
