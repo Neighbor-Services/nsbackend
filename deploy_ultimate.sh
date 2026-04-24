@@ -373,7 +373,7 @@ for i in $(seq 1 $APP_REPLICAS); do
     else
         REPLICA_PROGRAMS="${REPLICA_PROGRAMS},$REPLICA_NAME"
     fi
-    PORT=$((8000 + i))
+    PORT=$((7000 + i))
     cat >> /etc/supervisor/conf.d/$APP_NAME.conf << EOF
 [program:${REPLICA_NAME}]
 command=$VENV_DIR/bin/daphne -b 127.0.0.1 -p $PORT --access-log - --proxy-headers ns_backend.asgi:application
