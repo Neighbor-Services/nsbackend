@@ -791,11 +791,23 @@ footer {
 @media (max-width: 768px) {
     .footer-grid {
         grid-template-columns: 1fr;
+        gap: 4rem;
     }
     .footer-bottom-content {
         flex-direction: column-reverse;
         gap: 2.5rem;
         text-align: center;
+    }
+    .footer-bottom-links {
+        gap: 1.5rem;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+    .footer-app-badges {
+        flex-direction: column;
+    }
+    .footer-newsletter-box {
+        padding: 2rem;
     }
 }
 
