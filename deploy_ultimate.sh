@@ -6,20 +6,20 @@
 set -e  # Exit on error
 
 echo "========================================="
-echo "Puxbay Ultimate Production Deployment"
+echo "Neighbor Service Ultimate Production Deployment"
 echo "========================================="
 echo ""
 
 # Configuration
-APP_NAME="puxbay"
-APP_DIR="/opt/puxbay"
+APP_NAME="ns_backend"
+APP_DIR="/opt/ns_backend"
 VENV_DIR="$APP_DIR/venv"
-USER="softivite"
+USER="ns_admin"
 GROUP="www-data"
 APP_REPLICAS=5
 DB_REPLICAS=0
-REPLICATION_USER="puxbay"
-REPLICATION_PASSWORD="Thinkce@softivitepuxbay"
+REPLICATION_USER="ns_replica"
+REPLICATION_PASSWORD="gentechco_replica_pass"
 BACKUP_RETENTION_DAYS=30
 
 # Colors
@@ -119,11 +119,11 @@ echo ""
 
 echo -e "${YELLOW}Step 5: Setting up PostgreSQL primary database...${NC}"
 # Using PostgreSQL 18 with explicit user/group (consistent with systemd service)
-sudo -u postgres /usr/lib/postgresql/18/bin/psql -c "CREATE DATABASE puxbay;" || echo "Database already exists"
-sudo -u postgres /usr/lib/postgresql/18/bin/psql -c "CREATE USER puxbay WITH PASSWORD 'Thinkce@softivitepuxbay';" || echo "User already exists"
-sudo -u postgres /usr/lib/postgresql/18/bin/psql -c "GRANT ALL PRIVILEGES ON DATABASE puxbay TO puxbay;"
+sudo -u postgres /usr/lib/postgresql/18/bin/psql -c "CREATE DATABASE nsapp;" || echo "Database already exists"
+sudo -u postgres /usr/lib/postgresql/18/bin/psql -c "CREATE USER ns_admin WITH PASSWORD 'gentechco';" || echo "User already exists"
+sudo -u postgres /usr/lib/postgresql/18/bin/psql -c "GRANT ALL PRIVILEGES ON DATABASE nsapp TO ns_admin;"
 # Fix for PostgreSQL 15+: Grant creation rights on public schema
-sudo -u postgres /usr/lib/postgresql/18/bin/psql -d puxbay -c "ALTER SCHEMA public OWNER TO puxbay;"
+sudo -u postgres /usr/lib/postgresql/18/bin/psql -d nsapp -c "ALTER SCHEMA public OWNER TO ns_admin;"
 
 echo -e "${GREEN}✓ Primary database configured${NC}"
 
@@ -270,34 +270,60 @@ fi
 # Automated Backup Setup
 if [ "$BACKUP_CHOICE" = "1" ]; then
     echo ""
-    echo -e "${YELLOW}Step 7: Setting up automated backups...${NC}"
+    echo -e "${YELLOW}Step 7: Setting up automated backups (Encrypted)...${NC}"
     
+    # Generate encryption key if it doesn't exist
+    BACKUP_KEY_FILE="$APP_DIR/backup_key.bin"
+    if [ ! -f "$BACKUP_KEY_FILE" ]; then
+        echo -e "${YELLOW}   Generating backup encryption key...${NC}"
+        head -c 32 /dev/urandom | base64 > "$BACKUP_KEY_FILE"
+        chmod 600 "$BACKUP_KEY_FILE"
+        chown root:root "$BACKUP_KEY_FILE"
+        echo -e "${GREEN}   ✓ Encryption key generated at $BACKUP_KEY_FILE${NC}"
+        echo -e "${RED}   IMPORTANT: Save this key in a secure location! You cannot decrypt backups without it.${NC}"
+    fi
+
     # Create backup script
     cat > $APP_DIR/backup_postgres.sh << 'BACKUP_SCRIPT'
 #!/bin/bash
-# Automated PostgreSQL backup script
-
-BACKUP_DIR="/opt/puxbay/backups/postgres"
-DB_NAME="puxbay"
-DB_USER="puxbay"
+# Automated Encrypted PostgreSQL backup script
+APP_DIR="/opt/ns_backend"
+BACKUP_DIR="$APP_DIR/backups/postgres"
+BACKUP_KEY_FILE="$APP_DIR/backup_key.bin"
+DB_NAME="nsapp"
 RETENTION_DAYS=30
 DATE=$(date +%Y%m%d_%H%M%S)
-BACKUP_FILE="$BACKUP_DIR/${DB_NAME}_${DATE}.sql.gz"
+TEMP_FILE="$BACKUP_DIR/${DB_NAME}_${DATE}.sql.gz"
+ENC_FILE="$TEMP_FILE.enc"
 
 mkdir -p $BACKUP_DIR
 
 # Perform backup
-sudo -u postgres pg_dump $DB_NAME | gzip > $BACKUP_FILE
+echo "Starting backup for $DB_NAME..."
+sudo -u postgres pg_dump $DB_NAME | gzip > $TEMP_FILE
 
 if [ $? -eq 0 ]; then
-    echo "✓ Backup completed: $BACKUP_FILE"
-    # Delete old backups
-    find $BACKUP_DIR -name "*.sql.gz" -type f -mtime +$RETENTION_DAYS -delete
+    echo "Encrypting backup..."
+    openssl enc -aes-256-cbc -salt -in $TEMP_FILE -out $ENC_FILE -pass file:"$BACKUP_KEY_FILE" -pbkdf2
     
-    # Sync with Django Admin
-    cd /opt/puxbay
-    source venv/bin/activate
-    python manage.py sync_backups
+    if [ $? -eq 0 ]; then
+        echo "✓ Backup completed and encrypted: $ENC_FILE"
+        # Securely remove unencrypted temp file
+        rm -f $TEMP_FILE
+        
+        # Delete old backups (both .enc and any remaining .gz)
+        find $BACKUP_DIR -name "*.sql.gz*" -type f -mtime +$RETENTION_DAYS -delete
+        
+        # Sync with Django (if management command exists)
+        cd $APP_DIR
+        if [ -f "manage.py" ]; then
+            source venv/bin/activate
+            # python manage.py sync_backups  # Uncomment if you implement this
+        fi
+    else
+        echo "✗ Encryption failed!"
+        exit 1
+    fi
 else
     echo "✗ Backup failed!"
     exit 1
@@ -305,11 +331,12 @@ fi
 BACKUP_SCRIPT
     
     chmod +x $APP_DIR/backup_postgres.sh
+    chown root:root $APP_DIR/backup_postgres.sh
     
     # Add to crontab (daily at 2 AM)
-    (crontab -l 2>/dev/null; echo "0 2 * * * $APP_DIR/backup_postgres.sh >> $APP_DIR/logs/backup.log 2>&1") | crontab -
+    (crontab -l 2>/dev/null | grep -v "backup_postgres.sh"; echo "0 2 * * * $APP_DIR/backup_postgres.sh >> $APP_DIR/logs/backup.log 2>&1") | crontab -
     
-    echo -e "${GREEN}✓ Automated backups configured (daily at 2 AM)${NC}"
+    echo -e "${GREEN}✓ Automated encrypted backups configured (daily at 2 AM)${NC}"
 fi
 
 echo ""
@@ -348,13 +375,13 @@ for i in $(seq 1 $APP_REPLICAS); do
     PORT=$((8000 + i))
     cat >> /etc/supervisor/conf.d/$APP_NAME.conf << EOF
 [program:${REPLICA_NAME}]
-command=$VENV_DIR/bin/daphne -b 127.0.0.1 -p $PORT --access-log - --proxy-headers possystem.asgi:application
+command=$VENV_DIR/bin/daphne -b 127.0.0.1 -p $PORT --access-log - --proxy-headers ns_backend.asgi:application
 directory=$APP_DIR
 user=$USER
 autostart=true
 autorestart=true
 redirect_stderr=true
-stdout_logfile=$APP_DIR/logs/gunicorn-replica-${i}.log
+stdout_logfile=$APP_DIR/logs/daphne-replica-${i}.log
 environment=PATH="$VENV_DIR/bin"
 
 EOF
@@ -363,7 +390,7 @@ done
 # Add Celery workers
 cat >> /etc/supervisor/conf.d/$APP_NAME.conf << EOF
 [program:${APP_NAME}_celery]
-command=$VENV_DIR/bin/celery -A possystem worker -l info --concurrency=4
+command=$VENV_DIR/bin/celery -A ns_backend worker -l info --concurrency=4
 directory=$APP_DIR
 user=$USER
 autostart=true
@@ -373,7 +400,7 @@ stdout_logfile=$APP_DIR/logs/celery.log
 environment=PATH="$VENV_DIR/bin"
 
 [program:${APP_NAME}_celery_beat]
-command=$VENV_DIR/bin/celery -A possystem beat -l info
+command=$VENV_DIR/bin/celery -A ns_backend beat -l info
 directory=$APP_DIR
 user=$USER
 autostart=true
@@ -418,7 +445,7 @@ echo ""
 echo "Please follow these steps in Cloudflare Dashboard:"
 echo "1. Go to SSL/TLS → Origin Server"
 echo "2. Click 'Create Certificate'"
-echo "3. Hostnames: puxbay.com and *.puxbay.com"
+echo "3. Hostnames: neighborservice.com, *.neighborservice.com"
 echo "4. Validity: 15 years"
 echo "5. Click 'Create'"
 echo ""
@@ -436,12 +463,13 @@ echo -e "${GREEN}✓ Cloudflare certificates saved${NC}"
 
 # Create Nginx config for Cloudflare
 cat > /etc/nginx/sites-available/$APP_NAME << EOF
-upstream django_backend {
+upstream ns_backend_cluster {
 $(echo -e "$UPSTREAM_SERVERS")}
 
+# 1. API Subdomain (api.neighborservice.com)
 server {
     listen 443 ssl http2;
-    server_name www.puxbay.com puxbay.com *.puxbay.com;
+    server_name api.neighborservice.com;
 
     ssl_certificate /etc/ssl/cloudflare/origin.pem;
     ssl_certificate_key /etc/ssl/cloudflare/origin-key.pem;
@@ -463,26 +491,27 @@ server {
     set_real_ip_from 198.41.128.0/17;
     set_real_ip_from 162.158.0.0/15;
     set_real_ip_from 104.16.0.0/13;
-    set_real_ip_from 104.24.0.0/14;
     set_real_ip_from 172.64.0.0/13;
-    set_real_ip_from 131.0.72.0/22;
     real_ip_header CF-Connecting-IP;
 
     client_max_body_size 100M;
 
+    # Block Admin access via API subdomain
+    location /admin {
+        return 404;
+    }
+
     location /static/ {
-        alias /opt/puxbay/staticfiles/;
-        expires 30d;
-        add_header Cache-Control "public, immutable";
+        alias /opt/ns_backend/staticfiles/;
     }
 
     location /media/ {
-        alias /opt/puxbay/media/;
-        expires 7d;
+        alias /opt/ns_backend/media/;
+        add_header Access-Control-Allow-Origin *;
     }
 
     location /ws/ {
-        proxy_pass http://django_backend;
+        proxy_pass http://ns_backend_cluster;
         proxy_http_version 1.1;
         proxy_set_header Upgrade \$http_upgrade;
         proxy_set_header Connection "upgrade";
@@ -491,22 +520,69 @@ server {
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto \$scheme;
         proxy_read_timeout 86400;
-        proxy_send_timeout 86400;
     }
 
-    location / {
-        proxy_pass http://django_backend;
+    location /api/ {
+        proxy_pass http://ns_backend_cluster;
         proxy_set_header Host \$host;
         proxy_set_header X-Real-IP \$remote_addr;
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto \$scheme;
-        proxy_redirect off;
-        proxy_buffering off;
     }
 
-    location /health/ {
-        proxy_pass http://django_backend;
-        access_log off;
+    # Deny everything else on the API subdomain
+    location / {
+        return 404;
+    }
+}
+
+# 2. Main Public Site (neighborservice.com)
+server {
+    listen 443 ssl http2;
+    server_name www.neighborservice.com neighborservice.com;
+
+    ssl_certificate /etc/ssl/cloudflare/origin.pem;
+    ssl_certificate_key /etc/ssl/cloudflare/origin-key.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers ECDHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384;
+    ssl_prefer_server_ciphers on;
+    ssl_session_cache shared:SSL:10m;
+
+    # Cloudflare Real IP
+    set_real_ip_from 173.245.48.0/20;
+    set_real_ip_from 103.21.244.0/22;
+    set_real_ip_from 103.22.200.0/22;
+    set_real_ip_from 103.31.4.0/22;
+    set_real_ip_from 141.101.64.0/18;
+    set_real_ip_from 108.162.192.0/18;
+    set_real_ip_from 190.93.240.0/20;
+    set_real_ip_from 188.114.96.0/20;
+    set_real_ip_from 197.234.240.0/22;
+    set_real_ip_from 198.41.128.0/17;
+    set_real_ip_from 162.158.0.0/15;
+    set_real_ip_from 104.16.0.0/13;
+    set_real_ip_from 172.64.0.0/13;
+    real_ip_header CF-Connecting-IP;
+
+    client_max_body_size 100M;
+
+    location /static/ {
+        alias /opt/ns_backend/staticfiles/;
+    }
+
+    location /media/ {
+        alias /opt/ns_backend/media/;
+    }
+
+    location / {
+        proxy_pass http://ns_backend_cluster;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_set_header X-Forwarded-Host \$host;
+        proxy_set_header X-Forwarded-Port \$server_port;
+        proxy_redirect off;
     }
 }
 
@@ -521,6 +597,7 @@ EOF
 
 ln -sf /etc/nginx/sites-available/$APP_NAME /etc/nginx/sites-enabled/
 rm -f /etc/nginx/sites-enabled/default
+rm -f /etc/nginx/sites-enabled/nsbackend
 
 echo -e "${YELLOW}Testing Nginx configuration...${NC}"
 nginx -t
@@ -580,34 +657,9 @@ echo ""
 
 echo -e "${YELLOW}Step 14: Seeding initial data...${NC}"
 
-
-# 2. Seed Features
-echo "Running seed_features..."
-python manage.py seed_features
-
-# 3. Seed Billing (Plans & Gateways)
-echo "Running seed_billing..."
-python manage.py seed_billing
-
-# 4. Setup Public Tenant
-echo "Running setup_public_tenant..."
-python manage.py setup_public_tenant
-
-# 5. Populate Data (Initial Samples)
-echo "Running populate_data..."
-python manage.py populate_data
-
-# 6. Seed Detailed Subscription Plans
-echo "Running populate_plans..."
-python manage.py populate_plans
-
-# 7. Seed User Manual
-echo "Running seed_manual..."
-python manage.py seed_manual
-
-# 8. Seed SEO Settings
-echo "Running seed_seo..."
-python manage.py seed_seo
+# Create superuser if none exists (using custom management command)
+echo "Checking for superuser..."
+python manage.py create_superuser_if_none || echo "Superuser check skipped or failed"
 
 echo -e "${GREEN}✓ Data population completed${NC}"
 
@@ -616,7 +668,7 @@ echo "========================================="
 echo -e "${GREEN}🎉 Deployment Complete!${NC}"
 echo "========================================="
 echo ""
-echo "Application: Puxbay"
+echo "Application: Neighbor Service (ns_backend)"
 echo "App Replicas: $APP_REPLICAS instances (ports 8001-$((8000 + APP_REPLICAS)))"
 
 if [ "$REPLICATION_CHOICE" = "1" ]; then
@@ -625,6 +677,7 @@ fi
 
 if [ "$BACKUP_CHOICE" = "1" ]; then
     echo "Backups: Daily at 2 AM ($BACKUP_RETENTION_DAYS day retention)"
+    echo "Encryption: AES-256-CBC enabled ✓"
 fi
 
 echo ""
@@ -635,6 +688,7 @@ echo "1. SSL/TLS → Set to 'Full (strict)'"
 echo "2. DNS → Add A records (Proxied ☁️):"
 echo "   @ → YOUR_SERVER_IP"
 echo "   www → YOUR_SERVER_IP"
+echo "   api → YOUR_SERVER_IP"
 echo "   * → YOUR_SERVER_IP"
 echo "3. SSL/TLS → Edge Certificates:"
 echo "   ✓ Always Use HTTPS"
@@ -643,7 +697,7 @@ echo "   ✓ Automatic HTTPS Rewrites"
 echo ""
 echo "📋 Next Steps:"
 echo "1. Update .env:"
-echo "   ALLOWED_HOSTS=puxbay.com,www.puxbay.com,.puxbay.com
+echo "   ALLOWED_HOSTS=neighborservice.com,www.neighborservice.com,api.neighborservice.com,.neighborservice.com
    REDIS_URL=redis://127.0.0.1:6379/1"
 
 if [ "$REPLICATION_CHOICE" = "1" ]; then
@@ -655,13 +709,13 @@ if [ "$REPLICATION_CHOICE" = "1" ]; then
 fi
 
 echo ""
-echo "2. Create superuser:"
+echo "2. Create superuser (if not already created):"
 echo "   cd $APP_DIR && source venv/bin/activate && python manage.py createsuperuser"
 echo ""
 echo "📊 Management Commands:"
 echo "  - Status: sudo supervisorctl status"
 echo "  - Restart: sudo supervisorctl restart ${APP_NAME}_replicas:*"
-echo "  - Logs: tail -f $APP_DIR/logs/gunicorn-replica-1.log"
+echo "  - Logs: tail -f $APP_DIR/logs/daphne-replica-1.log"
 
 if [ "$REPLICATION_CHOICE" = "1" ]; then
     echo "  - DB Status: sudo -u postgres psql -c \"SELECT * FROM pg_stat_replication;\""
@@ -670,8 +724,9 @@ fi
 if [ "$BACKUP_CHOICE" = "1" ]; then
     echo "  - Manual Backup: $APP_DIR/backup_postgres.sh"
     echo "  - View Backups: ls -lh $APP_DIR/backups/postgres/"
+    echo "  - Decrypt: openssl enc -aes-256-cbc -d -salt -pbkdf2 -in <file>.enc -out <file>.gz -pass file:$APP_DIR/backup_key.bin"
 fi
 
 echo ""
-echo "🚀 Puxbay is production-ready!"
+echo "🚀 Neighbor Service is production-ready!"
 echo ""
