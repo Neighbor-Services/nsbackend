@@ -5,7 +5,6 @@ from django.db import migrations, models
 import django.db.models.deletion
 import uuid
 
-
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -19,20 +18,47 @@ class Migration(migrations.Migration):
             name='notification_type',
             field=models.CharField(choices=[('PROPOSAL', 'New Proposal'), ('APPOINTMENT', 'Appointment Update'), ('MESSAGE', 'New Message'), ('SYSTEM', 'System Alert'), ('DIRECT_REQUEST', 'Direct Service Request')], max_length=20),
         ),
-        migrations.CreateModel(
-            name='DeviceToken',
-            fields=[
-                ('id', models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
-                ('token', models.CharField(max_length=255, unique=True)),
-                ('platform', models.CharField(choices=[('IOS', 'iOS'), ('ANDROID', 'Android')], max_length=10)),
-                ('device_id', models.CharField(blank=True, max_length=255, null=True)),
-                ('is_active', models.BooleanField(default=True)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='device_tokens', to=settings.AUTH_USER_MODEL)),
+        migrations.SeparateDatabaseAndState(
+            database_operations=[
+                migrations.RunSQL(
+                    sql="""
+                    DO $$ 
+                    BEGIN 
+                        IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'notifications_devicetoken') THEN
+                            CREATE TABLE notifications_devicetoken (
+                                id uuid NOT NULL PRIMARY KEY,
+                                token varchar(255) NOT NULL UNIQUE,
+                                platform varchar(10) NOT NULL,
+                                device_id varchar(255) NULL,
+                                is_active boolean NOT NULL,
+                                created_at timestamptz NOT NULL,
+                                updated_at timestamptz NOT NULL,
+                                user_id uuid NOT NULL REFERENCES accounts_user(id) DEFERRABLE INITIALLY DEFERRED
+                            );
+                            CREATE INDEX IF NOT EXISTS notificatio_user_id_f0e72c_idx ON notifications_devicetoken (user_id, is_active);
+                            CREATE INDEX IF NOT EXISTS notificatio_token_1a2c49_idx ON notifications_devicetoken (token);
+                        END IF;
+                    END $$;
+                    """
+                )
             ],
-            options={
-                'indexes': [models.Index(fields=['user', 'is_active'], name='notificatio_user_id_f0e72c_idx'), models.Index(fields=['token'], name='notificatio_token_1a2c49_idx')],
-            },
+            state_operations=[
+                migrations.CreateModel(
+                    name='DeviceToken',
+                    fields=[
+                        ('id', models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
+                        ('token', models.CharField(max_length=255, unique=True)),
+                        ('platform', models.CharField(choices=[('IOS', 'iOS'), ('ANDROID', 'Android')], max_length=10)),
+                        ('device_id', models.CharField(blank=True, max_length=255, null=True)),
+                        ('is_active', models.BooleanField(default=True)),
+                        ('created_at', models.DateTimeField(auto_now_add=True)),
+                        ('updated_at', models.DateTimeField(auto_now=True)),
+                        ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='device_tokens', to=settings.AUTH_USER_MODEL)),
+                    ],
+                    options={
+                        'indexes': [models.Index(fields=['user', 'is_active'], name='notificatio_user_id_f0e72c_idx'), models.Index(fields=['token'], name='notificatio_token_1a2c49_idx')],
+                    },
+                ),
+            ]
         ),
     ]

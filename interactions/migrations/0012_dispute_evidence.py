@@ -2,7 +2,6 @@
 
 from django.db import migrations, models
 
-
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -10,9 +9,14 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AddField(
-            model_name='dispute',
-            name='evidence',
-            field=models.FileField(blank=True, null=True, upload_to='dispute_evidence/'),
+        migrations.RunSQL(
+            sql='ALTER TABLE interactions_dispute ADD COLUMN IF NOT EXISTS evidence varchar(100) NULL;',
+            state_operations=[
+                migrations.AddField(
+                    model_name='dispute',
+                    name='evidence',
+                    field=models.FileField(blank=True, null=True, upload_to='dispute_evidence/'),
+                ),
+            ]
         ),
     ]
