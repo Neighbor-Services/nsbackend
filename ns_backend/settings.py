@@ -106,6 +106,11 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
+# Proxy Settings for Absolute URIs
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+USE_X_FORWARDED_HOST = True
+USE_X_FORWARDED_PORT = True
+
 ROOT_URLCONF = 'ns_backend.urls'
 
 TEMPLATES = [

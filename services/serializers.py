@@ -3,6 +3,16 @@ from .models import ServiceRequest, Proposal, Category, CatalogService
 from accounts.serializers import ProfileSerializer
 
 class CategorySerializer(serializers.ModelSerializer):
+    image_url = serializers.SerializerMethodField()
+
+    def get_image_url(self, obj):
+        if obj.image:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.image.url)
+            return obj.image.url
+        return None
+
     class Meta:
         model = Category
         fields = '__all__'
@@ -14,6 +24,15 @@ class CatalogServiceSerializer(serializers.ModelSerializer):
         required=False,
         allow_null=True
     )
+    image_url = serializers.SerializerMethodField()
+
+    def get_image_url(self, obj):
+        if obj.image:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.image.url)
+            return obj.image.url
+        return None
 
     class Meta:
         model = CatalogService

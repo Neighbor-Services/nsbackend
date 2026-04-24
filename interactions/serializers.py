@@ -6,16 +6,26 @@ from accounts.serializers import ProfileSerializer, SimpleProfileSerializer
 class DisputeSerializer(serializers.ModelSerializer):
     raised_by_details = SimpleProfileSerializer(source='raised_by.profile', read_only=True)
     defendant_details = SimpleProfileSerializer(source='defendant.profile', read_only=True)
+    evidence_url = serializers.SerializerMethodField()
+
+    def get_evidence_url(self, obj):
+        if obj.evidence:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.evidence.url)
+            return obj.evidence.url
+        return None
 
     class Meta:
         model = Dispute
         fields = [
             'id', 'raised_by', 'defendant', 'appointment', 
             'reason', 'description', 'status', 'resolution_notes', 
+            'evidence', 'evidence_url',
             'created_at', 'updated_at',
             'raised_by_details', 'defendant_details'
         ]
-        read_only_fields = ['id', 'status', 'resolution_notes', 'created_at', 'updated_at', 'raised_by']
+        read_only_fields = ['id', 'status', 'resolution_notes', 'created_at', 'updated_at', 'raised_by', 'evidence_url']
         extra_kwargs = {
             'appointment': {'required': False, 'allow_null': True}
         }
