@@ -438,33 +438,31 @@ echo -e "${YELLOW}Step 11: Configuring Nginx for Cloudflare...${NC}"
 mkdir -p /etc/ssl/cloudflare
 chmod 755 /etc/ssl/cloudflare
 
-if [ ! -s /etc/ssl/cloudflare/origin.pem ] || [ ! -s /etc/ssl/cloudflare/origin-key.pem ]; then
-    echo ""
-    echo "========================================="
-    echo "Cloudflare Origin Certificate Setup"
-    echo "========================================="
-    echo ""
-    echo "Please follow these steps in Cloudflare Dashboard:"
-    echo "1. Go to SSL/TLS → Origin Server"
-    echo "2. Click 'Create Certificate'"
-    echo "3. Hostnames: $DOMAIN, *.$DOMAIN"
-    echo "4. Validity: 15 years"
-    echo "5. Click 'Create'"
-    echo ""
-    echo -e "${YELLOW}Paste the Origin Certificate below and press Ctrl+D when done:${NC}"
-    cat > /etc/ssl/cloudflare/origin.pem
 
-    echo ""
-    echo -e "${YELLOW}Paste the Private Key below and press Ctrl+D when done:${NC}"
-    cat > /etc/ssl/cloudflare/origin-key.pem
+echo ""
+echo "========================================="
+echo "Cloudflare Origin Certificate Setup"
+echo "========================================="
+echo ""
+echo "Please follow these steps in Cloudflare Dashboard:"
+echo "1. Go to SSL/TLS → Origin Server"
+echo "2. Click 'Create Certificate'"
+echo "3. Hostnames: $DOMAIN, *.$DOMAIN"
+echo "4. Validity: 15 years"
+echo "5. Click 'Create'"
+echo ""
+echo -e "${YELLOW}Paste the Origin Certificate below and press Ctrl+D when done:${NC}"
+cat > /etc/ssl/cloudflare/origin.pem
 
-    chmod 644 /etc/ssl/cloudflare/origin.pem
-    chmod 600 /etc/ssl/cloudflare/origin-key.pem
+echo ""
+echo -e "${YELLOW}Paste the Private Key below and press Ctrl+D when done:${NC}"
+cat > /etc/ssl/cloudflare/origin-key.pem
 
-    echo -e "${GREEN}✓ Cloudflare certificates saved${NC}"
-else
-    echo -e "${GREEN}✓ Cloudflare certificates already exist, skipping setup${NC}"
-fi
+chmod 644 /etc/ssl/cloudflare/origin.pem
+chmod 600 /etc/ssl/cloudflare/origin-key.pem
+
+echo -e "${GREEN}✓ Cloudflare certificates saved${NC}"
+
 
 # Create Nginx config for Cloudflare
 cat > /etc/nginx/sites-available/$APP_NAME << EOF
