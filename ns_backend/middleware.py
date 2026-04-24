@@ -13,7 +13,8 @@ def get_user(token_key):
         access_token = AccessToken(token_key)
         user_id = access_token.payload['user_id']
         return User.objects.get(id=user_id)
-    except Exception:
+    except Exception as e:
+        print(f"WS User Retrieval Error: {str(e)}")
         return AnonymousUser()
 
 class JWTAuthMiddleware:
@@ -46,11 +47,11 @@ class JWTAuthMiddleware:
             user = await get_user(token_key)
             scope['user'] = user
             if user.is_anonymous:
-                print(f"WS Auth Failed: Invalid or expired token for path {scope.get('path')}")
+                print(f"WS Auth Failed: Invalid or expired token for path {scope.get('path')}. Token prefix: {token_key[:10]}...")
             else:
                 print(f"WS Auth Success: User {user.email} for path {scope.get('path')}")
         else:
             scope['user'] = AnonymousUser()
-            print(f"WS Auth Failed: No token found for path {scope.get('path')}")
+            print(f"WS Auth Failed: No token found in headers or query string for path {scope.get('path')}")
 
         return await self.inner(scope, receive, send)

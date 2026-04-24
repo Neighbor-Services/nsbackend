@@ -467,6 +467,12 @@ cat > /etc/nginx/sites-available/$APP_NAME << EOF
 upstream ns_backend_cluster {
 $(echo -e "$UPSTREAM_SERVERS")}
 
+# WebSocket Upgrade Map
+map $http_upgrade $connection_upgrade {
+    default upgrade;
+    ''      close;
+}
+
 # Redirect HTTP to HTTPS
 server {
     listen 80;
@@ -522,7 +528,7 @@ server {
         proxy_pass http://ns_backend_cluster;
         proxy_http_version 1.1;
         proxy_set_header Upgrade \$http_upgrade;
-        proxy_set_header Connection "upgrade";
+        proxy_set_header Connection \$connection_upgrade;
         proxy_set_header Host \$host;
         proxy_set_header X-Real-IP \$remote_addr;
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
@@ -598,6 +604,20 @@ server {
 
     location /media/ {
         alias /opt/ns_backend/media/;
+    }
+
+    location /ws/ {
+        proxy_pass http://ns_backend_cluster;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection \$connection_upgrade;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_set_header X-Forwarded-Host \$host;
+        proxy_set_header X-Forwarded-Port \$server_port;
+        proxy_read_timeout 86400;
     }
 
     location / {
