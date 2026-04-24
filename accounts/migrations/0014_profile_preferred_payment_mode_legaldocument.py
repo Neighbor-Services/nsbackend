@@ -3,7 +3,6 @@
 from django.db import migrations, models
 import uuid
 
-
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -11,10 +10,16 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AddField(
-            model_name='profile',
-            name='preferred_payment_mode',
-            field=models.CharField(choices=[('IN_APP', 'In-App Payment'), ('ON_SITE', 'On-Site Payment')], default='ON_SITE', max_length=10),
+        # Using RunSQL to safely add column only if it doesn't exist
+        migrations.RunSQL(
+            sql='ALTER TABLE accounts_profile ADD COLUMN IF NOT EXISTS preferred_payment_mode varchar(10) DEFAULT \'ON_SITE\' NOT NULL;',
+            state_operations=[
+                migrations.AddField(
+                    model_name='profile',
+                    name='preferred_payment_mode',
+                    field=models.CharField(choices=[('IN_APP', 'In-App Payment'), ('ON_SITE', 'On-Site Payment')], default='ON_SITE', max_length=10),
+                ),
+            ]
         ),
         migrations.CreateModel(
             name='LegalDocument',
