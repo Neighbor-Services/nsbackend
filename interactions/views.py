@@ -165,6 +165,11 @@ class AppointmentViewSet(viewsets.ModelViewSet):
             appointment.status = 'COMPLETED'
             appointment.save()
             
+            # Update the linked service request status to DONE
+            if appointment.service_request:
+                appointment.service_request.status = 'DONE'
+                appointment.service_request.save()
+            
             if appointment.is_funded:
                 # Release funds to Provider's Wallet
                 amount = request.data.get('amount')

@@ -43,9 +43,26 @@ class ProposalSerializer(serializers.ModelSerializer):
         required=True
     )
 
+    service_request = serializers.SerializerMethodField()
+
+    def get_service_request(self, obj):
+        req = obj.request
+        return {
+            'id': str(req.id),
+            'title': req.title,
+            'description': req.description,
+            'status': req.status,
+            'price': str(req.price) if req.price else None,
+            'scheduled_time': req.scheduled_time.isoformat() if req.scheduled_time else None,
+        }
+
     class Meta:
         model = Proposal
-        fields = '__all__'
+        fields = [
+            'id', 'request', 'service_request', 'provider', 'is_approved', 
+            'provider_profile', 'provider_email', 'seeker_profile', 
+            'created_at', 'updated_at'
+        ]
         read_only_fields = ('provider', 'is_approved', 'request')
 
 class ServiceRequestSerializer(serializers.ModelSerializer):

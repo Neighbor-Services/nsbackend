@@ -199,11 +199,15 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
                         provider=proposal.provider,
                         title=service_request.title,
                         description=service_request.description,
-                        appointment_date=service_request.scheduled_time, # Fixed: scheduled_time -> appointment_date
+                        appointment_date=service_request.scheduled_time,
                         service_request=service_request,
                         total_price=service_request.price or 0.00,
                         proposal=proposal
                     )
+
+                # Update service request status
+                service_request.status = 'IN_PROGRESS'
+                service_request.save()
 
                 # Notify Provider
                 desc = service_request.description[:20] if service_request.description else "service request"
@@ -224,7 +228,8 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
                 
                 transaction.on_commit(dispatch_background_emails)
                 
-            return Response({'status': 'proposal approved'})
+            serializer = self.get_serializer(service_request)
+            return Response(serializer.data)
         except Proposal.DoesNotExist:
             return Response({'error': 'Proposal not found'}, status=status.HTTP_404_NOT_FOUND)
 
@@ -342,6 +347,12 @@ class ProposalViewSet(viewsets.ModelViewSet):
         service_request_id = self.request.query_params.get('service_request')
         if service_request_id:
             queryset = queryset.filter(request_id=service_request_id)
+            
+        approved_only = self.request.query_params.get('approved')
+        if approved_only == 'true':
+            queryset = queryset.filter(is_approved=True)
+        elif approved_only == 'false':
+            queryset = queryset.filter(is_approved=False)
             
         return queryset
 
