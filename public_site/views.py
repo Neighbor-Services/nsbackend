@@ -46,9 +46,9 @@ def contact(request):
     return render(request, 'public_site/contact.html')
 
 def privacy(request):
-    doc = LegalDocument.objects.filter(doc_type='PRIVACY', is_active=True).order_by('-updated_at').first()
-    return render(request, 'public_site/privacy.html', {'doc': doc})
+    docs = LegalDocument.objects.filter(doc_type='PRIVACY', is_active=True).order_by('-updated_at')
+    return render(request, 'public_site/privacy.html', {'docs': docs})
 
 def terms(request):
-    doc = LegalDocument.objects.filter(doc_type='TERMS', is_active=True).order_by('-updated_at').first()
-    return render(request, 'public_site/terms.html', {'doc': doc})
+    docs = LegalDocument.objects.filter(doc_type='TERMS', is_active=True).order_by('-updated_at')
+    return render(request, 'public_site/terms.html', {'docs': docs})

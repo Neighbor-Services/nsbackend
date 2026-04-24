@@ -1,29 +1,66 @@
 {% extends 'public_site/base.html' %}
-{% load static %}
 
 {% block title %}Terms of Service | Neighbor Service{% endblock %}
 
 {% block content %}
-    <section class="hero" style="padding: 120px 0 60px;">
+    <!-- Hero Section -->
+    <section class="hero" style="background-color: var(--secondary); color: var(--white); padding: 140px 0 60px;">
         <div class="container">
-            <h1 style="font-size: 3.5rem; color: var(--secondary); margin-bottom: 1.5rem;">
-                {% if doc %}{{ doc.title }}{% else %}Terms of Service{% endif %}
-            </h1>
-            <p style="font-size: 1.25rem; color: var(--text-muted);">
-                {% if doc %}Last updated: {{ doc.updated_at|date:"F d, Y" }} (v{{ doc.version }}){% else %}Terms not currently available.{% endif %}
+            <h1 style="font-size: 3.5rem; color: var(--white); margin-bottom: 1rem;">Terms of Service</h1>
+            <p style="font-size: 1.25rem; color: #94a3b8; max-width: 800px;">
+                Please read these terms carefully. They govern your use of the Neighbor Service platform and our commitment to you.
             </p>
         </div>
     </section>
 
-    <section class="features" style="background-color: var(--white);">
-        <div class="container" style="max-width: 900px;">
-            <div class="legal-content" style="display: flex; flex-direction: column; gap: 2rem; line-height: 1.8;">
-                {% if doc %}
-                    {{ doc.content|linebreaks }}
-                {% else %}
-                    <p>Please check back later for our updated terms of service.</p>
-                {% endif %}
-            </div>
+    <!-- Documents List -->
+    <section class="features" style="background-color: var(--surface); padding: 100px 0;">
+        <div class="container">
+            {% if docs %}
+                <div style="display: flex; flex-direction: column; gap: 4rem;">
+                    {% for doc in docs %}
+                        <div style="background: var(--white); border: 2px solid var(--border); border-radius: 20px; padding: 4rem; position: relative; box-shadow: var(--shadow-sm);">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 3rem; padding-bottom: 2rem; border-bottom: 1px solid var(--border);">
+                                <div>
+                                    <h2 style="font-size: 2.25rem; color: var(--secondary); margin-bottom: 0.5rem;">{{ doc.title }}</h2>
+                                    <div style="display: flex; gap: 1.5rem; color: var(--text-muted); font-size: 0.95rem; font-weight: 600;">
+                                        <span style="display: flex; align-items: center; gap: 0.5rem;">
+                                            <span class="material-icons-round" style="font-size: 1.2rem; color: var(--primary);">history_edu</span>
+                                            Effective Date: {{ doc.updated_at|date:"F d, Y" }}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div style="background: var(--secondary); color: var(--white); padding: 0.75rem 1.5rem; border-radius: 12px; font-weight: 800; font-size: 0.9rem; letter-spacing: 0.05em; border: 2px solid var(--border);">
+                                    VERSION {{ doc.version|default:"1.0" }}
+                                </div>
+                            </div>
+                            
+                            <div class="legal-content" style="line-height: 1.8; color: var(--secondary); font-size: 1.1rem;">
+                                {{ doc.content|safe|linebreaks }}
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div style="text-align: center; padding: 100px 0;">
+                    <div style="width: 80px; height: 80px; background: var(--white); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 2rem; border: 2px solid var(--border);">
+                        <span class="material-icons-round" style="font-size: 2.5rem; color: var(--text-muted);">gavel</span>
+                    </div>
+                    <h2 style="color: var(--secondary);">No Documents Found</h2>
+                    <p style="color: var(--text-muted);">The terms of service are currently being finalized. Please check back soon.</p>
+                </div>
+            {% endif %}
+        </div>
+    </section>
+
+    <!-- Support CTA -->
+    <section class="testimonials" style="background-color: var(--secondary); border-top: 1px solid rgba(255,255,255,0.1);">
+        <div class="container" style="text-align: center;">
+            <h2 style="font-size: 2.5rem; margin-bottom: 1.5rem; color: var(--white);">Need clarification?</h2>
+            <p style="font-size: 1.2rem; color: #94a3b8; margin-bottom: 2.5rem; max-width: 600px; margin-left: auto; margin-right: auto;">
+                Our terms are designed to protect both neighbors and providers. If you need help understanding any part of our agreement, feel free to reach out.
+            </p>
+            <a href="{% url 'public_site:contact' %}" class="btn btn-primary" style="padding: 1rem 2.5rem;">CONTACT SUPPORT</a>
         </div>
     </section>
 {% endblock %}
