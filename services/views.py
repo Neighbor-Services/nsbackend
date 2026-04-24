@@ -285,7 +285,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
     queryset = Proposal.objects.select_related(
         'provider', 'provider__profile',
         'request', 'request__user', 'request__user__profile',
-    ).all()
+    ).prefetch_related('request__proposals').all()
     serializer_class = ProposalSerializer
     permission_classes = (permissions.IsAuthenticated,)
     authentication_classes = (JWTAuthentication,)

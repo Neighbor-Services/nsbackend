@@ -47,6 +47,10 @@ class ProposalSerializer(serializers.ModelSerializer):
 
     def get_request(self, obj):
         req = obj.request
+        # Check if any proposal for this request is approved
+        proposals = list(req.proposals.all())
+        approved_proposal = next((p for p in proposals if p.is_approved), None)
+        
         return {
             'id': str(req.id),
             'title': req.title,
@@ -54,6 +58,8 @@ class ProposalSerializer(serializers.ModelSerializer):
             'status': req.status,
             'price': str(req.price) if req.price else None,
             'scheduled_time': req.scheduled_time.isoformat() if req.scheduled_time else None,
+            'approved': approved_proposal is not None,
+            'approved_user': str(approved_proposal.provider.id) if approved_proposal else None,
         }
 
     class Meta:
