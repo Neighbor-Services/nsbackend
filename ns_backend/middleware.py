@@ -22,9 +22,6 @@ class JWTAuthMiddleware:
         self.inner = inner
 
     async def __call__(self, scope, receive, send):
-        # Close old database connections
-        close_old_connections()
-        
         # Get token from headers (standard Bearer header)
         headers = dict(scope.get('headers', []))
         token_key = None
