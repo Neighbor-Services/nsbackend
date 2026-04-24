@@ -36,10 +36,8 @@ class ProposalSerializer(serializers.ModelSerializer):
     provider_profile = ProfileSerializer(source='provider.profile', read_only=True)
     provider_email = serializers.ReadOnlyField(source='provider.email')
     seeker_profile = ProfileSerializer(source='request.user.profile', read_only=True)
-    service_request = serializers.PrimaryKeyRelatedField(
+    request = serializers.PrimaryKeyRelatedField(
         queryset=ServiceRequest.objects.all(),
-        source='request',
-        write_only=True,
         required=True
     )
 
@@ -63,7 +61,7 @@ class ProposalSerializer(serializers.ModelSerializer):
             'provider_profile', 'provider_email', 'seeker_profile', 
             'created_at', 'updated_at'
         ]
-        read_only_fields = ('provider', 'is_approved', 'request')
+        read_only_fields = ('provider', 'is_approved')
 
 class ServiceRequestSerializer(serializers.ModelSerializer):
     user_email = serializers.ReadOnlyField(source='user.email')
