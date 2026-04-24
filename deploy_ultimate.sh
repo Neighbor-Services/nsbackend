@@ -120,10 +120,10 @@ echo ""
 echo -e "${YELLOW}Step 5: Setting up PostgreSQL primary database...${NC}"
 # Using PostgreSQL 18 with explicit user/group (consistent with systemd service)
 sudo -u postgres /usr/lib/postgresql/18/bin/psql -c "CREATE DATABASE nsapp;" || echo "Database already exists"
-sudo -u postgres /usr/lib/postgresql/18/bin/psql -c "CREATE USER ns_admin WITH PASSWORD 'gentechco';" || echo "User already exists"
-sudo -u postgres /usr/lib/postgresql/18/bin/psql -c "GRANT ALL PRIVILEGES ON DATABASE nsapp TO ns_admin;"
+sudo -u postgres /usr/lib/postgresql/18/bin/psql -c "CREATE USER $USER WITH PASSWORD 'gentechco';" || echo "User already exists"
+sudo -u postgres /usr/lib/postgresql/18/bin/psql -c "GRANT ALL PRIVILEGES ON DATABASE nsapp TO $USER;"
 # Fix for PostgreSQL 15+: Grant creation rights on public schema
-sudo -u postgres /usr/lib/postgresql/18/bin/psql -d nsapp -c "ALTER SCHEMA public OWNER TO ns_admin;"
+sudo -u postgres /usr/lib/postgresql/18/bin/psql -d nsapp -c "ALTER SCHEMA public OWNER TO $USER;"
 
 echo -e "${GREEN}✓ Primary database configured${NC}"
 
@@ -429,7 +429,7 @@ echo ""
 UPSTREAM_SERVERS=""
 for i in $(seq 1 $APP_REPLICAS); do
     PORT=$((8000 + i))
-    UPSTREAM_SERVERS="${UPSTREAM_SERVERS}    server 127.0.0.1:$PORT;\n"
+    UPSTREAM_SERVERS="${UPSTREAM_SERVERS}    server 127.0.0.1:$PORT max_fails=3 fail_timeout=30s;\n"
 done
 
 echo -e "${YELLOW}Step 11: Configuring Nginx for Cloudflare...${NC}"
@@ -522,17 +522,19 @@ server {
         proxy_read_timeout 86400;
     }
 
-    location /api/ {
+    location /api {
         proxy_pass http://ns_backend_cluster;
         proxy_set_header Host \$host;
         proxy_set_header X-Real-IP \$remote_addr;
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_connect_timeout 60s;
+        proxy_read_timeout 60s;
     }
 
-    # Deny everything else on the API subdomain
+    # Redirect everything else on the API subdomain to the main site
     location / {
-        return 404;
+        return 301 https://neighborservice.com\$request_uri;
     }
 }
 
@@ -641,11 +643,15 @@ chmod -R 775 $APP_DIR/backups
 echo -e "${GREEN}✓ Permissions set${NC}"
 
 echo -e "${YELLOW}Step 13: Starting services...${NC}"
-supervisorctl start ${APP_NAME}_replicas:*
-supervisorctl start ${APP_NAME}_celery
-supervisorctl start ${APP_NAME}_celery_beat
+supervisorctl reread
+supervisorctl update
+supervisorctl restart ${APP_NAME}_replicas:*
+supervisorctl restart ${APP_NAME}_celery
+supervisorctl restart ${APP_NAME}_celery_beat
 systemctl enable redis-server
 systemctl start redis-server
+echo -e "${YELLOW}Waiting for services to initialize...${NC}"
+sleep 5
 echo -e "${GREEN}✓ Services started${NC}"
 
 
