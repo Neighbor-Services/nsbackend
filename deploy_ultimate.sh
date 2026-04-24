@@ -472,7 +472,7 @@ upstream ns_backend_cluster {
 $(echo -e "$UPSTREAM_SERVERS")}
 
 # WebSocket Upgrade Map
-map $http_upgrade $connection_upgrade {
+map \$http_upgrade \$connection_upgrade {
     default upgrade;
     ''      close;
 }
