@@ -277,7 +277,10 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
             return Response({'error': 'Request not found'}, status=status.HTTP_404_NOT_FOUND)
 
 class ProposalViewSet(viewsets.ModelViewSet):
-    queryset = Proposal.objects.select_related('provider', 'request', 'request__user').all()
+    queryset = Proposal.objects.select_related(
+        'provider', 'provider__profile',
+        'request', 'request__user', 'request__user__profile',
+    ).all()
     serializer_class = ProposalSerializer
     permission_classes = (permissions.IsAuthenticated,)
     authentication_classes = (JWTAuthentication,)

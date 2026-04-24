@@ -1,0 +1,361 @@
+{% extends 'public_site/base.html' %}
+{% load static %}
+
+{% block content %}
+    <!-- Hero Section -->
+    <section class="hero" style="background: linear-gradient(to bottom, var(--surface), var(--white)); border-bottom: none;">
+        <div class="container hero-grid" style="padding-top: 40px; padding-bottom: 100px;">
+            <div class="hero-content">
+                <div style="display: inline-flex; align-items: center; gap: 0.5rem; background: var(--secondary); color: var(--white); padding: 0.5rem 1rem; border-radius: 30px; font-size: 0.8rem; font-weight: 700; margin-bottom: 1.5rem; text-transform: uppercase; letter-spacing: 0.05em;">
+                    <span class="material-icons-round" style="font-size: 1rem; color: var(--primary);">auto_awesome</span>
+                    The Future of Community Support
+                </div>
+                {% if hero %}
+                    <h1>{{ hero.headline|safe }}</h1>
+                    <p>{{ hero.subheadline }}</p>
+                    
+                    <div class="app-badges">
+                        <a href="{{ hero.cta_link|default:'#' }}" class="app-badge">
+                            <span class="material-icons-round">apple</span>
+                            <div class="badge-text">
+                                <small>Download on the</small>
+                                <span>App Store</span>
+                            </div>
+                        </a>
+                        <a href="{{ hero.cta_link|default:'#' }}" class="app-badge">
+                            <span class="material-icons-round">shop</span>
+                            <div class="badge-text">
+                                <small>Get it on</small>
+                                <span>Google Play</span>
+                            </div>
+                        </a>
+                    </div>
+                {% else %}
+                    <h1>Stronger Communities <br><span style="color: var(--primary);">Built Together.</span></h1>
+                    <p>Neighbor Service is the most trusted platform to connect with verified neighbors for essential services, local help, and community growth. All in one simple mobile app.</p>
+                    
+                    <div class="app-badges">
+                        <a href="#" class="app-badge">
+                            <span class="material-icons-round">apple</span>
+                            <div class="badge-text">
+                                <small>Download on the</small>
+                                <span>App Store</span>
+                            </div>
+                        </a>
+                        <a href="#" class="app-badge">
+                            <span class="material-icons-round">shop</span>
+                            <div class="badge-text">
+                                <small>Get it on</small>
+                                <span>Google Play</span>
+                            </div>
+                        </a>
+                    </div>
+                {% endif %}
+                
+                <div style="margin-top: 3rem; display: flex; align-items: center; gap: 1.5rem; color: var(--text-muted);">
+                    <div style="display: flex; -webkit-mask-image: linear-gradient(to right, black 80%, transparent); mask-image: linear-gradient(to right, black 80%, transparent);">
+                        <div style="width: 40px; height: 40px; background: #e2e8f0; border-radius: 50%; border: 3px solid var(--white); margin-right: -12px; display: flex; align-items: center; justify-content: center;"><span class="material-icons-round" style="font-size: 1.2rem;">person</span></div>
+                        <div style="width: 40px; height: 40px; background: #cbd5e1; border-radius: 50%; border: 3px solid var(--white); margin-right: -12px; display: flex; align-items: center; justify-content: center;"><span class="material-icons-round" style="font-size: 1.2rem;">person</span></div>
+                        <div style="width: 40px; height: 40px; background: #94a3b8; border-radius: 50%; border: 3px solid var(--white); margin-right: -12px; display: flex; align-items: center; justify-content: center;"><span class="material-icons-round" style="font-size: 1.2rem;">person</span></div>
+                    </div>
+                    <span style="font-size: 0.95rem; font-weight: 600;">Joined by 15,000+ neighbors this month</span>
+                </div>
+            </div>
+            <div class="hero-image">
+                <div class="phone-mockup" style="transform: rotate(0deg); box-shadow: 0 40px 80px -20px rgba(0,0,0,0.3);">
+                    {% if hero and hero.image %}
+                        <img src="{{ hero.image.url }}" alt="Hero App Image">
+                    {% else %}
+                        <img src="{% static 'public_site/images/app_mockup.png' %}" alt="Neighbor Service App">
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Popular Services Section -->
+    <section id="services" class="features" style="background-color: var(--white); border-top: 2px solid var(--border);">
+        <div class="container">
+            <div class="section-header">
+                <h2>Browse Our Marketplace</h2>
+                <p>Connect with local experts across dozens of verified categories.</p>
+            </div>
+            <div class="features-grid">
+                {% if catalog_services %}
+                    {% for service in catalog_services %}
+                        <div class="feature-card">
+                            <div class="feature-icon">
+                                <span class="material-icons-round">volunteer_activism</span>
+                            </div>
+                            <h3>{{ service.name }}</h3>
+                            <p>{{ service.description|truncatewords:15 }}</p>
+                            <div style="margin-top: 1.5rem; display: flex; justify-content: space-between; align-items: center;">
+                                <span style="font-weight: 800; color: var(--primary);">GH₵{{ service.base_price|default:"--" }}</span>
+                                <a href="{% url 'public_site:services' %}" style="font-size: 0.85rem; font-weight: 700; color: var(--secondary);">DETAILS</a>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="feature-card" style="border-bottom: 6px solid var(--primary);">
+                        <div class="feature-icon"><span class="material-icons-round">home_repair_service</span></div>
+                        <h3>Handyman Pros</h3>
+                        <p>Reliable fixes for your home, from plumbing to electrical work.</p>
+                        <a href="{% url 'public_site:services' %}" style="margin-top: 1rem; display: inline-block; font-weight: 700; color: var(--primary);">EXPLORE <span class="material-icons-round" style="font-size: 1.1rem; vertical-align: middle;">arrow_forward</span></a>
+                    </div>
+                    <div class="feature-card" style="border-bottom: 6px solid var(--accent);">
+                        <div class="feature-icon" style="background: var(--accent);"><span class="material-icons-round">school</span></div>
+                        <h3>Verified Tutors</h3>
+                        <p>Expert academic and skill-based learning from neighbors you trust.</p>
+                        <a href="{% url 'public_site:services' %}" style="margin-top: 1rem; display: inline-block; font-weight: 700; color: var(--accent);">EXPLORE <span class="material-icons-round" style="font-size: 1.1rem; vertical-align: middle;">arrow_forward</span></a>
+                    </div>
+                    <div class="feature-card" style="border-bottom: 6px solid var(--secondary);">
+                        <div class="feature-icon" style="background: var(--secondary);"><span class="material-icons-round">cleaning_services</span></div>
+                        <h3>Clean & Organize</h3>
+                        <p>Professional home maintenance and organization for a better living space.</p>
+                        <a href="{% url 'public_site:services' %}" style="margin-top: 1rem; display: inline-block; font-weight: 700; color: var(--secondary);">EXPLORE <span class="material-icons-round" style="font-size: 1.1rem; vertical-align: middle;">arrow_forward</span></a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </section>
+
+    <!-- Trust & Safety Section -->
+    <section class="features" style="background-color: var(--secondary); color: var(--white); padding: 120px 0;">
+        <div class="container">
+            <div class="hero-grid" style="gap: 6rem; align-items: center;">
+                <div>
+                    <h2 style="color: var(--white); font-size: 3rem; margin-bottom: 2rem;">Safety is Our <br><span style="color: var(--primary);">Solid Foundation.</span></h2>
+                    <p style="color: #94a3b8; font-size: 1.25rem; margin-bottom: 3rem; line-height: 1.8;">
+                        We believe that a community can only thrive on trust. That's why we've built the most rigorous verification system in the neighborhood services industry.
+                    </p>
+                    <div style="display: grid; gap: 2rem;">
+                        <div style="display: flex; gap: 1.5rem;">
+                            <div style="background: var(--primary); width: 48px; height: 48px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                                <span class="material-icons-round">verified</span>
+                            </div>
+                            <div>
+                                <h4 style="color: var(--white); margin-bottom: 0.5rem; font-size: 1.2rem;">ID Verification</h4>
+                                <p style="color: #94a3b8;">Every provider must pass a strict government ID verification check before offering services.</p>
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 1.5rem;">
+                            <div style="background: var(--accent); width: 48px; height: 48px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                                <span class="material-icons-round">gpp_good</span>
+                            </div>
+                            <div>
+                                <h4 style="color: var(--white); margin-bottom: 0.5rem; font-size: 1.2rem;">Escrow Protection</h4>
+                                <p style="color: #94a3b8;">Payments are held securely in escrow and only released when you confirm the job is done perfectly.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div style="background: #1e293b; padding: 4rem; border-radius: 30px; border: 1px solid rgba(255,255,255,0.1);">
+                    <div style="text-align: center; margin-bottom: 3rem;">
+                        <span class="material-icons-round" style="font-size: 4rem; color: var(--primary); margin-bottom: 1rem;">stars</span>
+                        <h3 style="color: var(--white);">Community Rating</h3>
+                        <p style="color: #94a3b8;">4.9 out of 5 based on 10,000+ reviews</p>
+                    </div>
+                    <div style="display: grid; gap: 1rem;">
+                        <div style="height: 12px; background: #0f172a; border-radius: 6px; overflow: hidden;"><div style="width: 95%; height: 100%; background: var(--primary);"></div></div>
+                        <div style="height: 12px; background: #0f172a; border-radius: 6px; overflow: hidden;"><div style="width: 80%; height: 100%; background: var(--primary);"></div></div>
+                        <div style="height: 12px; background: #0f172a; border-radius: 6px; overflow: hidden;"><div style="width: 90%; height: 100%; background: var(--primary);"></div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works Section -->
+    <section class="how-it-works" style="padding: 120px 0;">
+        <div class="container">
+            <div class="section-header">
+                <h2>Three Simple Steps</h2>
+                <p>Getting the help you need has never been this straightforward.</p>
+            </div>
+            <div class="steps-grid">
+                {% if steps %}
+                    {% for step in steps %}
+                        <div class="step-item">
+                            <div class="step-number">{{ forloop.counter }}</div>
+                            <h3>{{ step.title }}</h3>
+                            <p>{{ step.description }}</p>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="step-item">
+                        <div class="step-number">1</div>
+                        <h3>Post a Request</h3>
+                        <p>Describe what you need, set your budget, and post it to your local neighborhood feed in seconds.</p>
+                    </div>
+                    <div class="step-item">
+                        <div class="step-number">2</div>
+                        <h3>Choose a Pro</h3>
+                        <p>Receive offers from verified neighbors, compare profiles and ratings, and pick the best match for your task.</p>
+                    </div>
+                    <div class="step-item">
+                        <div class="step-number">3</div>
+                        <h3>Task Completed</h3>
+                        <p>Get the job done, release payment securely through the app, and leave a review for your neighbor.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </section>
+
+    <!-- Stats Section -->
+    <section class="stats" style="border-top: 1px solid rgba(255,255,255,0.1); border-bottom: 1px solid rgba(255,255,255,0.1);">
+        <div class="container stats-grid">
+            {% if stats %}
+                {% for stat in stats %}
+                    <div class="stat-item">
+                        <h3>{{ stat.value }}</h3>
+                        <p>{{ stat.label }}</p>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <div class="stat-item">
+                    <h3>15k+</h3>
+                    <p>Neighbors</p>
+                </div>
+                <div class="stat-item">
+                    <h3>50+</h3>
+                    <p>Categories</p>
+                </div>
+                <div class="stat-item">
+                    <h3>$2M+</h3>
+                    <p>Earned by Neighbors</p>
+                </div>
+                <div class="stat-item">
+                    <h3>98%</h3>
+                    <p>Satisfaction</p>
+                </div>
+            {% endif %}
+        </div>
+    </section>
+
+    <!-- Testimonials Section -->
+    <section id="testimonials" class="testimonials">
+        <div class="container">
+            <div class="section-header">
+                <h2>Voices of the Community</h2>
+                <p>Real stories from people who have transformed their neighborhood experience.</p>
+            </div>
+            <div class="testimonials-grid">
+                {% if testimonials %}
+                    {% for t in testimonials %}
+                        <div class="testimonial-card">
+                            <div class="testimonial-content">"{{ t.content }}"</div>
+                            <div class="testimonial-author">
+                                <div class="author-img" style="background: var(--primary); display: flex; align-items: center; justify-content: center; color: white;">
+                                    {% if t.image %}
+                                        <img src="{{ t.image.url }}" alt="{{ t.name }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: inherit;">
+                                    {% else %}
+                                        <span class="material-icons-round">person</span>
+                                    {% endif %}
+                                </div>
+                                <div class="author-info">
+                                    <h4>{{ t.name }}</h4>
+                                    <p>{{ t.role }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="testimonial-card">
+                        <div class="testimonial-content">"I used to struggle finding a reliable plumber. With this app, I found a verified neighbor who fixed my leak in an hour. Safe and solid!"</div>
+                        <div class="testimonial-author">
+                            <div class="author-img" style="background: var(--primary); display: flex; align-items: center; justify-content: center; color: white;"><span class="material-icons-round">person</span></div>
+                            <div class="author-info">
+                                <h4>Robert K.</h4>
+                                <p>Homeowner in Accra</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="testimonial-card">
+                        <div class="testimonial-content">"As a part-time tutor, Neighbor Service has helped me find students right on my street. The escrow payment system gives me total peace of mind."</div>
+                        <div class="testimonial-author">
+                            <div class="author-img" style="background: var(--accent); display: flex; align-items: center; justify-content: center; color: white;"><span class="material-icons-round">person</span></div>
+                            <div class="author-info">
+                                <h4>Lydia M.</h4>
+                                <p>Math Tutor</p>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </section>
+
+    <!-- FAQ Section -->
+    <section id="faq" class="faq" style="background: var(--surface); padding: 120px 0;">
+        <div class="container">
+            <div class="section-header">
+                <h2>Frequently Asked Questions</h2>
+                <p>Everything you need to know about the Neighbor Service ecosystem.</p>
+            </div>
+            <div class="faq-list">
+                {% if faqs %}
+                    {% for faq in faqs %}
+                        <div class="faq-item">
+                            <div class="faq-question">{{ faq.question }} <span class="material-icons-round">add</span></div>
+                            <div class="faq-answer">{{ faq.answer }}</div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="faq-item">
+                        <div class="faq-question">How does the verification process work? <span class="material-icons-round">add</span></div>
+                        <div class="faq-answer">We use automated ID verification and background check integrations to ensure every provider is who they say they are. Your safety is our #1 priority.</div>
+                    </div>
+                    <div class="faq-item">
+                        <div class="faq-question">Is my financial information safe? <span class="material-icons-round">add</span></div>
+                        <div class="faq-answer">Yes, we never store your full card details. All payments are processed through Stripe, a world-leader in secure financial transactions.</div>
+                    </div>
+                    <div class="faq-item">
+                        <div class="faq-question">How can I start offering my services? <span class="material-icons-round">add</span></div>
+                        <div class="faq-answer">Simply download the app, create a profile, and click "Become a Provider". Once verified, you can start bidding on local requests.</div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </section>
+
+    <!-- Final App CTA -->
+    <section style="background: var(--white); padding: 120px 0; border-top: 2px solid var(--border);">
+        <div class="container" style="text-align: center;">
+            <div style="max-width: 800px; margin: 0 auto;">
+                <h2 style="font-size: 3.5rem; color: var(--secondary); margin-bottom: 2rem;">Your neighborhood, <span style="color: var(--primary);">reimagined.</span></h2>
+                <p style="font-size: 1.25rem; color: var(--text-muted); margin-bottom: 3.5rem;">Join thousands of neighbors who are already building a more connected and supportive community. Download the app today.</p>
+                <div class="app-badges" style="justify-content: center;">
+                    <a href="#" class="app-badge">
+                        <span class="material-icons-round">apple</span>
+                        <div class="badge-text">
+                            <small>Download on the</small>
+                            <span>App Store</span>
+                        </div>
+                    </a>
+                    <a href="#" class="app-badge">
+                        <span class="material-icons-round">shop</span>
+                        <div class="badge-text">
+                            <small>Get it on</small>
+                            <span>Google Play</span>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+
+{% block extra_js %}
+    <script>
+        // FAQ Accordion
+        document.querySelectorAll('.faq-question').forEach(button => {
+            button.addEventListener('click', () => {
+                const faqItem = button.parentElement;
+                const isActive = faqItem.classList.contains('active');
+                document.querySelectorAll('.faq-item').forEach(item => item.classList.remove('active'));
+                if (!isActive) faqItem.classList.add('active');
+            });
+        });
+    </script>
+{% endblock %}

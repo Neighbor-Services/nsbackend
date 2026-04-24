@@ -1,0 +1,119 @@
+{% extends 'public_site/base.html' %}
+{% load static %}
+
+{% block title %}Contact Support | Neighbor Service{% endblock %}
+
+{% block content %}
+    <!-- Hero Section -->
+    <section class="hero" style="background-color: var(--surface); padding: 140px 0 80px;">
+        <div class="container">
+            <h1 style="font-size: 3.5rem; color: var(--secondary); margin-bottom: 1.5rem;">How can we help?</h1>
+            <p style="font-size: 1.25rem; color: var(--text-muted); max-width: 700px;">
+                Whether you're a service provider, a seeker, or just curious about our mission, our dedicated support team is ready to assist you.
+            </p>
+        </div>
+    </section>
+
+    <!-- Main Contact Section -->
+    <section class="features" style="background-color: var(--white); padding: 80px 0;">
+        <div class="container">
+            <div class="hero-grid" style="gap: 6rem; align-items: start;">
+                
+                <!-- Contact Info Side -->
+                <div style="display: flex; flex-direction: column; gap: 3rem;">
+                    <div>
+                        <h2 style="font-size: 2rem; color: var(--secondary); margin-bottom: 2rem; position: relative; padding-bottom: 0.75rem;">
+                            Contact Details
+                            <span style="position: absolute; left: 0; bottom: 0; width: 40px; height: 4px; background: var(--primary);"></span>
+                        </h2>
+                        <div style="display: flex; flex-direction: column; gap: 2rem;">
+                            <div style="display: flex; gap: 1.25rem; align-items: center;">
+                                <div class="feature-icon" style="width: 56px; height: 56px; margin: 0; border-radius: 12px;">
+                                    <span class="material-icons-round">alternate_email</span>
+                                </div>
+                                <div>
+                                    <h4 style="font-size: 1.1rem; color: var(--secondary);">Email Support</h4>
+                                    <p style="color: var(--text-muted);">support@neighborservice.com</p>
+                                </div>
+                            </div>
+                            <div style="display: flex; gap: 1.25rem; align-items: center;">
+                                <div class="feature-icon" style="width: 56px; height: 56px; margin: 0; border-radius: 12px;">
+                                    <span class="material-icons-round">headset_mic</span>
+                                </div>
+                                <div>
+                                    <h4 style="font-size: 1.1rem; color: var(--secondary);">Helpline</h4>
+                                    <p style="color: var(--text-muted);">+1 (555) 000-0000 (24/7)</p>
+                                </div>
+                            </div>
+                            <div style="display: flex; gap: 1.25rem; align-items: center;">
+                                <div class="feature-icon" style="width: 56px; height: 56px; margin: 0; border-radius: 12px;">
+                                    <span class="material-icons-round">location_on</span>
+                                </div>
+                                <div>
+                                    <h4 style="font-size: 1.1rem; color: var(--secondary);">Headquarters</h4>
+                                    <p style="color: var(--text-muted);">123 Community City, CC 12345</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="background: var(--secondary); padding: 2.5rem; border-radius: 16px; color: var(--white);">
+                        <h4 style="margin-bottom: 1rem; color: var(--white);">Typical Response Time</h4>
+                        <p style="font-size: 0.95rem; opacity: 0.8; margin-bottom: 1.5rem;">We usually respond to all inquiries within 2 hours during business hours.</p>
+                        <div style="display: flex; align-items: center; gap: 0.75rem; color: var(--primary);">
+                            <span class="material-icons-round">bolt</span>
+                            <span style="font-weight: 700; font-size: 0.9rem; text-transform: uppercase;">Average: 1h 24m</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Form Side -->
+                <div style="background: var(--surface); padding: 3.5rem; border-radius: 24px; border: 2px solid var(--border); box-shadow: var(--shadow-lg);">
+                    <h2 style="font-size: 2rem; color: var(--secondary); margin-bottom: 2.5rem;">Send a Secure Message</h2>
+                    <form style="display: grid; gap: 1.75rem;">
+                        <div class="form-row-mobile" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                            <div style="display: flex; flex-direction: column; gap: 0.6rem;">
+                                <label style="font-weight: 700; color: var(--secondary); font-size: 0.9rem;">First Name</label>
+                                <input type="text" style="padding: 1rem; border: 2px solid var(--border); border-radius: 10px; background: var(--white); font-family: inherit;" placeholder="John">
+                            </div>
+                            <div style="display: flex; flex-direction: column; gap: 0.6rem;">
+                                <label style="font-weight: 700; color: var(--secondary); font-size: 0.9rem;">Last Name</label>
+                                <input type="text" style="padding: 1rem; border: 2px solid var(--border); border-radius: 10px; background: var(--white); font-family: inherit;" placeholder="Doe">
+                            </div>
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 0.6rem;">
+                            <label style="font-weight: 700; color: var(--secondary); font-size: 0.9rem;">Work Email</label>
+                            <input type="email" style="padding: 1rem; border: 2px solid var(--border); border-radius: 10px; background: var(--white); font-family: inherit;" placeholder="john@example.com">
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 0.6rem;">
+                            <label style="font-weight: 700; color: var(--secondary); font-size: 0.9rem;">How can we help?</label>
+                            <select style="padding: 1rem; border: 2px solid var(--border); border-radius: 10px; background: var(--white); font-family: inherit; appearance: none;">
+                                <option>General Inquiry</option>
+                                <option>Technical Support</option>
+                                <option>Billing Question</option>
+                                <option>Become a Partner</option>
+                            </select>
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 0.6rem;">
+                            <label style="font-weight: 700; color: var(--secondary); font-size: 0.9rem;">Message Detail</label>
+                            <textarea rows="5" style="padding: 1rem; border: 2px solid var(--border); border-radius: 10px; background: var(--white); font-family: inherit; resize: vertical;" placeholder="Tell us more about your request..."></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary" style="justify-content: center; width: 100%; padding: 1.15rem; margin-top: 1rem;">
+                            SEND MESSAGE <span class="material-icons-round">send</span>
+                        </button>
+                    </form>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- Help Center Redirect -->
+    <section class="features" style="background-color: var(--secondary); color: var(--white); text-align: center; padding: 60px 0;">
+        <div class="container">
+            <h3 style="color: var(--white); margin-bottom: 1.5rem;">Looking for immediate answers?</h3>
+            <p style="margin-bottom: 2rem; opacity: 0.8;">Check our detailed help center and documentation for quick guides.</p>
+            <a href="{% url 'public_site:index' %}#faq" class="btn" style="border: 2px solid var(--white); color: var(--white);">VISIT HELP CENTER</a>
+        </div>
+    </section>
+{% endblock %}

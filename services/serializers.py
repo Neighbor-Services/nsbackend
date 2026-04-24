@@ -58,12 +58,23 @@ class ServiceRequestSerializer(serializers.ModelSerializer):
         allow_null=True
     )
 
+    def _get_proposals(self, obj):
+        """Evaluate the prefetch cache exactly once per serialized object."""
+        if not hasattr(obj, '_proposals_cache'):
+            obj._proposals_cache = list(obj.proposals.all())
+        return obj._proposals_cache
+
+    def _get_appointments(self, obj):
+        if not hasattr(obj, '_appointments_cache'):
+            obj._appointments_cache = list(obj.appointments.all())
+        return obj._appointments_cache
+
     def get_proposals_count(self, obj):
-        return len(obj.proposals.all())
+        return len(self._get_proposals(obj))
 
     def get_approved_user(self, obj):
         approved_proposal = next(
-            (p for p in obj.proposals.all() if p.is_approved), None
+            (p for p in self._get_proposals(obj) if p.is_approved), None
         )
         if approved_proposal:
             try:
@@ -76,7 +87,7 @@ class ServiceRequestSerializer(serializers.ModelSerializer):
         return None
 
     def get_approved(self, obj):
-        return any(p.is_approved for p in obj.proposals.all())
+        return any(p.is_approved for p in self._get_proposals(obj))
 
     def get_image_url(self, obj):
         if obj.image:
@@ -87,23 +98,17 @@ class ServiceRequestSerializer(serializers.ModelSerializer):
         return None
 
     def get_distance(self, obj):
-        # Distance is annotated at the DB level in get_queryset when lat/lng are
-        # provided. No Python-level fallback — that was causing one haversine
-        # call per object on every list request.
         if hasattr(obj, 'distance') and obj.distance is not None:
             return obj.distance
         return None
 
-
     def get_appointment_id(self, obj):
-        appointments = obj.appointments.all()
-        first = appointments[0] if appointments else None
-        return str(first.id) if first else None
+        appts = self._get_appointments(obj)
+        return str(appts[0].id) if appts else None
 
     def get_is_funded(self, obj):
-        appointments = obj.appointments.all()
-        first = appointments[0] if appointments else None
-        return first.is_funded if first else False
+        appts = self._get_appointments(obj)
+        return appts[0].is_funded if appts else False
 
     class Meta:
         model = ServiceRequest

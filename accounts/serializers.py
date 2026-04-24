@@ -101,7 +101,9 @@ class ProfileSerializer(serializers.ModelSerializer):
     
     def get_reviews_received(self, obj):
         from interactions.serializers import ReviewSerializer
-        reviews = obj.user.reviews_received.all()
+        reviews = obj.user.reviews_received.select_related(
+            'reviewer', 'reviewer__profile', 'provider', 'provider__profile'
+        ).all()
         return ReviewSerializer(reviews, many=True, context=self.context).data
 
     def get_profile_picture_url(self, obj):

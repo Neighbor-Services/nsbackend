@@ -88,6 +88,7 @@ INSTALLED_APPS = [
     'audit',
     'tracking',
     'consultations',
+    'public_site',
 ]
 
 # Agora Configuration
@@ -117,6 +118,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'public_site.context_processors.site_settings',
             ],
         },
     },

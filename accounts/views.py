@@ -50,9 +50,7 @@ class RegisterView(generics.CreateAPIView):
         user.save()
         
         # Send OTP via email using helper
-        print(f"DEBUG: Registering user {user.email}, sending OTP...")
-        success = send_otp_email(user, otp)
-        print(f"DEBUG: Email send result for {user.email}: {success}")
+        send_otp_email(user, otp)
 
 class VerifyOTPView(generics.GenericAPIView):
     permission_classes = (permissions.AllowAny,)
@@ -88,13 +86,7 @@ class ResendOTPView(generics.GenericAPIView):
                 user.otp_code = otp
                 user.otp_expiry = timezone.now() + timedelta(minutes=10)
                 user.save()
-                user.otp_expiry = timezone.now() + timedelta(minutes=10)
-                user.save()
-                
-                # Send OTP via email using helper
-                print(f"DEBUG: Resending OTP to {user.email}...")
-                success = send_otp_email(user, otp)
-                print(f"DEBUG: Email send result for {user.email}: {success}")
+                send_otp_email(user, otp)
             return Response({"detail": "If an account exists, a new OTP has been sent."}, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -226,37 +218,47 @@ class ProfileViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         queryset = self.queryset
-        
+
         lat = self.request.query_params.get('lat')
         lng = self.request.query_params.get('lng')
         radius = self.request.query_params.get('radius')
 
         if lat and lng and radius:
-            from ns_backend.utils import haversine_distance
-            radius = float(radius)
-            lat = float(lat)
-            lng = float(lng)
-            
-            # 1. Bounding Box Filter
-            lat_delta = radius / 111.0
+            from django.db.models import FloatField, ExpressionWrapper
+            from django.db.models.functions import ACos, Cos, Sin, Radians
+            from django.db.models import F, Value
+            from django.db.models.functions import Cast
             import math
-            lng_delta = radius / (111.0 * math.cos(math.radians(lat)))
-            
+
+            radius_km = float(radius)
+            lat_f = float(lat)
+            lng_f = float(lng)
+
+            # Bounding box pre-filter (cheap index scan)
+            lat_delta = radius_km / 111.0
+            lng_delta = radius_km / (111.0 * math.cos(math.radians(lat_f)))
             queryset = queryset.filter(
-                latitude__gte=lat - lat_delta,
-                latitude__lte=lat + lat_delta,
-                longitude__gte=lng - lng_delta,
-                longitude__lte=lng + lng_delta
-            )
-            
-            # 2. Haversine
-            ids = []
-            for item in queryset:
-                dist = haversine_distance(lat, lng, item.latitude, item.longitude)
-                if dist is not None and dist <= radius:
-                    ids.append(item.id)
-            queryset = queryset.filter(id__in=ids)
-            
+                latitude__gte=lat_f - lat_delta,
+                latitude__lte=lat_f + lat_delta,
+                longitude__gte=lng_f - lng_delta,
+                longitude__lte=lng_f + lng_delta,
+            ).exclude(latitude__isnull=True).exclude(longitude__isnull=True)
+
+            # DB-level Haversine — eliminates Python loop over every profile
+            lat_rad = math.radians(lat_f)
+            lng_rad = math.radians(lng_f)
+            queryset = queryset.annotate(
+                distance_km=ExpressionWrapper(
+                    Value(6371.0) * ACos(
+                        Sin(Value(lat_rad)) * Sin(Radians(Cast(F('latitude'), FloatField())))
+                        + Cos(Value(lat_rad)) * Cos(Radians(Cast(F('longitude'), FloatField())))
+                        * Cos(Value(lng_rad) - Radians(Cast(F('longitude'), FloatField()))),
+                        output_field=FloatField(),
+                    ),
+                    output_field=FloatField(),
+                )
+            ).filter(distance_km__lte=radius_km).order_by('distance_km')
+
         return queryset
 
     def get_object(self):

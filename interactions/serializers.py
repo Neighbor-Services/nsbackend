@@ -95,51 +95,28 @@ class ReviewSerializer(serializers.ModelSerializer):
         }
 
     def validate(self, data):
-        # Debug logging
-        print(f"DEBUG REVIEW SERIALIZER: Received data = {data}")
-        
-    def validate(self, data):
-        # Debug logging
-        print(f"DEBUG REVIEW SERIALIZER: Received data = {data}")
-        
-        # If profile_id is provided, resolve it to the user
         profile_id = data.pop('profile_id', None)
-        print(f"DEBUG REVIEW SERIALIZER: profile_id = {profile_id}")
-        
+
         if profile_id:
             from accounts.models import Profile, User
             try:
-                # Try to find Profile first
                 profile = Profile.objects.select_related('user').get(id=profile_id)
                 data['provider'] = profile.user
-                print(f"DEBUG REVIEW SERIALIZER: Resolved provider from Profile = {profile.user}")
             except Profile.DoesNotExist:
-                # Fallback: Try to find User directly
-                print(f"DEBUG REVIEW SERIALIZER: Profile not found for id {profile_id}. Checking if it is a User ID...")
                 try:
                     user = User.objects.get(id=profile_id)
                     data['provider'] = user
-                    print(f"DEBUG REVIEW SERIALIZER: Resolved provider from User ID = {user}")
                 except User.DoesNotExist:
-                    print(f"DEBUG REVIEW SERIALIZER: User not found for id {profile_id}")
-                    raise serializers.ValidationError({'profile_id': 'Provider not found (Invalid Profile or User ID)'})
-        
-        # Ensure provider is set
+                    raise serializers.ValidationError(
+                        {'profile_id': 'Provider not found (Invalid Profile or User ID)'}
+                    )
+
         if 'provider' not in data or data['provider'] is None:
-            print(f"DEBUG REVIEW SERIALIZER: Provider is missing!")
             raise serializers.ValidationError({'provider': 'Provider is required'})
-        
-        print(f"DEBUG REVIEW SERIALIZER: Final data = {data}")
-        return data
-        if 'provider' not in data or data['provider'] is None:
-            print(f"DEBUG REVIEW SERIALIZER: Provider is missing!")
-            raise serializers.ValidationError({'provider': 'Provider is required'})
-        
-        print(f"DEBUG REVIEW SERIALIZER: Final data = {data}")
+
         return data
 
 from django.db import models
-from services.serializers import ServiceRequestSerializer
 
 class AppointmentSerializer(serializers.ModelSerializer):
     seeker_profile = SimpleProfileSerializer(source='seeker.profile', read_only=True)
@@ -147,11 +124,48 @@ class AppointmentSerializer(serializers.ModelSerializer):
     service_request_details = serializers.SerializerMethodField()
 
     def get_service_request_details(self, obj):
-        if obj.service_request:
-            return ServiceRequestSerializer(obj.service_request, context=self.context).data
-        if obj.proposal and obj.proposal.request:
-            return ServiceRequestSerializer(obj.proposal.request, context=self.context).data
-        return None
+        """Return a lightweight summary of the linked service request.
+
+        Uses data already loaded by select_related/prefetch_related on the
+        ViewSet queryset — no extra DB round-trips.
+        """
+        req = obj.service_request or (
+            obj.proposal.request if obj.proposal else None
+        )
+        if not req:
+            return None
+
+        request_context = self.context.get('request')
+        image_url = None
+        if req.image:
+            if request_context:
+                image_url = request_context.build_absolute_uri(req.image.url)
+            else:
+                image_url = req.image.url
+
+        proposals = list(req.proposals.all())
+
+        return {
+            'id': str(req.id),
+            'title': req.title,
+            'description': req.description,
+            'status': req.status,
+            'price': str(req.price) if req.price else None,
+            'image_url': image_url,
+            'scheduled_time': req.scheduled_time.isoformat() if req.scheduled_time else None,
+            'created_at': req.created_at.isoformat() if req.created_at else None,
+            # Evaluate the prefetch cache ONCE into a local list
+            'approved': any(p.is_approved for p in proposals),
+            'approved_user': next(
+                (str(p.provider.id) for p in proposals if p.is_approved),
+                None,
+            ),
+            'proposals_count': len(proposals),
+            'appointment_id': None,
+            'is_funded': obj.is_funded,
+        }
+
+
 
     class Meta:
         model = Appointment

@@ -1,0 +1,109 @@
+{% extends 'public_site/base.html' %}
+{% load static %}
+
+{% block title %}Service Catalog | Neighbor Service{% endblock %}
+
+{% block content %}
+    <!-- Hero Section -->
+    <section class="hero" style="background-color: var(--secondary); color: var(--white); padding: 140px 0 60px;">
+        <div class="container">
+            <h1 style="font-size: 3.5rem; color: var(--white); margin-bottom: 1.5rem;">Service Catalog</h1>
+            <p style="font-size: 1.25rem; color: #94a3b8; max-width: 800px;">
+                Find trusted, verified help for every neighborhood need. Our platform connects you with local experts and helpful neighbors across dozens of categories.
+            </p>
+            
+            <!-- Quick Search / Filter Bar (Visual Only) -->
+            <div style="margin-top: 3rem; background: var(--white); padding: 0.75rem; border-radius: 12px; display: flex; gap: 1rem; max-width: 600px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.3);">
+                <div style="flex: 1; display: flex; align-items: center; gap: 0.75rem; padding-left: 1rem;">
+                    <span class="material-icons-round" style="color: var(--text-muted);">search</span>
+                    <input type="text" placeholder="Search for a service..." style="border: none; width: 100%; font-family: inherit; font-size: 1rem; outline: none;">
+                </div>
+                <button class="btn btn-primary" style="padding: 0.75rem 1.5rem;">FIND HELP</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Category Quick Links -->
+    <section style="background: var(--white); border-bottom: 2px solid var(--border); position: sticky; top: 80px; z-index: 100;">
+        <div class="container">
+            <div style="display: flex; gap: 2.5rem; padding: 1.5rem 0; overflow-x: auto; white-space: nowrap; scrollbar-width: none;">
+                <a href="#all" style="font-weight: 700; color: var(--primary);">ALL CATEGORIES</a>
+                {% for category in categories %}
+                    <a href="#cat-{{ category.id }}" style="font-weight: 700; color: var(--secondary); opacity: 0.7;">{{ category.name|upper }}</a>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+
+    <div id="all">
+        {% for category in categories %}
+            <section id="cat-{{ category.id }}" class="features" style="{% if forloop.counter|divisibleby:2 %}background-color: var(--white);{% else %}background-color: var(--surface);{% endif %}; padding: 100px 0;">
+                <div class="container">
+                    <div class="section-header" style="text-align: left; margin-bottom: 4rem;">
+                        <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
+                            <div style="width: 12px; height: 32px; background: var(--primary); border-radius: 4px;"></div>
+                            <h2 style="font-size: 2.5rem; color: var(--secondary); margin: 0;">{{ category.name }}</h2>
+                        </div>
+                        {% if category.description %}
+                            <p style="font-size: 1.1rem; color: var(--text-muted); max-width: 800px;">{{ category.description }}</p>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="features-grid" style="grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 2.5rem;">
+                        {% for service in category.services.all %}
+                            <div class="feature-card" style="background: var(--white); border: 2px solid var(--border); padding: 3rem; display: flex; flex-direction: column;">
+                                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2rem;">
+                                    <div class="feature-icon" style="width: 56px; height: 56px; margin: 0; border-radius: 12px; background: var(--surface); color: var(--primary);">
+                                        <span class="material-icons-round">work</span>
+                                    </div>
+                                    <div style="background: var(--surface); padding: 0.5rem 1rem; border-radius: 20px; font-weight: 800; font-size: 0.85rem; color: var(--secondary); border: 1px solid var(--border);">
+                                        {% if service.base_price %}FROM GH₵{{ service.base_price }}{% else %}QUOTE REQUIRED{% endif %}
+                                    </div>
+                                </div>
+                                
+                                <h3 style="font-size: 1.5rem; margin-bottom: 1rem; color: var(--secondary);">{{ service.name }}</h3>
+                                
+                                {% if service.description %}
+                                    <p style="font-size: 1rem; color: var(--text-muted); line-height: 1.7; margin-bottom: 2rem; flex-grow: 1;">
+                                        {{ service.description|truncatewords:25 }}
+                                    </p>
+                                {% endif %}
+                                
+                                <div style="margin-top: auto; display: flex; align-items: center; gap: 1rem;">
+                                    <a href="/admin/" class="btn btn-primary" style="flex: 1; justify-content: center; text-transform: none; font-size: 0.95rem;">
+                                        Book Now
+                                    </a>
+                                    <a href="{% url 'public_site:contact' %}" class="social-icon" style="background: var(--surface); border: 1px solid var(--border);">
+                                        <span class="material-icons-round" style="color: var(--secondary);">info_outline</span>
+                                    </a>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </section>
+        {% empty %}
+            <section class="features">
+                <div class="container" style="text-align: center; padding: 120px 0;">
+                    <div style="width: 100px; height: 100px; background: var(--surface); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 2rem;">
+                        <span class="material-icons-round" style="font-size: 3rem; color: var(--text-muted);">inventory_2</span>
+                    </div>
+                    <h2 style="color: var(--secondary);">Catalog Initialization</h2>
+                    <p style="max-width: 500px; margin: 1rem auto 2rem;">Our professional service catalog is currently being updated with new verified providers.</p>
+                    <a href="{% url 'public_site:contact' %}" class="btn btn-primary">NOTIFY ME WHEN LIVE</a>
+                </div>
+            </section>
+        {% endfor %}
+    </div>
+
+    <!-- Final CTA -->
+    <section class="testimonials" style="background-color: var(--secondary); padding: 80px 0;">
+        <div class="container" style="text-align: center;">
+            <h2 style="font-size: 2.5rem; margin-bottom: 1.5rem; color: var(--white);">Ready to serve your neighborhood?</h2>
+            <p style="font-size: 1.2rem; color: #94a3b8; margin-bottom: 2.5rem; max-width: 600px; margin-left: auto; margin-right: auto;">
+                Create a provider profile in minutes and start connecting with local customers who need your expertise.
+            </p>
+            <a href="/admin/" class="btn btn-primary" style="padding: 1rem 2.5rem;">BECOME A PROVIDER</a>
+        </div>
+    </section>
+{% endblock %}

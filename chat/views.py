@@ -9,10 +9,25 @@ class ConversationViewSet(viewsets.ModelViewSet):
     permission_classes = (permissions.IsAuthenticated,)
 
     def get_queryset(self):
-        from django.db.models import Prefetch
-        return Conversation.objects.filter(participants=self.request.user).prefetch_related(
+        from django.db.models import Prefetch, OuterRef, Subquery
+        # Only prefetch the LAST message per conversation for the list view.
+        # Loading all messages here would pull thousands of rows into memory
+        # just to show conversation previews.
+        last_msg_ids = Message.objects.filter(
+            conversation=OuterRef('pk')
+        ).order_by('-created_at').values('id')[:1]
+
+        return Conversation.objects.filter(
+            participants=self.request.user
+        ).prefetch_related(
             'participants',
-            Prefetch('messages', queryset=Message.objects.order_by('created_at'))
+            Prefetch(
+                'messages',
+                queryset=Message.objects.filter(
+                    id__in=Subquery(last_msg_ids)
+                ).select_related('sender'),
+                to_attr='last_messages',
+            ),
         )
 
     def list(self, request, *args, **kwargs):
@@ -47,24 +62,36 @@ class ConversationViewSet(viewsets.ModelViewSet):
     def _wrap_conversations(self, data, request):
         from accounts.models import Profile
         from accounts.serializers import ProfileSerializer
-        
+
+        me_id = str(request.user.id)
+
+        # Collect ALL participant IDs across all conversations in one pass
+        all_participant_ids = set()
+        for conv_data in data:
+            for pid in conv_data['participants']:
+                all_participant_ids.add(str(pid))
+
+        # ONE bulk query for all needed profiles instead of 2 per conversation
+        profiles_qs = Profile.objects.filter(
+            user_id__in=all_participant_ids
+        ).select_related('user')
+        profiles_map = {str(p.user_id): p for p in profiles_qs}
+
         wrapped = []
         for conv_data in data:
             conv_id = conv_data['id']
-            participants_ids = conv_data['participants']
-            me_id = str(request.user.id)
-            # Find the other participant's ID
-            other_id = next((pid for pid in participants_ids if str(pid) != me_id), None)
-            
-            me_profile = Profile.objects.filter(user_id=me_id).first()
-            other_profile = Profile.objects.filter(user_id=other_id).first() if other_id else None
-            
-            # Calculate unread count for current user
-            messages_list = conv_data.get('messages', [])
-            unread_count = 0
-            for msg in messages_list:
-                if not msg.get('is_seen', False) and str(msg.get('sender')) != me_id:
-                    unread_count += 1
+            participants_ids = [str(pid) for pid in conv_data['participants']]
+            other_id = next((pid for pid in participants_ids if pid != me_id), None)
+
+            me_profile = profiles_map.get(me_id)
+            other_profile = profiles_map.get(other_id) if other_id else None
+
+            # Use last_messages (single prefetched msg) instead of all messages
+            messages_list = conv_data.get('last_messages', conv_data.get('messages', []))
+            unread_count = sum(
+                1 for msg in messages_list
+                if not msg.get('is_seen', False) and str(msg.get('sender')) != me_id
+            )
 
             chat_data = {
                 "id": conv_id,
@@ -76,13 +103,14 @@ class ConversationViewSet(viewsets.ModelViewSet):
                 "updated_at": conv_data.get('updated_at'),
                 "last_message": messages_list[-1] if messages_list else None,
             }
-            
+
             wrapped.append({
                 "chat": chat_data,
                 "me": ProfileSerializer(me_profile, context={'request': request}).data if me_profile else None,
                 "other": ProfileSerializer(other_profile, context={'request': request}).data if other_profile else None,
             })
         return wrapped
+
 
 class MessageViewSet(viewsets.ModelViewSet):
     queryset = Message.objects.select_related('sender', 'conversation').all()
@@ -127,18 +155,14 @@ class MessageViewSet(viewsets.ModelViewSet):
         from django.contrib.auth import get_user_model
         User = get_user_model()
         
-        # 1. Try as UUID (Conversation ID)
-        # 1. Try as UUID (Conversation ID)
         try:
             val = uuid.UUID(conversation_id, version=4)
             conv = Conversation.objects.filter(id=val, participants=user).first()
             if conv:
                 return conv
-            # If valid UUID but no conversation found, might be a User ID, so fall through.
         except ValueError:
             pass
 
-        # 2. Try as user1_user2 pattern
         if '_' in conversation_id:
             uids = conversation_id.split('_')
             if len(uids) == 2:
@@ -150,7 +174,6 @@ class MessageViewSet(viewsets.ModelViewSet):
                 except (User.DoesNotExist, ValueError):
                     pass
         
-        # 3. Try as Other User ID
         try:
             other_user = User.objects.get(id=conversation_id)
             return Conversation.objects.filter(participants=user).filter(participants=other_user).first()
@@ -162,24 +185,49 @@ class MessageViewSet(viewsets.ModelViewSet):
     def _wrap_messages(self, data, request):
         from accounts.models import Profile
         from accounts.serializers import ProfileSerializer
-        from .models import Message as ChatMessageModel
-        
+
+        if not data:
+            return []
+
+        # Collect all sender IDs in one pass, then bulk-fetch profiles
+        sender_ids = {str(msg['sender']) for msg in data if msg.get('sender')}
+        profiles_qs = Profile.objects.filter(
+            user_id__in=sender_ids
+        ).select_related('user')
+        profiles_map = {str(p.user_id): p for p in profiles_qs}
+
+        # For receiver we need participants — fetch the conversation once
+        # (all messages in one list view belong to the same conversation)
+        receiver_profile = None
+        if data:
+            try:
+                from .models import Message as ChatMessageModel
+                first_msg = ChatMessageModel.objects.select_related('conversation').get(
+                    id=data[0]['id']
+                )
+                me_id = str(request.user.id)
+                receiver_user = first_msg.conversation.participants.exclude(
+                    id=request.user.id
+                ).first()
+                if receiver_user:
+                    receiver_profile = Profile.objects.filter(
+                        user=receiver_user
+                    ).select_related('user').first()
+            except Exception:
+                pass
+
+        serialized_receiver = (
+            ProfileSerializer(receiver_profile, context={'request': request}).data
+            if receiver_profile else None
+        )
+
         wrapped = []
         for msg_data in data:
-            try:
-                # Use msg_data['id'] which is the UUID of the message
-                msg = ChatMessageModel.objects.get(id=msg_data['id'])
-                participants = msg.conversation.participants.all()
-                receiver_user = participants.exclude(id=msg.sender.id).first()
-                
-                sender_profile = Profile.objects.filter(user=msg.sender).first()
-                receiver_profile = Profile.objects.filter(user=receiver_user).first() if receiver_user else None
-                
-                wrapped.append({
-                    "message": msg_data,
-                    "sender": ProfileSerializer(sender_profile, context={'request': request}).data if sender_profile else None,
-                    "receiver": ProfileSerializer(receiver_profile, context={'request': request}).data if receiver_profile else None,
-                })
-            except (ChatMessageModel.DoesNotExist, KeyError):
-                continue
+            sender_profile = profiles_map.get(str(msg_data.get('sender')))
+            wrapped.append({
+                "message": msg_data,
+                "sender": ProfileSerializer(sender_profile, context={'request': request}).data if sender_profile else None,
+                "receiver": serialized_receiver,
+            })
         return wrapped
+

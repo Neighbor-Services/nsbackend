@@ -15,7 +15,19 @@ class MessageSerializer(serializers.ModelSerializer):
         return self.context.get('original_id', str(obj.conversation.id))
 
     def get_receiver(self, obj):
-        # Get the other participant in the conversation
+        # Avoid a DB hit per message — derive receiver from context if available,
+        # otherwise fall back to querying participants (only on direct retrieve calls).
+        request = self.context.get('request')
+        if request:
+            # The receiver is the participant who is NOT the sender
+            sender_id = str(obj.sender.id)
+            user_id = str(request.user.id)
+            # If sender == current user, receiver is the other party (unknown here without query)
+            # The _wrap_messages layer in the view already resolves this accurately per-page;
+            # this field is a lightweight fallback for single-message retrieve only.
+            if sender_id != user_id:
+                return user_id  # current user is the receiver
+        # Fallback: query participants (only hits on direct message retrieve, not list)
         participants = obj.conversation.participants.all()
         for participant in participants:
             if participant != obj.sender:

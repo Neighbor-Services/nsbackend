@@ -1,5 +1,6 @@
 from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
+from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework.response import Response
 from django.db import models, transaction
@@ -59,15 +60,15 @@ class ReviewViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         review = serializer.save(reviewer=self.request.user)
-        # Update provider's average rating
         provider = review.provider
-        reviews = Review.objects.filter(provider=provider)
-        total_reviews = reviews.count()
-        avg_rating = sum([r.rating for r in reviews]) / total_reviews
-        
-        provider.profile.average_rating = avg_rating
-        provider.profile.total_reviews = total_reviews
-        provider.profile.total_reviews = total_reviews
+
+        # Single aggregate query instead of fetching all review objects
+        from django.db.models import Avg, Count
+        agg = Review.objects.filter(provider=provider).aggregate(
+            avg=Avg('rating'), total=Count('id')
+        )
+        provider.profile.average_rating = agg['avg'] or 0
+        provider.profile.total_reviews = agg['total'] or 0
         provider.profile.save()
 
         # Notify Provider
@@ -81,7 +82,14 @@ class ReviewViewSet(viewsets.ModelViewSet):
         )
 
 class AppointmentViewSet(viewsets.ModelViewSet):
-    queryset = Appointment.objects.select_related('seeker', 'provider', 'seeker__profile', 'provider__profile').all()
+    queryset = Appointment.objects.select_related(
+        'seeker', 'provider',
+        'seeker__profile', 'provider__profile',
+        'service_request', 'service_request__user', 'service_request__user__profile',
+        'proposal', 'proposal__request', 'proposal__request__user',
+    ).prefetch_related(
+        'service_request__proposals',
+    ).all()
     serializer_class = AppointmentSerializer
     permission_classes = (permissions.IsAuthenticated,)
     authentication_classes = (JWTAuthentication,)
@@ -103,6 +111,44 @@ class AppointmentViewSet(viewsets.ModelViewSet):
         # Wrap single appointment similar to list format
         wrapped_data = self._wrap_appointments([serializer.data], request.user)[0]
         return Response(wrapped_data)
+
+    @action(detail=True, methods=['post'], url_path='verify-code')
+    def verify_code(self, request, pk=None):
+        appointment = self.get_object()
+        
+        # Only Provider should be verifying the code
+        if request.user != appointment.provider:
+            return Response({'error': 'Only the provider can verify the arrival code'}, status=status.HTTP_403_FORBIDDEN)
+            
+        code = request.data.get('code')
+        if not code:
+            return Response({'error': 'Verification code required'}, status=status.HTTP_400_BAD_REQUEST)
+            
+        if appointment.status == 'COMPLETED':
+            return Response({'error': 'Appointment is already completed'}, status=status.HTTP_400_BAD_REQUEST)
+            
+        if appointment.status == 'IN_PROGRESS':
+            return Response({'error': 'Appointment is already verified and in progress'}, status=status.HTTP_400_BAD_REQUEST)
+            
+        if str(code).strip().upper() == str(appointment.secret_code).strip().upper():
+            appointment.status = 'IN_PROGRESS'
+            appointment.save()
+            
+            # Notify Seeker
+            send_notification(
+                user=appointment.seeker,
+                sender=appointment.provider,
+                title="Provider Arrived!",
+                message=f"The provider has successfully verified your secret code. Service is now in progress.",
+                notification_type="APPOINTMENT",
+                data={"appointment_id": str(appointment.id)}
+            )
+            
+            serializer = self.get_serializer(appointment)
+            wrapped_data = self._wrap_appointments([serializer.data], request.user)[0]
+            return Response({'status': 'verified', 'data': wrapped_data})
+        else:
+            return Response({'error': 'Invalid verification code. Please check with the seeker.'}, status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=True, methods=['post'])
     def complete(self, request, pk=None):
@@ -253,6 +299,22 @@ class DisputeViewSet(viewsets.ModelViewSet):
             print(f"Dispute creation error: {str(e)}")
             print(f"Serializer errors: {serializer.errors if hasattr(serializer, 'errors') else 'No errors'}")
             raise
+
+    @action(detail=True, methods=['post'], parser_classes=[MultiPartParser, FormParser])
+    def upload_evidence(self, request, pk=None):
+        dispute = self.get_object()
+        
+        if request.user not in [dispute.raised_by, dispute.defendant]:
+            return Response({'error': 'Not authorized'}, status=status.HTTP_403_FORBIDDEN)
+            
+        file = request.FILES.get('evidence')
+        if not file:
+            return Response({'error': 'No evidence file provided'}, status=status.HTTP_400_BAD_REQUEST)
+            
+        dispute.evidence = file
+        dispute.save()
+        
+        return Response({'status': 'evidence uploaded successfully'})
 
     def perform_create(self, serializer):
         dispute = serializer.save(raised_by=self.request.user)

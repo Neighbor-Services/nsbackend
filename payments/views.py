@@ -178,47 +178,66 @@ class CustomerViewSet(viewsets.ModelViewSet):
         appointment_id = request.data.get('appointment_id')
         if not appointment_id:
             return Response({'error': 'Appointment ID required'}, status=status.HTTP_400_BAD_REQUEST)
-            
+
         try:
-            appointment = Appointment.objects.get(id=appointment_id, seeker=request.user)
+            appointment = Appointment.objects.select_related(
+                'seeker', 'provider'
+            ).get(id=appointment_id, seeker=request.user)
         except Appointment.DoesNotExist:
             return Response({'error': 'Appointment not found or not owned by you'}, status=status.HTTP_404_NOT_FOUND)
-            
+
+        # Resolve provider's Stripe Connect account
+        provider_wallet = Wallet.objects.filter(user=appointment.provider).first()
+        if not provider_wallet or not provider_wallet.stripe_connect_id:
+            return Response(
+                {'error': 'Provider has not completed Stripe Connect onboarding and cannot receive payments.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
         customer, created = Customer.objects.get_or_create(user=request.user)
-        
         if not customer.stripe_customer_id:
             stripe_customer = stripe.Customer.create(email=request.user.email)
             customer.stripe_customer_id = stripe_customer.id
             customer.save()
-            
+
         ephemeral_key = stripe.EphemeralKey.create(
             customer=customer.stripe_customer_id,
             stripe_version='2022-11-15'
         )
-        
-        # Determine amount. If appointment has no price, expect it in request or use a default.
-        # For now, we expect appointment to have some context or use request data.
+
         amount = request.data.get('amount')
         if not amount:
             return Response({'error': 'Amount required'}, status=status.HTTP_400_BAD_REQUEST)
-            
+
+        amount_cents = int(float(amount) * 100)
+
+        # 5% platform fee — adjust PLATFORM_FEE_PERCENT in settings to override
+        fee_percent = getattr(settings, 'PLATFORM_FEE_PERCENT', 5)
+        application_fee = int(amount_cents * fee_percent / 100)
+
         payment_intent = stripe.PaymentIntent.create(
-            amount=int(float(amount) * 100),
+            amount=amount_cents,
             currency='usd',
             customer=customer.stripe_customer_id,
+            # Route directly to provider's Connect account
+            transfer_data={
+                'destination': provider_wallet.stripe_connect_id,
+            },
+            application_fee_amount=application_fee,
             metadata={
                 'appointment_id': str(appointment.id),
-                'type': 'job_funding'
+                'provider_id': str(appointment.provider.id),
+                'seeker_id': str(appointment.seeker.id),
+                'type': 'job_funding',
             },
             automatic_payment_methods={
                 'enabled': True,
             },
         )
-        
-        # Store payment intent ID on appointment (pending confirmation)
+
         appointment.payment_intent_id = payment_intent.id
         appointment.save()
-        
+
         return Response({
             'paymentIntent': payment_intent.client_secret,
             'ephemeralKey': ephemeral_key.secret,

@@ -29,6 +29,7 @@ class Review(models.Model):
 class Appointment(models.Model):
     STATUS_CHOICES = (
         ('SCHEDULED', 'Scheduled'),
+        ('IN_PROGRESS', 'In Progress'),
         ('COMPLETED', 'Completed'),
         ('CANCELLED', 'Cancelled'),
     )
@@ -50,6 +51,7 @@ class Appointment(models.Model):
     reminder_day_sent = models.BooleanField(default=False)
     reminder_hour_sent = models.BooleanField(default=False)
     version = models.IntegerField(default=1)
+    secret_code = models.CharField(max_length=6, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -58,6 +60,14 @@ class Appointment(models.Model):
             # For new appointments, if not already set, link the service request from the proposal
             if not self.service_request and self.proposal:
                 self.service_request = self.proposal.request
+            
+            # Generate a 6-character secret code for both parties to verify
+            if not self.secret_code:
+                import string
+                import random
+                # Use uppercase letters and digits, avoiding ambiguous characters (O/0, I/1)
+                chars = string.ascii_uppercase.translate(str.maketrans('', '', 'OI')) + '23456789'
+                self.secret_code = ''.join(random.choices(chars, k=6))
         else:
             # It's an update, increment version
             self.version += 1
@@ -86,6 +96,7 @@ class Dispute(models.Model):
     description = models.TextField()
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='OPEN')
     resolution_notes = models.TextField(blank=True, null=True)
+    evidence = models.FileField(upload_to='dispute_evidence/', null=True, blank=True)
     
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
