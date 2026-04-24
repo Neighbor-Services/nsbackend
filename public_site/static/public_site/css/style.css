@@ -829,10 +829,20 @@ footer {
     }
     .footer-app-badges {
         flex-direction: column;
+        gap: 1rem;
+    }
+    .footer-app-badges .app-badge {
+        width: 100%;
+        justify-content: center;
     }
     .footer-newsletter-box {
         padding: 2rem;
         border-left-width: 4px;
+        width: 100%;
+    }
+    .footer-cta-container {
+        align-items: center;
+        width: 100%;
     }
     .newsletter-form .input-group {
         padding: 0.3rem;
