@@ -14,6 +14,7 @@ echo ""
 APP_NAME="ns_backend"
 APP_DIR="/opt/ns_backend"
 VENV_DIR="$APP_DIR/venv"
+DOMAIN="neighborservice.com"  # Update this if your domain is different (e.g. .gh)
 USER="afari"
 GROUP="www-data"
 APP_REPLICAS=5
@@ -445,7 +446,7 @@ echo ""
 echo "Please follow these steps in Cloudflare Dashboard:"
 echo "1. Go to SSL/TLS → Origin Server"
 echo "2. Click 'Create Certificate'"
-echo "3. Hostnames: neighborservice.com, *.neighborservice.com"
+echo "3. Hostnames: $DOMAIN, *.$DOMAIN"
 echo "4. Validity: 15 years"
 echo "5. Click 'Create'"
 echo ""
@@ -466,10 +467,17 @@ cat > /etc/nginx/sites-available/$APP_NAME << EOF
 upstream ns_backend_cluster {
 $(echo -e "$UPSTREAM_SERVERS")}
 
-# 1. API Subdomain (api.neighborservice.com)
+# Redirect HTTP to HTTPS
+server {
+    listen 80;
+    server_name $DOMAIN www.$DOMAIN api.$DOMAIN;
+    return 301 https://\$host\$request_uri;
+}
+
+# 1. API Subdomain (api.$DOMAIN)
 server {
     listen 443 ssl http2;
-    server_name api.neighborservice.com;
+    server_name api.$DOMAIN;
 
     ssl_certificate /etc/ssl/cloudflare/origin.pem;
     ssl_certificate_key /etc/ssl/cloudflare/origin-key.pem;
@@ -519,29 +527,45 @@ server {
         proxy_set_header X-Real-IP \$remote_addr;
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_set_header X-Forwarded-Host \$host;
+        proxy_set_header X-Forwarded-Port \$server_port;
         proxy_read_timeout 86400;
     }
 
-    location /api {
+    location /api/ {
         proxy_pass http://ns_backend_cluster;
         proxy_set_header Host \$host;
         proxy_set_header X-Real-IP \$remote_addr;
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_set_header X-Forwarded-Host \$host;
+        proxy_set_header X-Forwarded-Port \$server_port;
         proxy_connect_timeout 60s;
         proxy_read_timeout 60s;
     }
 
+    location /api {
+        return 301 https://api.$DOMAIN/api/;
+    }
+
+    location /callbacks/ {
+        proxy_pass http://ns_backend_cluster;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+    }
+
     # Redirect everything else on the API subdomain to the main site
     location / {
-        return 301 https://neighborservice.com\$request_uri;
+        return 301 https://$DOMAIN\$request_uri;
     }
 }
 
-# 2. Main Public Site (neighborservice.com)
+# 2. Main Public Site ($DOMAIN)
 server {
     listen 443 ssl http2;
-    server_name www.neighborservice.com neighborservice.com;
+    server_name www.$DOMAIN $DOMAIN;
 
     ssl_certificate /etc/ssl/cloudflare/origin.pem;
     ssl_certificate_key /etc/ssl/cloudflare/origin-key.pem;
@@ -643,6 +667,11 @@ chmod -R 775 $APP_DIR/backups
 echo -e "${GREEN}✓ Permissions set${NC}"
 
 echo -e "${YELLOW}Step 13: Starting services...${NC}"
+
+# Kill any stray processes that might be holding the ports
+pkill -f "daphne" || true
+pkill -f "gunicorn" || true
+
 supervisorctl reread
 supervisorctl update
 supervisorctl restart ${APP_NAME}_replicas:*
@@ -703,7 +732,7 @@ echo "   ✓ Automatic HTTPS Rewrites"
 echo ""
 echo "📋 Next Steps:"
 echo "1. Update .env:"
-echo "   ALLOWED_HOSTS=neighborservice.com,www.neighborservice.com,api.neighborservice.com,.neighborservice.com
+echo "   ALLOWED_HOSTS=$DOMAIN,www.$DOMAIN,api.$DOMAIN,.$DOMAIN
    REDIS_URL=redis://127.0.0.1:6379/1"
 
 if [ "$REPLICATION_CHOICE" = "1" ]; then
