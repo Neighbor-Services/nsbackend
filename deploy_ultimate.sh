@@ -429,7 +429,7 @@ echo ""
 # Generate upstream configuration
 UPSTREAM_SERVERS=""
 for i in $(seq 1 $APP_REPLICAS); do
-    PORT=$((8000 + i))
+    PORT=$((7000 + i))
     UPSTREAM_SERVERS="${UPSTREAM_SERVERS}    server 127.0.0.1:$PORT max_fails=3 fail_timeout=30s;\n"
 done
 
