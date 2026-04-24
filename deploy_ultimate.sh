@@ -462,6 +462,7 @@ if [ ! -s /etc/ssl/cloudflare/origin.pem ] || [ ! -s /etc/ssl/cloudflare/origin-
     chmod 600 /etc/ssl/cloudflare/origin-key.pem
 
     echo -e "${GREEN}✓ Cloudflare certificates saved${NC}"
+fi
 
 
 # Create Nginx config for Cloudflare
