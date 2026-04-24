@@ -89,10 +89,6 @@
                             </div>
                             <h3>{{ service.name }}</h3>
                             <p>{{ service.description|truncatewords:15 }}</p>
-                            <div style="margin-top: 1.5rem; display: flex; justify-content: space-between; align-items: center;">
-                                <span style="font-weight: 800; color: var(--primary);">GH₵{{ service.base_price|default:"--" }}</span>
-                                <a href="{% url 'public_site:services' %}" style="font-size: 0.85rem; font-weight: 700; color: var(--secondary);">DETAILS</a>
-                            </div>
                         </div>
                     {% endfor %}
                 {% else %}

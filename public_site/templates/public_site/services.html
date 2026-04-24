@@ -56,27 +56,15 @@
                                     <div class="feature-icon" style="width: 56px; height: 56px; margin: 0; border-radius: 12px; background: var(--surface); color: var(--primary);">
                                         <span class="material-icons-round">work</span>
                                     </div>
-                                    <div style="background: var(--surface); padding: 0.5rem 1rem; border-radius: 20px; font-weight: 800; font-size: 0.85rem; color: var(--secondary); border: 1px solid var(--border);">
-                                        {% if service.base_price %}FROM GH₵{{ service.base_price }}{% else %}QUOTE REQUIRED{% endif %}
-                                    </div>
                                 </div>
                                 
                                 <h3 style="font-size: 1.5rem; margin-bottom: 1rem; color: var(--secondary);">{{ service.name }}</h3>
                                 
                                 {% if service.description %}
-                                    <p style="font-size: 1rem; color: var(--text-muted); line-height: 1.7; margin-bottom: 2rem; flex-grow: 1;">
+                                    <p style="font-size: 1rem; color: var(--text-muted); line-height: 1.7; margin-bottom: 0; flex-grow: 1;">
                                         {{ service.description|truncatewords:25 }}
                                     </p>
                                 {% endif %}
-                                
-                                <div style="margin-top: auto; display: flex; align-items: center; gap: 1rem;">
-                                    <a href="/admin/" class="btn btn-primary" style="flex: 1; justify-content: center; text-transform: none; font-size: 0.95rem;">
-                                        Book Now
-                                    </a>
-                                    <a href="{% url 'public_site:contact' %}" class="social-icon" style="background: var(--surface); border: 1px solid var(--border);">
-                                        <span class="material-icons-round" style="color: var(--secondary);">info_outline</span>
-                                    </a>
-                                </div>
                             </div>
                         {% endfor %}
                     </div>
