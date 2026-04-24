@@ -14,7 +14,7 @@ echo ""
 APP_NAME="ns_backend"
 APP_DIR="/opt/ns_backend"
 VENV_DIR="$APP_DIR/venv"
-USER="ns_admin"
+USER="afari"
 GROUP="www-data"
 APP_REPLICAS=5
 DB_REPLICAS=0
