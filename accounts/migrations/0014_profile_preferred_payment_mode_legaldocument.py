@@ -10,7 +10,7 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        # Using RunSQL to safely add column only if it doesn't exist
+        # 1. Safely add column preferred_payment_mode
         migrations.RunSQL(
             sql='ALTER TABLE accounts_profile ADD COLUMN IF NOT EXISTS preferred_payment_mode varchar(10) DEFAULT \'ON_SITE\' NOT NULL;',
             state_operations=[
@@ -21,23 +21,50 @@ class Migration(migrations.Migration):
                 ),
             ]
         ),
-        migrations.CreateModel(
-            name='LegalDocument',
-            fields=[
-                ('id', models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
-                ('doc_type', models.CharField(choices=[('TERMS', 'Terms & Conditions'), ('PRIVACY', 'Privacy Policy')], max_length=10)),
-                ('title', models.CharField(max_length=255)),
-                ('content', models.TextField()),
-                ('version', models.CharField(default='1.0', max_length=20)),
-                ('is_active', models.BooleanField(default=True)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
+        # 2. Safely create LegalDocument table
+        migrations.SeparateDatabaseAndState(
+            database_operations=[
+                migrations.RunSQL(
+                    sql="""
+                    DO $$ 
+                    BEGIN 
+                        IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'accounts_legaldocument') THEN
+                            CREATE TABLE accounts_legaldocument (
+                                id uuid NOT NULL PRIMARY KEY,
+                                doc_type varchar(10) NOT NULL,
+                                title varchar(255) NOT NULL,
+                                content text NOT NULL,
+                                version varchar(20) NOT NULL,
+                                is_active boolean NOT NULL,
+                                created_at timestamptz NOT NULL,
+                                updated_at timestamptz NOT NULL
+                            );
+                            CREATE INDEX IF NOT EXISTS accounts_le_doc_typ_ebcfee_idx ON accounts_legaldocument (doc_type, is_active, created_at);
+                        END IF;
+                    END $$;
+                    """
+                )
             ],
-            options={
-                'verbose_name': 'Legal Document',
-                'verbose_name_plural': 'Legal Documents',
-                'ordering': ['-updated_at'],
-                'indexes': [models.Index(fields=['doc_type', 'is_active', 'created_at'], name='accounts_le_doc_typ_ebcfee_idx')],
-            },
+            state_operations=[
+                migrations.CreateModel(
+                    name='LegalDocument',
+                    fields=[
+                        ('id', models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
+                        ('doc_type', models.CharField(choices=[('TERMS', 'Terms & Conditions'), ('PRIVACY', 'Privacy Policy')], max_length=10)),
+                        ('title', models.CharField(max_length=255)),
+                        ('content', models.TextField()),
+                        ('version', models.CharField(default='1.0', max_length=20)),
+                        ('is_active', models.BooleanField(default=True)),
+                        ('created_at', models.DateTimeField(auto_now_add=True)),
+                        ('updated_at', models.DateTimeField(auto_now=True)),
+                    ],
+                    options={
+                        'verbose_name': 'Legal Document',
+                        'verbose_name_plural': 'Legal Documents',
+                        'ordering': ['-updated_at'],
+                        'indexes': [models.Index(fields=['doc_type', 'is_active', 'created_at'], name='accounts_le_doc_typ_ebcfee_idx')],
+                    },
+                ),
+            ]
         ),
     ]
