@@ -275,7 +275,7 @@ if [ "$BACKUP_CHOICE" = "1" ]; then
     
     # Generate encryption key if it doesn't exist
     BACKUP_KEY_FILE="$APP_DIR/backup_key.bin"
-    if [ ! -f "$BACKUP_KEY_FILE" ]; then
+    if [ ! -s "$BACKUP_KEY_FILE" ]; then
         echo -e "${YELLOW}   Generating backup encryption key...${NC}"
         head -c 32 /dev/urandom | base64 > "$BACKUP_KEY_FILE"
         chmod 600 "$BACKUP_KEY_FILE"
@@ -438,7 +438,7 @@ echo -e "${YELLOW}Step 11: Configuring Nginx for Cloudflare...${NC}"
 mkdir -p /etc/ssl/cloudflare
 chmod 755 /etc/ssl/cloudflare
 
-if [ ! -f /etc/ssl/cloudflare/origin.pem ] || [ ! -f /etc/ssl/cloudflare/origin-key.pem ]; then
+if [ ! -s /etc/ssl/cloudflare/origin.pem ] || [ ! -s /etc/ssl/cloudflare/origin-key.pem ]; then
     echo ""
     echo "========================================="
     echo "Cloudflare Origin Certificate Setup"
