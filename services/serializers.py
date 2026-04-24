@@ -36,14 +36,16 @@ class ProposalSerializer(serializers.ModelSerializer):
     provider_profile = ProfileSerializer(source='provider.profile', read_only=True)
     provider_email = serializers.ReadOnlyField(source='provider.email')
     seeker_profile = ProfileSerializer(source='request.user.profile', read_only=True)
-    request = serializers.PrimaryKeyRelatedField(
+    service_request = serializers.PrimaryKeyRelatedField(
         queryset=ServiceRequest.objects.all(),
+        source='request',
+        write_only=True,
         required=True
     )
 
-    service_request = serializers.SerializerMethodField()
+    request = serializers.SerializerMethodField()
 
-    def get_service_request(self, obj):
+    def get_request(self, obj):
         req = obj.request
         return {
             'id': str(req.id),
