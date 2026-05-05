@@ -237,6 +237,11 @@ CELERY_BEAT_SCHEDULE = {
         'task': 'interactions.tasks.check_upcoming_appointments',
         'schedule': 900.0,  # 15 minutes
     },
+    # Checkr fallback: re-sync stale pending background checks every hour
+    'sync-pending-checkr-reports-hourly': {
+        'task': 'moderation.tasks.sync_pending_checkr_reports',
+        'schedule': 3600.0,  # 60 minutes
+    },
 }
 
 
@@ -511,6 +516,16 @@ UNFOLD = {
                         "icon": "verified_user",
                         "link": reverse_lazy("admin:moderation_providerverification_changelist"),
                     },
+                    {
+                        "title": _("Background Checks"),
+                        "icon": "policy",
+                        "link": reverse_lazy("admin:moderation_backgroundcheck_changelist"),
+                    },
+                    {
+                        "title": _("Moderation Settings"),
+                        "icon": "settings",
+                        "link": reverse_lazy("admin:moderation_moderationsetting_changelist"),
+                    },
                 ],
             },
             {
@@ -525,6 +540,53 @@ UNFOLD = {
                     },
                 ],
             },
+            {
+                "title": _("Public Site"),
+                "separator": True,
+                "collapsible": True,
+                "items": [
+                    {
+                        "title": _("Hero Sections"),
+                        "icon": "view_day",
+                        "link": reverse_lazy("admin:public_site_herosection_changelist"),
+                    },
+                    {
+                        "title": _("Features"),
+                        "icon": "featured_play_list",
+                        "link": reverse_lazy("admin:public_site_feature_changelist"),
+                    },
+                    {
+                        "title": _("Testimonials"),
+                        "icon": "format_quote",
+                        "link": reverse_lazy("admin:public_site_testimonial_changelist"),
+                    },
+                    {
+                        "title": _("FAQs"),
+                        "icon": "question_answer",
+                        "link": reverse_lazy("admin:public_site_faq_changelist"),
+                    },
+                    {
+                        "title": _("About Content"),
+                        "icon": "info",
+                        "link": reverse_lazy("admin:public_site_aboutcontent_changelist"),
+                    },
+                    {
+                        "title": _("How It Works"),
+                        "icon": "linear_scale",
+                        "link": reverse_lazy("admin:public_site_howitworksstep_changelist"),
+                    },
+                    {
+                        "title": _("Site Stats"),
+                        "icon": "bar_chart",
+                        "link": reverse_lazy("admin:public_site_sitestat_changelist"),
+                    },
+                    {
+                        "title": _("Site Settings"),
+                        "icon": "settings_applications",
+                        "link": reverse_lazy("admin:public_site_sitesetting_changelist"),
+                    },
+                ],
+            },
         ],
     },
 }
@@ -533,6 +595,12 @@ UNFOLD = {
 STRIPE_PUBLIC_KEY = os.environ.get('STRIPE_PUBLIC_KEY')
 STRIPE_SECRET_KEY = os.environ.get('STRIPE_SECRET_KEY')
 STRIPE_WEBHOOK_SECRET = os.environ.get('STRIPE_WEBHOOK_SECRET')
+
+# Checkr Background Check Configuration
+CHECKR_API_KEY = os.environ.get('CHECKR_API_KEY', '')
+CHECKR_WEBHOOK_SECRET = os.environ.get('CHECKR_WEBHOOK_SECRET', '')
+CHECKR_PACKAGE = os.environ.get('CHECKR_PACKAGE', 'tasker_standard')
+CHECKR_BASE_URL = 'https://api.checkr.com'
 
 # OpenAI Configuration
 OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')

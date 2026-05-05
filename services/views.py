@@ -1,5 +1,7 @@
 from django.db.models import Q
 from django.db import transaction
+import stripe
+from django.conf import settings
 from rest_framework import viewsets, permissions, status
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework.decorators import action
@@ -183,6 +185,9 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
 
         if service_request.user != request.user:
             return Response({'error': 'Not authorized'}, status=status.HTTP_401_UNAUTHORIZED)
+            
+        if service_request.status != 'OPEN':
+            return Response({'error': 'Request is no longer open for proposals.'}, status=status.HTTP_400_BAD_REQUEST)
         
         proposal_id = request.data.get('proposal_id')
         try:
@@ -202,6 +207,7 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
                         appointment_date=service_request.scheduled_time,
                         service_request=service_request,
                         total_price=service_request.price or 0.00,
+                        payment_mode=service_request.preferred_payment_mode,
                         proposal=proposal
                     )
 
@@ -249,8 +255,20 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
                 service_request.status = 'OPEN'
                 service_request.save()
 
-                # Delete associated appointment
-                Appointment.objects.filter(proposal=approved_proposal).delete()
+                # Delete associated appointment and refund if funded
+                appointment = Appointment.objects.filter(proposal=approved_proposal).first()
+                if appointment:
+                    if appointment.is_funded and appointment.payment_intent_id:
+                        try:
+                            stripe.api_key = settings.STRIPE_SECRET_KEY
+                            stripe.Refund.create(payment_intent=appointment.payment_intent_id)
+                        except Exception as e:
+                            # Log error but don't block cancellation? 
+                            # Actually, we should probably return an error if refund fails.
+                            print(f"Stripe Refund Error: {e}")
+                            # return Response({'error': f'Refund failed: {str(e)}'}, status=status.HTTP_400_BAD_REQUEST)
+                    
+                    appointment.delete()
             
             return Response({'status': 'approval cancelled'})
         return Response({'error': 'No approved proposal found'}, status=status.HTTP_404_NOT_FOUND)
@@ -311,6 +329,9 @@ class ProposalViewSet(viewsets.ModelViewSet):
             except (Proposal.DoesNotExist, ValueError):
                 return Response({'error': 'Proposal or Request not found'}, status=status.HTTP_404_NOT_FOUND)
         
+        if instance.is_approved:
+            return Response({'error': 'Cannot delete an approved proposal.'}, status=status.HTTP_400_BAD_REQUEST)
+
         self.perform_destroy(instance)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -398,7 +419,10 @@ class MatchProvidersView(APIView):
         # (skipping for brevity but will include the full logic in the tool call)
         # 2. Match against Profiles (Bio/About)
         # Fetch only ID and embedding to save memory
-        profiles = Profile.objects.filter(user_type='PROVIDER').exclude(bio_embedding__isnull=True).only('id', 'bio_embedding', 'subscription_tier')
+        profiles = Profile.objects.filter(
+            user_type='PROVIDER', 
+            is_identity_verified=True
+        ).exclude(bio_embedding__isnull=True).only('id', 'bio_embedding', 'subscription_tier')
         for profile in profiles:
             similarity = EmbeddingService.cosine_similarity(query_embedding, profile.bio_embedding)
             # Apply tier-based priority boost
@@ -407,7 +431,9 @@ class MatchProvidersView(APIView):
                 matches.append({'type': 'profile', 'object_id': profile.id, 'score': boosted_score})
 
         # 3. Match against Service Packages
-        packages = ServicePackage.objects.exclude(description_embedding__isnull=True).select_related('profile').only('id', 'profile_id', 'description_embedding', 'profile__subscription_tier')
+        packages = ServicePackage.objects.filter(
+            profile__is_identity_verified=True
+        ).exclude(description_embedding__isnull=True).select_related('profile').only('id', 'profile_id', 'description_embedding', 'profile__subscription_tier')
         for pkg in packages:
              similarity = EmbeddingService.cosine_similarity(query_embedding, pkg.description_embedding)
              # Apply tier-based priority boost

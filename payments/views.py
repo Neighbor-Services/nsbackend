@@ -245,6 +245,46 @@ class CustomerViewSet(viewsets.ModelViewSet):
             'publishableKey': settings.STRIPE_PUBLIC_KEY
         })
 
+    @action(detail=False, methods=['post'], url_path='fund-background-check')
+    def fund_background_check(self, request):
+        customer, created = Customer.objects.get_or_create(user=request.user)
+        if not customer.stripe_customer_id:
+            stripe_customer = stripe.Customer.create(email=request.user.email)
+            customer.stripe_customer_id = stripe_customer.id
+            customer.save()
+
+        ephemeral_key = stripe.EphemeralKey.create(
+            customer=customer.stripe_customer_id,
+            stripe_version='2022-11-15'
+        )
+
+        # Fetch fee from ModerationSetting
+        from moderation.models import ModerationSetting
+        setting = ModerationSetting.objects.first()
+        fee = setting.background_check_fee if setting else 29.99
+        amount_cents = int(float(fee) * 100)
+
+        payment_intent = stripe.PaymentIntent.create(
+            amount=amount_cents,
+            currency='usd',
+            customer=customer.stripe_customer_id,
+            metadata={
+                'type': 'background_check',
+                'user_id': str(request.user.id),
+            },
+            automatic_payment_methods={
+                'enabled': True,
+            },
+        )
+
+        return Response({
+            'paymentIntent': payment_intent.client_secret,
+            'ephemeralKey': ephemeral_key.secret,
+            'customer': customer.stripe_customer_id,
+            'publishableKey': settings.STRIPE_PUBLIC_KEY,
+            'amount_cents': amount_cents,
+        })
+
 class SubscriptionPlanViewSet(viewsets.ReadOnlyModelViewSet):
     """ViewSet for viewing available subscription plans"""
     queryset = SubscriptionPlan.objects.filter(is_active=True)
@@ -662,5 +702,12 @@ class StripeWebhookView(APIView):
                         print(f"Appointment {appointment_id} marked as funded via webhook.")
                     except Appointment.DoesNotExist:
                         print(f"Appointment {appointment_id} not found for funding.")
+                        
+            elif metadata.get('type') == 'background_check':
+                user_id = metadata.get('user_id')
+                if user_id:
+                    print(f"Background check payment succeeded for user {user_id}. Ready for Checkr initiation.")
+                    # Frontend handles Checkr initiation using this payment intent ID, or we could trigger it here.
+                    # We will rely on the frontend calling /initiate/ right after successful payment.
 
         return Response({'status': 'success'})

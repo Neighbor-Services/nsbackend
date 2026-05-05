@@ -219,6 +219,16 @@ class ProfileViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         queryset = self.queryset
 
+        # Hide unverified providers from public listings unless requested by themselves or staff
+        if not self.request.user.is_staff:
+            from django.db.models import Q
+            # Keep seekers, keep verified providers, keep the user's own profile
+            queryset = queryset.filter(
+                Q(user_type='SEEKER') | 
+                Q(user_type='PROVIDER', is_identity_verified=True) | 
+                Q(user=self.request.user)
+            )
+
         lat = self.request.query_params.get('lat')
         lng = self.request.query_params.get('lng')
         radius = self.request.query_params.get('radius')

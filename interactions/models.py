@@ -33,6 +33,11 @@ class Appointment(models.Model):
         ('COMPLETED', 'Completed'),
         ('CANCELLED', 'Cancelled'),
     )
+    
+    PAYMENT_MODE_CHOICES = (
+        ('IN_APP', 'In-App Payment'),
+        ('ON_SITE', 'On-Site Cash/Other'),
+    )
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     seeker = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='appointments_as_seeker')
@@ -41,6 +46,7 @@ class Appointment(models.Model):
     description = models.TextField(blank=True, null=True)
     appointment_date = models.DateTimeField(null=True, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='SCHEDULED')
+    payment_mode = models.CharField(max_length=20, choices=PAYMENT_MODE_CHOICES, default='IN_APP')
     is_consultation = models.BooleanField(default=False)
     consultation_channel = models.CharField(max_length=255, blank=True, null=True)
     is_funded = models.BooleanField(default=False)

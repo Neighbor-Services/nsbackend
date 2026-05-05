@@ -1,26 +1,6 @@
 from django.contrib import admin
 from unfold.admin import ModelAdmin, TabularInline
-from .models import Category, CatalogService, ServiceRequest, Proposal, ServicePackage
-
-@admin.register(ServicePackage)
-class ServicePackageAdmin(ModelAdmin):
-    list_display = ('title', 'provider', 'tier', 'price', 'is_active')
-    list_filter = ('tier', 'is_active', 'created_at')
-    search_fields = ('title', 'provider__email', 'catalog_service__name')
-    list_editable = ('price', 'is_active')
-    
-    fieldsets = (
-        ('Package Details', {
-            'fields': ('provider', 'catalog_service', 'tier', 'title', 'description')
-        }),
-        ('Pricing & Delivery', {
-            'fields': ('price', 'delivery_time_days', 'revisions', 'is_active')
-        }),
-        ('Features', {
-            'fields': ('features',),
-            'classes': ('collapse',),
-        }),
-    )
+from .models import Category, CatalogService, ServiceRequest, Proposal
 
 @admin.register(Category)
 class CategoryAdmin(ModelAdmin):

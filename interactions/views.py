@@ -170,17 +170,17 @@ class AppointmentViewSet(viewsets.ModelViewSet):
                 appointment.service_request.status = 'DONE'
                 appointment.service_request.save()
             
+            # Get amount
+            amount = request.data.get('amount') or appointment.total_price
+            try:
+                amount_decimal = decimal.Decimal(str(amount))
+            except (decimal.InvalidOperation, ValueError):
+                return Response({'error': 'Invalid amount format'}, status=status.HTTP_400_BAD_REQUEST)
+
+            net_amount = decimal.Decimal("0.00")
+            commission = decimal.Decimal("0.00")
+
             if appointment.is_funded:
-                # Release funds to Provider's Wallet
-                amount = request.data.get('amount')
-                if not amount:
-                    return Response({'error': 'Completion amount required to release funds'}, status=status.HTTP_400_BAD_REQUEST)
-                
-                try:
-                    amount_decimal = decimal.Decimal(str(amount))
-                except (decimal.InvalidOperation, ValueError):
-                    return Response({'error': 'Invalid amount format'}, status=status.HTTP_400_BAD_REQUEST)
-                
                 # Calculate Commission
                 # Tiers: FREE (20%), SILVER (15%), GOLD (10%), PLATINUM (5%)
                 tier = appointment.provider.profile.subscription_tier or 'FREE'
@@ -204,26 +204,26 @@ class AppointmentViewSet(viewsets.ModelViewSet):
                     wallet=wallet,
                     amount=net_amount,
                     transaction_type='CREDIT',
-                    description=f'Job Completion: {appointment.title or "Service"}',
+                    description=f'Job Completion (Funded): {appointment.title or "Service"}',
                     status='COMPLETED',
                     reference_id=str(appointment.id)
                 )
-                
-                # Notify Seeker
-                send_notification(
-                    user=appointment.seeker,
-                    sender=appointment.provider,
-                    title="Service Completed!",
-                    message=f"The provider has marked your service '{appointment.title}' as completed.",
-                    notification_type="APPOINTMENT",
-                    data={"appointment_id": str(appointment.id)}
-                )
-                
-                return Response({
-                    'status': 'appointment completed',
-                    'funds_released': str(net_amount),
-                    'commission_deducted': str(commission)
-                })
+            
+            # Notify Seeker
+            send_notification(
+                user=appointment.seeker,
+                sender=appointment.provider,
+                title="Service Completed!",
+                message=f"The provider has marked your service '{appointment.title}' as completed.",
+                notification_type="APPOINTMENT",
+                data={"appointment_id": str(appointment.id)}
+            )
+            
+            return Response({
+                'status': 'appointment completed',
+                'funds_released': str(net_amount) if appointment.is_funded else "0.00",
+                'commission_deducted': str(commission) if appointment.is_funded else "0.00"
+            })
                 
     def create(self, request, *args, **kwargs):
         # Log incoming creation request

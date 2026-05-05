@@ -37,6 +37,11 @@ class ServiceRequest(models.Model):
         ('DONE', 'Done'),
         ('CANCELLED', 'Cancelled'),
     )
+    
+    PAYMENT_MODE_CHOICES = (
+        ('IN_APP', 'In-App Payment'),
+        ('ON_SITE', 'On-Site Cash/Other'),
+    )
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='service_requests')
@@ -46,6 +51,7 @@ class ServiceRequest(models.Model):
     description = models.TextField()
     price = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='OPEN')
+    preferred_payment_mode = models.CharField(max_length=20, choices=PAYMENT_MODE_CHOICES, default='IN_APP')
     service_type = models.CharField(max_length=255, null=True, blank=True) # Preserving for legacy/dynamic types
     with_image = models.BooleanField(default=False)
     image = models.ImageField(upload_to='requests/', blank=True, null=True)
@@ -83,30 +89,3 @@ class Proposal(models.Model):
     def __str__(self):
         return f"Proposal for {self.request.title} by {self.provider.email}"
 
-class ServicePackage(models.Model):
-    TIER_CHOICES = (
-        ('BASIC', 'Basic'),
-        ('STANDARD', 'Standard'),
-        ('PREMIUM', 'Premium'),
-    )
-
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    provider = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='service_packages')
-    catalog_service = models.ForeignKey(CatalogService, on_delete=models.CASCADE, related_name='packages')
-    tier = models.CharField(max_length=20, choices=TIER_CHOICES, default='BASIC')
-    title = models.CharField(max_length=255)
-    description = models.TextField()
-    price = models.DecimalField(max_digits=12, decimal_places=2)
-    delivery_time_days = models.PositiveIntegerField(default=1)
-    revisions = models.IntegerField(default=0) # -1 for unlimited?
-    features = models.JSONField(default=list) # List of feature strings
-    is_active = models.BooleanField(default=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        unique_together = ('provider', 'catalog_service', 'tier')
-        ordering = ['price']
-
-    def __str__(self):
-        return f"{self.tier} - {self.title} ({self.provider.email})"
