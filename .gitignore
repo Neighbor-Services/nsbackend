@@ -1,0 +1,9 @@
+# .gitignore
+firebase-service-account.json
+*-service-account.json
+*.pyc
+*.env
+.pytest_cache
+*.p8
+*pycache*
+.env
