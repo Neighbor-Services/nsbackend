@@ -140,6 +140,18 @@ class MessageViewSet(viewsets.ModelViewSet):
         after_param = self.request.query_params.get('after')
         if after_param:
             queryset = queryset.filter(created_at__gt=after_param)
+
+        # Filter by before query param for loading older messages
+        before_param = self.request.query_params.get('before')
+        if before_param:
+            # We want the 10 messages JUST BEFORE this timestamp, 
+            # so we sort descending, take 10, then we'll reverse them 
+            # at the end of this method to maintain chronological order.
+            queryset = queryset.filter(created_at__lt=before_param).order_by('-created_at')[:10]
+            # Since we've already sliced it ([:10]), we shouldn't paginate again
+            serializer = self.get_serializer(reversed(queryset), many=True, context={'original_id': conversation_param, 'request': request})
+            wrapped_data = self._wrap_messages(serializer.data, request)
+            return Response(wrapped_data)
             
         page = self.paginate_queryset(queryset)
         if page is not None:

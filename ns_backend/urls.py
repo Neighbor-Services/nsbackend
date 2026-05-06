@@ -33,6 +33,8 @@ urlpatterns = [
     path('api/v1/interactions/', include('interactions.urls')),
     path('api/v1/chat/', include('chat.urls')),
     path('api/v1/notifications/', include('notifications.urls')),
+    # Flutter client calls /api/notifications/ (without v1 prefix) — support both
+    path('api/notifications/', include('notifications.urls')),
     path('api/v1/moderation/', include('moderation.urls')),
     path('api/v1/audit/', include('audit.urls')),
     path('api/v1/payments/', include('payments.urls')),

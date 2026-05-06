@@ -92,6 +92,9 @@ class Profile(models.Model):
     bio = models.TextField(blank=True, null=True)
     bio_embedding = models.JSONField(blank=True, null=True)
 
+    is_online = models.BooleanField(default=False)
+    last_seen = models.DateTimeField(auto_now=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

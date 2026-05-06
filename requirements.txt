@@ -77,3 +77,4 @@ zope.interface==8.2
 pytest==8.0.0
 pytest-django==4.8.0
 google-auth==2.27.0
+firebase-admin==6.5.0

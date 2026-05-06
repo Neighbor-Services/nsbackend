@@ -91,6 +91,60 @@ class ChatConsumer(AsyncWebsocketConsumer):
             )
             return
 
+        if message_type == 'message_status':
+            message_id = data.get('message_id')
+            status = data.get('status')
+            
+            updated = await self.update_message_status(message_id, status)
+            if updated:
+                await self.channel_layer.group_send(
+                    self.room_group_name,
+                    {
+                        'type': 'chat_status',
+                        'status_data': {
+                            'type': 'message_status',
+                            'message_id': message_id,
+                            'status': status
+                        }
+                    }
+                )
+            return
+
+        if message_type == 'delete_message':
+            message_id = data.get('message_id')
+            deleted = await self.delete_message_from_db(message_id)
+            if deleted:
+                await self.channel_layer.group_send(
+                    self.room_group_name,
+                    {
+                        'type': 'chat_status',
+                        'status_data': {
+                            'type': 'delete_message',
+                            'message_id': message_id
+                        }
+                    }
+                )
+            return
+
+        if message_type == 'update_message':
+            message_id = data.get('message_id')
+            new_content = data.get('message')
+            updated_msg = await self.update_message_in_db(message_id, new_content)
+            if updated_msg:
+                serialized = await self.get_serialized_chat_message(updated_msg, self.conversation_id)
+                serialized = json.loads(json.dumps(serialized, cls=DjangoJSONEncoder))
+                await self.channel_layer.group_send(
+                    self.room_group_name,
+                    {
+                        'type': 'chat_status',
+                        'status_data': {
+                            'type': 'update_message',
+                            'message': serialized
+                        }
+                    }
+                )
+            return
+
         if not self.user.is_authenticated:
             return
             
@@ -129,14 +183,54 @@ class ChatConsumer(AsyncWebsocketConsumer):
         await self.send(text_data=json.dumps(status_data, cls=DjangoJSONEncoder))
 
     @database_sync_to_async
+    def update_message_status(self, message_id, status):
+        try:
+            msg = Message.objects.get(id=message_id)
+            if msg.sender.id == self.user.id:
+                return False
+            
+            updated = False
+            if status == 'delivered' and not msg.is_delivered:
+                msg.is_delivered = True
+                updated = True
+            elif status == 'seen' and not msg.is_seen:
+                msg.is_delivered = True
+                msg.is_seen = True
+                updated = True
+                
+            if updated:
+                msg.save(update_fields=['is_delivered', 'is_seen'])
+            return updated
+        except Message.DoesNotExist:
+            return False
+
+    @database_sync_to_async
+    def delete_message_from_db(self, message_id):
+        try:
+            msg = Message.objects.get(id=message_id, sender=self.user)
+            msg.delete()
+            return True
+        except Message.DoesNotExist:
+            return False
+
+    @database_sync_to_async
+    def update_message_in_db(self, message_id, new_content):
+        try:
+            msg = Message.objects.get(id=message_id, sender=self.user)
+            msg.message = new_content
+            msg.content = new_content
+            msg.save(update_fields=['message', 'content'])
+            return msg
+        except Message.DoesNotExist:
+            return None
+
+    @database_sync_to_async
     def get_receiver(self, message_obj):
         return message_obj.conversation.participants.exclude(id=message_obj.sender.id).first()
 
     @database_sync_to_async
     def trigger_notification(self, user, message_obj):
         from notifications.utils import send_notification
-        # Don't send notification if the user has many sessions on the same room
-        # (Though send_notification will broadcast to all sessions of the user)
         send_notification(
             user=user,
             sender=message_obj.sender,
@@ -154,11 +248,9 @@ class ChatConsumer(AsyncWebsocketConsumer):
         from chat.serializers import MessageSerializer
         from accounts.serializers import ProfileSerializer
         
-        # Pass original_id (could be combined string) to context for consistency
         message_data = MessageSerializer(message_obj, context={'original_id': original_id}).data
         sender_profile = ProfileSerializer(message_obj.sender.profile).data
         
-        # Find receiver
         receiver = message_obj.conversation.participants.exclude(id=message_obj.sender.id).first()
         receiver_profile = ProfileSerializer(receiver.profile).data if receiver else None
         
@@ -170,13 +262,11 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     @database_sync_to_async
     def get_or_create_conversation(self, conversation_id):
-        # Try as UUID first
         try:
             import uuid
             val = uuid.UUID(conversation_id, version=4)
             return Conversation.objects.filter(id=val).first()
         except ValueError:
-            # Handle user1_user2 pattern
             if '_' in conversation_id:
                 uids = conversation_id.split('_')
                 if len(uids) == 2:
@@ -184,10 +274,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
                         user1 = User.objects.get(id=uids[0])
                         user2 = User.objects.get(id=uids[1])
                         
-                        # Find existing conversation
                         conversation = Conversation.objects.filter(participants=user1).filter(participants=user2).first()
                         if not conversation:
-                            # Create new if doesn't exist
                             conversation = Conversation.objects.create()
                             conversation.participants.add(user1, user2)
                         return conversation
@@ -221,3 +309,50 @@ class ChatConsumer(AsyncWebsocketConsumer):
             image=img_file,
             file_name=data.get('filename')
         )
+
+class PresenceConsumer(AsyncWebsocketConsumer):
+    async def connect(self):
+        self.user = self.scope['user']
+        if self.user.is_anonymous:
+            await self.close()
+            return
+        
+        await self.accept()
+        await self.set_online_status(True)
+        print(f"Global Presence WS: Profile {self.user.email} is online")
+        
+        # Broadcast online status to all active conversations
+        conversations = await self.get_user_conversations()
+        for conv_id in conversations:
+            await self.channel_layer.group_send(f"chat_{conv_id}", {
+                'type': 'chat_status',
+                'status_data': { 'type': 'presence', 'user_id': str(self.user.id), 'status': 'online' }
+            })
+
+    async def disconnect(self, close_code):
+        if not self.user.is_anonymous:
+            await self.set_online_status(False)
+            print(f"Global Presence WS: Profile {self.user.email} is offline")
+            
+            conversations = await self.get_user_conversations()
+            for conv_id in conversations:
+                await self.channel_layer.group_send(f"chat_{conv_id}", {
+                    'type': 'chat_status',
+                    'status_data': { 'type': 'presence', 'user_id': str(self.user.id), 'status': 'offline' }
+                })
+                
+    async def receive(self, text_data):
+        pass # Ignore incoming messages on this global presence socket for now
+
+    @database_sync_to_async
+    def set_online_status(self, is_online):
+        try:
+            profile = self.user.profile
+            profile.is_online = is_online
+            profile.save(update_fields=['is_online', 'last_seen'])
+        except Exception:
+            pass
+
+    @database_sync_to_async
+    def get_user_conversations(self):
+        return list(self.user.conversations.values_list('id', flat=True))

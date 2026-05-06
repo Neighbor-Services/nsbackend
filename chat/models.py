@@ -25,6 +25,7 @@ class Message(models.Model):
     media_url = models.URLField(blank=True, null=True)
     image = models.ImageField(upload_to='chat_images/', blank=True, null=True)
     file_name = models.CharField(max_length=255, blank=True, null=True)
+    is_delivered = models.BooleanField(default=False)
     is_seen = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 

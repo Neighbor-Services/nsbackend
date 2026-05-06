@@ -1,57 +1,45 @@
-import json
 import logging
 from celery import shared_task
-from django.core.serializers.json import DjangoJSONEncoder
-from channels.layers import get_channel_layer
-from asgiref.sync import async_to_sync
 from .models import Notification, DeviceToken
-from .serializers import NotificationSerializer
-from .utils import send_apns_notification
+from .fcm_utils import send_fcm_notification
 
 logger = logging.getLogger(__name__)
 
-@shared_task(name='notifications.tasks.send_notification_delivery_task')
-def send_notification_delivery_task(notification_id):
+@shared_task(name='notifications.tasks.send_notification_delivery_task', bind=True, max_retries=3, default_retry_delay=30)
+def send_notification_delivery_task(self, notification_id):
     """
-    Handles background delivery of notifications via WebSockets and external Push services (APNs).
+    Handles background delivery of notifications via:
+      1. FCM — native push for both iOS and Android devices (handles both foreground and background natively)
     """
     try:
         notification = Notification.objects.select_related('user').get(id=notification_id)
         user = notification.user
-        
-        # 1. Send to WebSocket (Real-time in-app notification)
-        channel_layer = get_channel_layer()
-        group_name = f"user_{user.id}"
-        
-        # Serialize data for the websocket payload
-        raw_data = NotificationSerializer(notification).data
-        # Ensure UUIDs and other non-serializable objects are converted to strings
-        serialized_data = json.loads(json.dumps(raw_data, cls=DjangoJSONEncoder))
-        
-        async_to_sync(channel_layer.group_send)(
-            group_name,
-            {
-                "type": "notification_message",
-                "message": serialized_data
-            }
-        )
 
-        # 2. Send to Native Push (iOS via APNs)
-        ios_tokens = DeviceToken.objects.filter(user=user, platform='IOS', is_active=True)
-        if ios_tokens.exists():
-            for device_token in ios_tokens:
-                try:
-                    # Execute the async APNs helper synchronously within the task
-                    async_to_sync(send_apns_notification)(
-                        device_token.token, 
-                        notification.title, 
-                        notification.message, 
-                        notification.data
-                    )
-                except Exception as e:
-                    logger.error(f"Failed to deliver APNs push to token {device_token.token}: {e}")
-                
+
+
+        # Build shared extra data payload
+        extra_data = dict(notification.data) if notification.data else {}
+        extra_data.update({
+            'notification_id': str(notification.id),
+            'notification_type': notification.notification_type,
+        })
+
+        # ── 2. FCM (Native push for all platforms) ────────────────────────────
+        device_tokens = DeviceToken.objects.filter(user=user, is_active=True)
+        for device_token in device_tokens:
+            try:
+                send_fcm_notification(
+                    device_token.token,
+                    notification.title,
+                    notification.message,
+                    extra_data,
+                )
+            except Exception as e:
+                logger.error(f"FCM delivery failed for token {device_token.token} ({device_token.platform}): {e}")
+
     except Notification.DoesNotExist:
         logger.error(f"Notification {notification_id} not found; delivery aborted.")
-    except Exception as e:
-        logger.error(f"Unexpected error in send_notification_delivery_task: {e}")
+    except Exception as exc:
+        logger.error(f"Unexpected error in send_notification_delivery_task: {exc}")
+        raise self.retry(exc=exc)
+

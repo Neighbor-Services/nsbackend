@@ -34,22 +34,37 @@ class DeviceTokenViewSet(viewsets.ModelViewSet):
     serializer_class = DeviceTokenSerializer
     permission_classes = (permissions.IsAuthenticated,)
     authentication_classes = (JWTAuthentication,)
+    http_method_names = ['get', 'post', 'delete', 'head', 'options']
 
     def get_queryset(self):
         return self.queryset.filter(user=self.request.user)
 
-    def perform_create(self, serializer):
-        # Upsert: if token exists, update user and device_id.
-        token = self.request.data.get('token')
-        device_id = self.request.data.get('device_id')
-        platform = self.request.data.get('platform')
+    def create(self, request, *args, **kwargs):
+        """
+        Upsert a device token: update if token already exists, create otherwise.
+        Returns 200 on update, 201 on create — so the Flutter client always
+        gets a success response regardless of whether this is a new registration.
+        """
+        token = request.data.get('token')
+        device_id = request.data.get('device_id')
+        platform = request.data.get('platform')
 
-        DeviceToken.objects.update_or_create(
+        if not token or not platform:
+            return Response(
+                {'detail': 'Both token and platform are required.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        obj, created = DeviceToken.objects.update_or_create(
             token=token,
             defaults={
-                'user': self.request.user,
+                'user': request.user,
                 'device_id': device_id,
                 'platform': platform,
-                'is_active': True
-            }
+                'is_active': True,
+            },
         )
+
+        serializer = self.get_serializer(obj)
+        http_status = status.HTTP_201_CREATED if created else status.HTTP_200_OK
+        return Response(serializer.data, status=http_status)

@@ -609,5 +609,16 @@ OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
 APNS_KEY_ID = os.environ.get('APNS_KEY_ID', '')
 APNS_TEAM_ID = os.environ.get('APNS_TEAM_ID', '')
 APNS_BUNDLE_ID = os.environ.get('APNS_BUNDLE_ID', 'com.neighborservicesolutionsllc.nsapp')
-APNS_KEY_PATH = os.environ.get('APNS_KEY_PATH', os.path.join(BASE_DIR, 'notifications', 'keys', 'apns.p8'))
+# Always resolve relative to BASE_DIR so both env and default values work correctly
+_apns_key_rel = os.environ.get('APNS_KEY_PATH', os.path.join('notifications', 'keys', 'apns.p8'))
+APNS_KEY_PATH = _apns_key_rel if os.path.isabs(_apns_key_rel) else os.path.join(BASE_DIR, _apns_key_rel)
 APNS_USE_SANDBOX = os.environ.get('APNS_USE_SANDBOX', 'True') == 'True'
+
+# FCM Configuration (Firebase Cloud Messaging — Android push via HTTP v1 API)
+# Download the JSON key from Firebase Console → Project Settings → Service Accounts
+# → Generate new private key, and save it at the path below.
+_fcm_key_rel = os.environ.get(
+    'FCM_SERVICE_ACCOUNT_KEY_PATH',
+    os.path.join('notifications', 'keys', 'firebase-service-account.json'),
+)
+FCM_SERVICE_ACCOUNT_KEY_PATH = _fcm_key_rel if os.path.isabs(_fcm_key_rel) else os.path.join(BASE_DIR, _fcm_key_rel)
