@@ -79,7 +79,7 @@ class SimpleProfileSerializer(serializers.ModelSerializer):
     profile_picture_url = serializers.SerializerMethodField()
 
     def get_profile_picture_url(self, obj):
-        if obj.profile_picture:
+        if obj and obj.profile_picture:
             request = self.context.get('request')
             if request:
                 return request.build_absolute_uri(obj.profile_picture.url)
@@ -88,7 +88,12 @@ class SimpleProfileSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Profile
-        fields = ['id', 'user', 'user_type', 'profile_picture_url', 'first_name', 'last_name', 'catalog_service_name', 'service', 'average_rating', 'total_reviews', 'is_identity_verified', 'preferred_payment_mode']
+        fields = [
+            'id', 'user', 'user_type', 'profile_picture_url', 'first_name', 'last_name', 
+            'catalog_service_name', 'service', 'average_rating', 'total_reviews', 
+            'is_identity_verified', 'preferred_payment_mode', 'subscription_tier',
+            'streak_count', 'xp', 'level', 'neighbor_score'
+        ]
         read_only_fields = ('average_rating', 'total_reviews', 'is_identity_verified')
 
 class ProfileSerializer(serializers.ModelSerializer):
@@ -107,7 +112,7 @@ class ProfileSerializer(serializers.ModelSerializer):
         return ReviewSerializer(reviews, many=True, context=self.context).data
 
     def get_profile_picture_url(self, obj):
-        if obj.profile_picture:
+        if obj and obj.profile_picture:
             request = self.context.get('request')
             if request:
                 return request.build_absolute_uri(obj.profile_picture.url)

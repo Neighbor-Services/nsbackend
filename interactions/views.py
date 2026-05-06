@@ -67,9 +67,10 @@ class ReviewViewSet(viewsets.ModelViewSet):
         agg = Review.objects.filter(provider=provider).aggregate(
             avg=Avg('rating'), total=Count('id')
         )
-        provider.profile.average_rating = agg['avg'] or 0
-        provider.profile.total_reviews = agg['total'] or 0
-        provider.profile.save()
+        if hasattr(provider, 'profile') and provider.profile:
+            provider.profile.average_rating = agg['avg'] or 0
+            provider.profile.total_reviews = agg['total'] or 0
+            provider.profile.save()
 
         # Notify Provider
         send_notification(
@@ -169,6 +170,13 @@ class AppointmentViewSet(viewsets.ModelViewSet):
             if appointment.service_request:
                 appointment.service_request.status = 'DONE'
                 appointment.service_request.save()
+            
+            # Award XP for completion
+            try:
+                appointment.provider.profile.award_xp(200) # Provider gets more XP for completing jobs
+                appointment.seeker.profile.award_xp(50)    # Seeker gets XP for engaging
+            except Exception as xp_err:
+                print(f"XP Award Error: {xp_err}")
             
             # Get amount
             amount = request.data.get('amount') or appointment.total_price

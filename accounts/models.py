@@ -95,6 +95,13 @@ class Profile(models.Model):
     is_online = models.BooleanField(default=False)
     last_seen = models.DateTimeField(auto_now=True)
 
+    # Gamification Fields
+    streak_count = models.IntegerField(default=0)
+    last_check_in = models.DateField(blank=True, null=True)
+    xp = models.IntegerField(default=0)
+    level = models.IntegerField(default=1)
+    neighbor_score = models.IntegerField(default=500) # Base score starts at 500
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -117,6 +124,34 @@ class Profile(models.Model):
             'PLATINUM': 0.05,
         }
         return rates.get(self.subscription_tier, 0.20)
+
+    def record_activity(self):
+        """Updates streaks based on daily activity"""
+        today = timezone.now().date()
+        if self.last_check_in:
+            if self.last_check_in == today:
+                return # Already checked in today
+            
+            yesterday = today - datetime.timedelta(days=1)
+            if self.last_check_in == yesterday:
+                self.streak_count += 1
+            else:
+                self.streak_count = 1 # Streak broken
+        else:
+            self.streak_count = 1
+        
+        self.last_check_in = today
+        self.save(update_fields=['streak_count', 'last_check_in'])
+
+    def award_xp(self, amount):
+        """Awards XP and checks for level up"""
+        self.xp += amount
+        # Simple level calculation: 1000 XP per level
+        new_level = (self.xp // 1000) + 1
+        if new_level > self.level:
+            self.level = new_level
+            # Maybe send a notification here in the future
+        self.save(update_fields=['xp', 'level'])
 
     def priority_score(self):
         """Returns a priority score for AI matching boosts"""

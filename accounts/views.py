@@ -269,6 +269,12 @@ class ProfileViewSet(viewsets.ModelViewSet):
                 )
             ).filter(distance_km__lte=radius_km).order_by('distance_km')
 
+        # Popular filter
+        popular = self.request.query_params.get('popular') == 'true'
+        if popular:
+            # Verified providers only, sorted by rating
+            queryset = queryset.filter(user_type='PROVIDER', is_identity_verified=True).order_by('-average_rating', '-total_reviews')[:10]
+
         return queryset
 
     def get_object(self):
@@ -280,6 +286,10 @@ class ProfileViewSet(viewsets.ModelViewSet):
         if not profile:
             # Lazy creation for users who registered before autonomic creation was added
             profile = Profile.objects.create(user=request.user)
+        
+        # Trigger streak and activity check
+        profile.record_activity()
+        
         serializer = self.get_serializer(profile)
         return Response({"profile": serializer.data})
 

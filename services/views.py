@@ -23,7 +23,10 @@ from accounts.serializers import ProfileSerializer
 from .ai_matching import EmbeddingService
 from interactions.models import Appointment
 from interactions.utils import send_appointment_confirmation_email
-from .tasks import send_proposal_approval_email_task, send_new_proposal_email_task, send_direct_request_email_task
+from .tasks import (
+    send_proposal_approval_email_task, send_new_proposal_email_task, 
+    send_direct_request_email_task, notify_nearby_providers_task
+)
 from django.core.cache import cache
 import hashlib
 
@@ -174,6 +177,9 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
             
             # Send Email (async)
             send_direct_request_email_task.delay(str(service_request.id))
+        else:
+            # Notify nearby providers for public requests
+            notify_nearby_providers_task.delay(str(service_request.id))
 
     @action(detail=True, methods=['post'])
     def approve_proposal(self, request, pk=None):
