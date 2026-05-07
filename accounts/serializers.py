@@ -122,7 +122,15 @@ class ProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = Profile
         fields = '__all__'
-        read_only_fields = ('average_rating', 'total_reviews', 'is_identity_verified')
+        read_only_fields = (
+            'average_rating', 
+            'total_reviews', 
+            'is_identity_verified',
+            'streak_count',
+            'xp',
+            'level',
+            'neighbor_score'
+        )
 
 
 class LegalDocumentSerializer(serializers.ModelSerializer):

@@ -280,46 +280,57 @@ class ProfileViewSet(viewsets.ModelViewSet):
         radius = self.request.query_params.get('radius')
 
         if lat and lng and radius:
-            from django.db.models import FloatField, ExpressionWrapper
-            from django.db.models.functions import ACos, Cos, Sin, Radians
-            from django.db.models import F, Value
-            from django.db.models.functions import Cast
-            import math
+            try:
+                radius_km = float(radius)
+                lat_f = float(lat)
+                lng_f = float(lng)
 
-            radius_km = float(radius)
-            lat_f = float(lat)
-            lng_f = float(lng)
+                from django.db.models import FloatField, ExpressionWrapper
+                from django.db.models.functions import ACos, Cos, Sin, Radians, Greatest, Least
+                from django.db.models import F, Value
+                from django.db.models.functions import Cast
+                import math
 
-            # Bounding box pre-filter (cheap index scan)
-            lat_delta = radius_km / 111.0
-            lng_delta = radius_km / (111.0 * math.cos(math.radians(lat_f)))
-            queryset = queryset.filter(
-                latitude__gte=lat_f - lat_delta,
-                latitude__lte=lat_f + lat_delta,
-                longitude__gte=lng_f - lng_delta,
-                longitude__lte=lng_f + lng_delta,
-            ).exclude(latitude__isnull=True).exclude(longitude__isnull=True)
+                # Bounding box pre-filter (cheap index scan)
+                lat_delta = radius_km / 111.0
+                lng_delta = radius_km / (111.0 * math.cos(math.radians(lat_f)))
+                queryset = queryset.filter(
+                    latitude__gte=lat_f - lat_delta,
+                    latitude__lte=lat_f + lat_delta,
+                    longitude__gte=lng_f - lng_delta,
+                    longitude__lte=lng_f + lng_delta,
+                ).exclude(latitude__isnull=True).exclude(longitude__isnull=True)
 
-            # DB-level Haversine — eliminates Python loop over every profile
-            lat_rad = math.radians(lat_f)
-            lng_rad = math.radians(lng_f)
-            queryset = queryset.annotate(
-                distance_km=ExpressionWrapper(
-                    Value(6371.0) * ACos(
-                        Sin(Value(lat_rad)) * Sin(Radians(Cast(F('latitude'), FloatField())))
-                        + Cos(Value(lat_rad)) * Cos(Radians(Cast(F('longitude'), FloatField())))
-                        * Cos(Value(lng_rad) - Radians(Cast(F('longitude'), FloatField()))),
-                        output_field=FloatField(),
-                    ),
-                    output_field=FloatField(),
+                # DB-level Haversine — eliminates Python loop over every profile
+                lat_rad = math.radians(lat_f)
+                lng_rad = math.radians(lng_f)
+                
+                # Clamp the ACos argument to [-1, 1] to avoid math errors
+                inner_expr = (
+                    Sin(Value(lat_rad)) * Sin(Radians(Cast(F('latitude'), FloatField())))
+                    + Cos(Value(lat_rad)) * Cos(Radians(Cast(F('latitude'), FloatField())))
+                    * Cos(Value(lng_rad) - Radians(Cast(F('longitude'), FloatField())))
                 )
-            ).filter(distance_km__lte=radius_km).order_by('distance_km')
+                
+                queryset = queryset.annotate(
+                    distance_km=ExpressionWrapper(
+                        Value(6371.0) * ACos(
+                            Least(Value(1.0), Greatest(Value(-1.0), inner_expr))
+                        ),
+                        output_field=FloatField(),
+                    )
+                ).filter(distance_km__lte=radius_km).order_by('distance_km')
+            except (ValueError, TypeError):
+                pass # Ignore invalid geo parameters
 
         # Popular filter
         popular = self.request.query_params.get('popular') == 'true'
         if popular:
             # Verified providers only, sorted by rating
-            queryset = queryset.filter(user_type='PROVIDER', is_identity_verified=True).order_by('-average_rating', '-total_reviews')
+            queryset = queryset.filter(
+                user_type='PROVIDER', 
+                is_identity_verified=True
+            ).order_by('-average_rating', '-total_reviews')
 
         return queryset
 
@@ -328,10 +339,7 @@ class ProfileViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'])
     def me(self, request):
-        profile = self.get_object()
-        if not profile:
-            # Lazy creation for users who registered before autonomic creation was added
-            profile = Profile.objects.create(user=request.user)
+        profile, created = Profile.objects.get_or_create(user=request.user)
         
         # Trigger streak and activity check
         profile.record_activity()
