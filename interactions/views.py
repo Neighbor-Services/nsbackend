@@ -257,6 +257,8 @@ class AppointmentViewSet(viewsets.ModelViewSet):
                 data={"appointment_id": str(appointment.id)}
             )
             
+            return Response({
+                'status': 'appointment completed',
                 'funds_released': str(net_amount) if appointment.is_funded else "0.00",
                 'commission_deducted': str(commission) if appointment.is_funded else "0.00"
             })
