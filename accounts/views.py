@@ -29,9 +29,27 @@ from .utils import send_otp_email
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters
 from .filters import ProfileFilter
+from audit.utils import log_audit_action
 
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
+
+    def post(self, request, *args, **kwargs):
+        response = super().post(request, *args, **kwargs)
+        if response.status_code == 200:
+            email = request.data.get('email')
+            if email:
+                user = User.objects.filter(email=email).first()
+                if user:
+                    log_audit_action(
+                        user=user,
+                        action='LOGIN',
+                        resource_type='Authentication',
+                        resource_id=user.id,
+                        details={'method': 'credentials'},
+                        request=request
+                    )
+        return response
 
 class RegisterView(generics.CreateAPIView):
     queryset = User.objects.all()
@@ -51,6 +69,15 @@ class RegisterView(generics.CreateAPIView):
         
         # Send OTP via email using helper
         send_otp_email(user, otp)
+
+        log_audit_action(
+            user=user,
+            action='REGISTER',
+            resource_type='User',
+            resource_id=user.id,
+            details={'email': user.email},
+            request=self.request
+        )
 
 class VerifyOTPView(generics.GenericAPIView):
     permission_classes = (permissions.AllowAny,)
@@ -301,6 +328,16 @@ class ProfileViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(profile, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
+            
+            log_audit_action(
+                user=request.user,
+                action='UPDATE_PROFILE',
+                resource_type='Profile',
+                resource_id=profile.id,
+                details={'fields': list(request.data.keys())},
+                request=request
+            )
+            
             return Response({"profile": serializer.data})
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -431,6 +468,16 @@ class GoogleLoginView(generics.GenericAPIView):
                     user.save()
             
             refresh = RefreshToken.for_user(user)
+            
+            log_audit_action(
+                user=user,
+                action='LOGIN',
+                resource_type='Authentication',
+                resource_id=user.id,
+                details={'method': 'google'},
+                request=request
+            )
+            
             return Response({
                 'access': str(refresh.access_token),
                 'refresh': str(refresh),
@@ -486,6 +533,16 @@ class AppleLoginView(generics.GenericAPIView):
                     user.save()
             
             refresh = RefreshToken.for_user(user)
+            
+            log_audit_action(
+                user=user,
+                action='LOGIN',
+                resource_type='Authentication',
+                resource_id=user.id,
+                details={'method': 'apple'},
+                request=request
+            )
+            
             return Response({
                 'access': str(refresh.access_token),
                 'refresh': str(refresh),
@@ -567,3 +624,29 @@ def apple_callback_view(request):
         """
         return HttpResponse(html)
     return HttpResponse("This endpoint only accepts POST requests from Apple.", status=405)
+
+class LogoutView(generics.GenericAPIView):
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def post(self, request):
+        try:
+            refresh_token = request.data.get("refresh_token")
+            if refresh_token:
+                try:
+                    token = RefreshToken(refresh_token)
+                    token.blacklist()
+                except Exception:
+                    pass # Ignore if simplejwt blacklist app is not installed or token invalid
+            
+            log_audit_action(
+                user=request.user,
+                action='LOGOUT',
+                resource_type='Authentication',
+                resource_id=request.user.id,
+                details={},
+                request=request
+            )
+            return Response(status=status.HTTP_205_RESET_CONTENT)
+        except Exception as e:
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+

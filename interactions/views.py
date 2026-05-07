@@ -10,6 +10,7 @@ from .serializers import FavoriteSerializer, ReviewSerializer, AppointmentSerial
 from payments.models import Wallet, WalletTransaction
 from accounts.models import Profile
 from notifications.utils import send_notification
+from audit.utils import log_audit_action
 
 class FavoriteViewSet(viewsets.ModelViewSet):
     queryset = Favorite.objects.select_related('user', 'favorite_user').all()
@@ -37,6 +38,16 @@ class FavoriteViewSet(viewsets.ModelViewSet):
             favorite_user_id=favorite_user_id
         )
         serializer = self.get_serializer(favorite)
+        
+        log_audit_action(
+            user=request.user,
+            action='ADD_FAVORITE',
+            resource_type='Favorite',
+            resource_id=favorite.id,
+            details={'favorite_user_id': str(favorite_user_id)},
+            request=request
+        )
+        
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 class ReviewViewSet(viewsets.ModelViewSet):
@@ -80,6 +91,15 @@ class ReviewViewSet(viewsets.ModelViewSet):
             message=f"A seeker has left you a {review.rating}-star review.",
             notification_type="SYSTEM", # Or add 'REVIEW' type later
             data={"review_id": str(review.id)}
+        )
+        
+        log_audit_action(
+            user=self.request.user,
+            action='CREATE_REVIEW',
+            resource_type='Review',
+            resource_id=review.id,
+            details={'provider_id': str(provider.id), 'rating': review.rating},
+            request=self.request
         )
 
 class AppointmentViewSet(viewsets.ModelViewSet):
@@ -147,6 +167,16 @@ class AppointmentViewSet(viewsets.ModelViewSet):
             
             serializer = self.get_serializer(appointment)
             wrapped_data = self._wrap_appointments([serializer.data], request.user)[0]
+            
+            log_audit_action(
+                user=request.user,
+                action='VERIFY_ARRIVAL',
+                resource_type='Appointment',
+                resource_id=appointment.id,
+                details={'seeker_id': str(appointment.seeker.id)},
+                request=request
+            )
+            
             return Response({'status': 'verified', 'data': wrapped_data})
         else:
             return Response({'error': 'Invalid verification code. Please check with the seeker.'}, status=status.HTTP_400_BAD_REQUEST)
@@ -227,11 +257,18 @@ class AppointmentViewSet(viewsets.ModelViewSet):
                 data={"appointment_id": str(appointment.id)}
             )
             
-            return Response({
-                'status': 'appointment completed',
                 'funds_released': str(net_amount) if appointment.is_funded else "0.00",
                 'commission_deducted': str(commission) if appointment.is_funded else "0.00"
             })
+            
+            log_audit_action(
+                user=request.user,
+                action='COMPLETE_JOB',
+                resource_type='Appointment',
+                resource_id=appointment.id,
+                details={'net_amount': str(net_amount), 'is_funded': appointment.is_funded},
+                request=request
+            )
                 
     def create(self, request, *args, **kwargs):
         # Log incoming creation request
@@ -339,4 +376,13 @@ class DisputeViewSet(viewsets.ModelViewSet):
             message=f"A dispute has been raised against you for an appointment.",
             notification_type="SYSTEM",
             data={"dispute_id": str(dispute.id)}
+        )
+        
+        log_audit_action(
+            user=self.request.user,
+            action='RAISE_DISPUTE',
+            resource_type='Dispute',
+            resource_id=dispute.id,
+            details={'appointment_id': str(dispute.appointment.id) if dispute.appointment else None},
+            request=self.request
         )

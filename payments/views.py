@@ -10,6 +10,7 @@ import decimal
 from django.conf import settings
 from rest_framework_simplejwt.authentication import JWTAuthentication
 import stripe
+from audit.utils import log_audit_action
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
@@ -244,6 +245,15 @@ class CustomerViewSet(viewsets.ModelViewSet):
             'customer': customer.stripe_customer_id,
             'publishableKey': settings.STRIPE_PUBLIC_KEY
         })
+        
+        log_audit_action(
+            user=request.user,
+            action='FUND_APPOINTMENT',
+            resource_type='Appointment',
+            resource_id=appointment.id,
+            details={'amount': str(amount), 'payment_intent': payment_intent.id},
+            request=request
+        )
 
     @action(detail=False, methods=['post'], url_path='fund-background-check')
     def fund_background_check(self, request):
@@ -284,6 +294,15 @@ class CustomerViewSet(viewsets.ModelViewSet):
             'publishableKey': settings.STRIPE_PUBLIC_KEY,
             'amount_cents': amount_cents,
         })
+        
+        log_audit_action(
+            user=request.user,
+            action='FUND_BACKGROUND_CHECK',
+            resource_type='User',
+            resource_id=request.user.id,
+            details={'amount_cents': amount_cents, 'payment_intent': payment_intent.id},
+            request=request
+        )
 
 class SubscriptionPlanViewSet(viewsets.ReadOnlyModelViewSet):
     """ViewSet for viewing available subscription plans"""
@@ -406,6 +425,15 @@ class SubscriptionViewSet(viewsets.ModelViewSet):
                     # Fallback for older Stripe API versions if any
                     response_data['client_secret'] = stripe_sub.latest_invoice.payment_intent.client_secret
                   # Also helpful: publishableKey? frontend usually has it.
+            
+            log_audit_action(
+                user=request.user,
+                action='CREATE_SUBSCRIPTION',
+                resource_type='Subscription',
+                resource_id=subscription.id,
+                details={'plan_id': str(plan.id), 'stripe_sub_id': stripe_sub.id},
+                request=request
+            )
                  
             return Response(response_data)
 
@@ -539,6 +567,15 @@ class WalletViewSet(viewsets.ModelViewSet):
                     status='COMPLETED',
                     reference_id=transfer.id
                 )
+                
+            log_audit_action(
+                user=request.user,
+                action='REQUEST_PAYOUT',
+                resource_type='Wallet',
+                resource_id=wallet.id,
+                details={'amount': str(amount), 'transfer_id': transfer.id},
+                request=request
+            )
                 
             return Response({'status': 'Payout successful', 'transfer_id': transfer.id, 'payout_id': payout.id})
             

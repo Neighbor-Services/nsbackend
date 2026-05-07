@@ -29,6 +29,7 @@ from .tasks import (
 )
 from django.core.cache import cache
 import hashlib
+from audit.utils import log_audit_action
 
 class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all()
@@ -181,6 +182,15 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
             else:
                 # Notify nearby providers for public requests
                 notify_nearby_providers_task.delay(str(service_request.id))
+                
+            log_audit_action(
+                user=self.request.user,
+                action='CREATE_REQUEST',
+                resource_type='ServiceRequest',
+                resource_id=service_request.id,
+                details={'title': service_request.title, 'target_provider': str(service_request.target_provider.id) if service_request.target_provider else None},
+                request=self.request
+            )
         except Exception as e:
             import traceback
             traceback.print_exc()
@@ -246,6 +256,15 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
                 
                 transaction.on_commit(dispatch_background_emails)
                 
+            log_audit_action(
+                user=request.user,
+                action='APPROVE_REQUEST',
+                resource_type='ServiceRequest',
+                resource_id=service_request.id,
+                details={'proposal_id': str(proposal.id), 'provider_id': str(proposal.provider.id)},
+                request=request
+            )
+                
             serializer = self.get_serializer(service_request)
             return Response(serializer.data)
         except Proposal.DoesNotExist:
@@ -282,6 +301,15 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
                     
                     appointment.delete()
             
+            log_audit_action(
+                user=request.user,
+                action='CANCEL_APPROVAL',
+                resource_type='ServiceRequest',
+                resource_id=service_request.id,
+                details={'proposal_id': str(approved_proposal.id)},
+                request=request
+            )
+            
             return Response({'status': 'approval cancelled'})
         return Response({'error': 'No approved proposal found'}, status=status.HTTP_404_NOT_FOUND)
 
@@ -305,6 +333,16 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
             if 'image' in request.FILES:
                 service_request.image = request.FILES['image']
                 service_request.save()
+                
+                log_audit_action(
+                    user=request.user,
+                    action='UPLOAD_REQUEST_IMAGE',
+                    resource_type='ServiceRequest',
+                    resource_id=request_id,
+                    details={},
+                    request=request
+                )
+
                 serializer = self.get_serializer(service_request)
                 return Response(serializer.data)
             return Response({'error': 'No image provided'}, status=status.HTTP_400_BAD_REQUEST)
@@ -405,6 +443,15 @@ class ProposalViewSet(viewsets.ModelViewSet):
         
         # Send Email to Seeker (async)
         send_new_proposal_email_task.delay(str(proposal.id))
+        
+        log_audit_action(
+            user=self.request.user,
+            action='ACCEPT_REQUEST',
+            resource_type='Proposal',
+            resource_id=proposal.id,
+            details={'service_request_id': str(service_request.id), 'price': str(proposal.price)},
+            request=self.request
+        )
 
 class MatchProvidersView(APIView):
     permission_classes = (permissions.IsAuthenticated,)
