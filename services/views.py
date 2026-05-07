@@ -341,6 +341,16 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
                             # return Response({'error': f'Refund failed: {str(e)}'}, status=status.HTTP_400_BAD_REQUEST)
                     
                     appointment.delete()
+
+                # Notify Provider of cancellation
+                send_notification(
+                    user=approved_proposal.provider,
+                    sender=request.user,
+                    title="Approval Cancelled",
+                    message=f"The seeker has cancelled the approval for your proposal on '{service_request.title}'.",
+                    notification_type="PROPOSAL",
+                    data={"request_id": str(service_request.id)}
+                )
             
             log_audit_action(
                 user=request.user,

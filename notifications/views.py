@@ -16,6 +16,21 @@ class NotificationViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         return self.queryset.filter(user=self.request.user)
 
+    def perform_create(self, serializer):
+        # Set current user as sender if not provided, 
+        # and ensure the user (recipient) is set from data
+        notification = serializer.save(sender=self.request.user)
+        
+        # Trigger background delivery (FCM, etc.)
+        from .utils import send_notification
+        from .tasks import send_notification_delivery_task
+        from django.db import transaction
+        
+        def trigger_task():
+            send_notification_delivery_task.delay(str(notification.id))
+
+        transaction.on_commit(trigger_task)
+
     def list(self, request, *args, **kwargs):
         cache_key = f"notifications_user_{request.user.id}"
         cached_data = cache.get(cache_key)

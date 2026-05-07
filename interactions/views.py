@@ -51,6 +51,16 @@ class FavoriteViewSet(viewsets.ModelViewSet):
             request=request
         )
         
+        # Notify the provider
+        send_notification(
+            user=favorite.favorite_user,
+            sender=request.user,
+            title="New Fan!",
+            message=f"Someone just added you to their favorites.",
+            notification_type="SYSTEM", # Could be 'FAVORITE' if added later
+            data={"favorite_id": str(favorite.id)}
+        )
+
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 class ReviewViewSet(viewsets.ModelViewSet):
