@@ -29,7 +29,10 @@ from .tasks import (
 )
 from django.core.cache import cache
 import hashlib
+import logging
 from audit.utils import log_audit_action
+
+logger = logging.getLogger(__name__)
 
 class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all()
@@ -191,9 +194,16 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
                 details={'title': service_request.title, 'target_provider': str(service_request.target_provider.id) if service_request.target_provider else None},
                 request=self.request
             )
+            
+            # Invalidate search cache so new request appears immediately
+            try:
+                cache.delete_pattern("service_search_*")
+            except Exception as e:
+                # If cache.delete_pattern is not available (non-redis backends), fallback to clear
+                # or just ignore if it's a minor performance hit
+                pass
         except Exception as e:
-            import traceback
-            traceback.print_exc()
+            logger.error(f"Error creating service request: {e}", exc_info=True)
             from rest_framework.exceptions import ValidationError
             raise ValidationError({"detail": f"Backend Error: {str(e)}"})
 

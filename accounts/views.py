@@ -41,6 +41,18 @@ class CustomTokenObtainPairView(TokenObtainPairView):
             if email:
                 user = User.objects.filter(email=email).first()
                 if user:
+                    # Notify user of new login (security practice)
+                    from notifications.utils import send_notification
+                    from django.utils import timezone
+                    
+                    send_notification(
+                        user=user,
+                        title="New Login Detected",
+                        message=f"A new login was detected for your account at {timezone.now().strftime('%Y-%m-%d %H:%M:%S')}.",
+                        notification_type="SYSTEM",
+                        data={"ip": request.META.get('REMOTE_ADDR')}
+                    )
+                    
                     log_audit_action(
                         user=user,
                         action='LOGIN',

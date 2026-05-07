@@ -11,6 +11,9 @@ from payments.models import Wallet, WalletTransaction
 from accounts.models import Profile
 from notifications.utils import send_notification
 from audit.utils import log_audit_action
+import logging
+
+logger = logging.getLogger(__name__)
 
 class FavoriteViewSet(viewsets.ModelViewSet):
     queryset = Favorite.objects.select_related('user', 'favorite_user').all()
@@ -295,9 +298,9 @@ class AppointmentViewSet(viewsets.ModelViewSet):
             headers = self.get_success_headers(serializer.data)
             return Response(wrapped_data, status=status.HTTP_201_CREATED, headers=headers)
         except Exception as e:
-            print(f"Appointment creation error: {str(e)}")
+            logger.error(f"Appointment creation error: {e}", exc_info=True)
             if hasattr(serializer, 'errors'):
-                print(f"Serializer errors: {serializer.errors}")
+                logger.error(f"Serializer errors: {serializer.errors}")
             return Response({'error': str(e), 'details': getattr(serializer, 'errors', {})}, status=status.HTTP_400_BAD_REQUEST)
 
     def perform_create(self, serializer):

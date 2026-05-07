@@ -242,6 +242,14 @@ CELERY_BEAT_SCHEDULE = {
         'task': 'moderation.tasks.sync_pending_checkr_reports',
         'schedule': 3600.0,  # 60 minutes
     },
+    'auto-expire-service-requests-daily': {
+        'task': 'services.tasks.auto_expire_service_requests',
+        'schedule': 86400.0,  # 24 hours
+    },
+    'update-provider-stats-daily': {
+        'task': 'services.tasks.update_provider_stats_task',
+        'schedule': 86400.0,  # 24 hours
+    },
 }
 
 
