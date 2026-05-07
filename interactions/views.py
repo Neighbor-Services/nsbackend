@@ -257,12 +257,6 @@ class AppointmentViewSet(viewsets.ModelViewSet):
                 data={"appointment_id": str(appointment.id)}
             )
             
-            return Response({
-                'status': 'appointment completed',
-                'funds_released': str(net_amount) if appointment.is_funded else "0.00",
-                'commission_deducted': str(commission) if appointment.is_funded else "0.00"
-            })
-            
             log_audit_action(
                 user=request.user,
                 action='COMPLETE_JOB',
@@ -271,6 +265,12 @@ class AppointmentViewSet(viewsets.ModelViewSet):
                 details={'net_amount': str(net_amount), 'is_funded': appointment.is_funded},
                 request=request
             )
+            
+            return Response({
+                'status': 'appointment completed',
+                'funds_released': str(net_amount) if appointment.is_funded else "0.00",
+                'commission_deducted': str(commission) if appointment.is_funded else "0.00"
+            })
                 
     def create(self, request, *args, **kwargs):
         # Log incoming creation request

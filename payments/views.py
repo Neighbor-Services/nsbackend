@@ -239,13 +239,6 @@ class CustomerViewSet(viewsets.ModelViewSet):
         appointment.payment_intent_id = payment_intent.id
         appointment.save()
 
-        return Response({
-            'paymentIntent': payment_intent.client_secret,
-            'ephemeralKey': ephemeral_key.secret,
-            'customer': customer.stripe_customer_id,
-            'publishableKey': settings.STRIPE_PUBLIC_KEY
-        })
-        
         log_audit_action(
             user=request.user,
             action='FUND_APPOINTMENT',
@@ -254,6 +247,13 @@ class CustomerViewSet(viewsets.ModelViewSet):
             details={'amount': str(amount), 'payment_intent': payment_intent.id},
             request=request
         )
+
+        return Response({
+            'paymentIntent': payment_intent.client_secret,
+            'ephemeralKey': ephemeral_key.secret,
+            'customer': customer.stripe_customer_id,
+            'publishableKey': settings.STRIPE_PUBLIC_KEY
+        })
 
     @action(detail=False, methods=['post'], url_path='fund-background-check')
     def fund_background_check(self, request):
@@ -287,14 +287,6 @@ class CustomerViewSet(viewsets.ModelViewSet):
             },
         )
 
-        return Response({
-            'paymentIntent': payment_intent.client_secret,
-            'ephemeralKey': ephemeral_key.secret,
-            'customer': customer.stripe_customer_id,
-            'publishableKey': settings.STRIPE_PUBLIC_KEY,
-            'amount_cents': amount_cents,
-        })
-        
         log_audit_action(
             user=request.user,
             action='FUND_BACKGROUND_CHECK',
@@ -303,6 +295,14 @@ class CustomerViewSet(viewsets.ModelViewSet):
             details={'amount_cents': amount_cents, 'payment_intent': payment_intent.id},
             request=request
         )
+
+        return Response({
+            'paymentIntent': payment_intent.client_secret,
+            'ephemeralKey': ephemeral_key.secret,
+            'customer': customer.stripe_customer_id,
+            'publishableKey': settings.STRIPE_PUBLIC_KEY,
+            'amount_cents': amount_cents,
+        })
 
 class SubscriptionPlanViewSet(viewsets.ReadOnlyModelViewSet):
     """ViewSet for viewing available subscription plans"""
