@@ -149,26 +149,33 @@ class ChatConsumer(AsyncWebsocketConsumer):
             return
             
         # Save message to database and get full object
-        message_obj = await self.save_message(self.user, data)
-        
-        # Trigger persistent notification for the receiver
-        receiver = await self.get_receiver(message_obj)
-        if receiver:
-            await self.trigger_notification(receiver, message_obj)
+        try:
+            message_obj = await self.save_message(self.user, data)
+            
+            # Trigger persistent notification for the receiver
+            receiver = await self.get_receiver(message_obj)
+            if receiver:
+                await self.trigger_notification(receiver, message_obj)
 
-        # Serialize the message and participants for the frontend
-        serialized_chat_message = await self.get_serialized_chat_message(message_obj, self.conversation_id)
-        # Sanitize UUIDs to strings for Channel Layer compatibility
-        serialized_chat_message = json.loads(json.dumps(serialized_chat_message, cls=DjangoJSONEncoder))
+            # Serialize the message and participants for the frontend
+            serialized_chat_message = await self.get_serialized_chat_message(message_obj, self.conversation_id)
+            # Sanitize UUIDs to strings for Channel Layer compatibility
+            serialized_chat_message = json.loads(json.dumps(serialized_chat_message, cls=DjangoJSONEncoder))
 
-        # Send message to room group
-        await self.channel_layer.group_send(
-            self.room_group_name,
-            {
-                'type': 'chat_message',
-                'chat_message_data': serialized_chat_message
-            }
-        )
+            # Send message to room group
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    'type': 'chat_message',
+                    'chat_message_data': serialized_chat_message
+                }
+            )
+        except Exception as e:
+            print(f"Error processing WS message: {str(e)}")
+            await self.send(text_data=json.dumps({
+                'type': 'error',
+                'message': 'Failed to save or send message. Please try again.'
+            }))
 
     # Receive message from room group
     async def chat_message(self, event):

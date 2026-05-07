@@ -244,6 +244,13 @@ class ProfileViewSet(viewsets.ModelViewSet):
 
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
+        
+        # If popular, return top 10 without pagination for cleaner frontend experience
+        if request.query_params.get('popular') == 'true':
+            queryset = queryset[:10]
+            serializer = self.get_serializer(queryset, many=True)
+            return Response({"providers": serializer.data})
+
         page = self.paginate_queryset(queryset)
         if page is not None:
             serializer = self.get_serializer(page, many=True)
@@ -312,7 +319,7 @@ class ProfileViewSet(viewsets.ModelViewSet):
         popular = self.request.query_params.get('popular') == 'true'
         if popular:
             # Verified providers only, sorted by rating
-            queryset = queryset.filter(user_type='PROVIDER', is_identity_verified=True).order_by('-average_rating', '-total_reviews')[:10]
+            queryset = queryset.filter(user_type='PROVIDER', is_identity_verified=True).order_by('-average_rating', '-total_reviews')
 
         return queryset
 
