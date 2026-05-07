@@ -321,12 +321,12 @@ SIMPLE_JWT = {
 FIELD_ENCRYPTION_KEY = '0vziEohl8IILOzJbTBycGBuedQFlm6mCiWhlyeIHXDY='
 
 # CORS Configuration
-# CORS_ALLOW_ALL_ORIGINS = True # For development
-CORS_ALLOW_ALL_ORIGINS = [
-    'https://neighborservice.com',
-    'https://api.neighborservice.com',
-    'https://www.neighborservice.com'
-]
+CORS_ALLOW_ALL_ORIGINS = True # For development
+# CORS_ALLOW_ALL_ORIGINS = [
+#     'https://neighborservice.com',
+#     'https://api.neighborservice.com',
+#     'https://www.neighborservice.com'
+# ]
 # Unfold Admin Settings
 from django.urls import reverse_lazy
 
