@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from unfold.admin import ModelAdmin, StackedInline, TabularInline
-from .models import User, Profile, PortfolioItem, About, LegalDocument
+from .models import User, Profile, PortfolioItem, About, LegalDocument, ServicePackage
 
 class ProfileInline(StackedInline):
     model = Profile
@@ -92,3 +92,9 @@ class LegalDocumentAdmin(ModelAdmin):
             'fields': ('created_at', 'updated_at'),
         }),
     )
+
+@admin.register(ServicePackage)
+class ServicePackageAdmin(ModelAdmin):
+    list_display = ('name', 'profile', 'price', 'delivery_time', 'created_at')
+    list_filter = ('delivery_time', 'created_at')
+    search_fields = ('name', 'description', 'profile__user__email')

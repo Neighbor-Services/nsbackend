@@ -418,7 +418,7 @@ UNFOLD = {
                     {
                         "title": _("Service Packages"),
                         "icon": "inventory_2",
-                        "link": reverse_lazy("admin:services_servicepackage_changelist"),
+                        "link": reverse_lazy("admin:accounts_servicepackage_changelist"),
                     },
                     {
                         "title": _("Portfolio Items"),
