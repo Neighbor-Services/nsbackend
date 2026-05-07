@@ -364,8 +364,12 @@ class ProposalViewSet(viewsets.ModelViewSet):
             print(f"Proposal creation errors: {serializer.errors}")
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         self.perform_create(serializer)
+        
+        # Wrap the response for the frontend
+        wrapped_data = self._wrap_proposals([serializer.data])["requests_acceptance"][0]
+        
         headers = self.get_success_headers(serializer.data)
-        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+        return Response(wrapped_data, status=status.HTTP_201_CREATED, headers=headers)
 
     def destroy(self, request, *args, **kwargs):
         pk = kwargs.get('pk')
