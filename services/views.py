@@ -31,6 +31,7 @@ from django.core.cache import cache
 import hashlib
 import logging
 from audit.utils import log_audit_action
+from ns_backend.cache_utils import generate_cache_key, invalidate_cache_pattern
 
 logger = logging.getLogger(__name__)
 
@@ -50,11 +51,17 @@ class CatalogServiceViewSet(viewsets.ModelViewSet):
     permission_classes = (permissions.IsAuthenticatedOrReadOnly,)
     pagination_class = None
 
+    @method_decorator(cache_page(60 * 60)) # Cache for 1 hour
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
 
+    def _invalidate_cache(self):
+        cache.delete_pattern("*.catalogservice_list.*") # If using cache_page
+        # Since we use simple list, let's also clear explicit keys if any
+        invalidate_cache_pattern("catalog_services_*")
 
     def perform_create(self, serializer):
+        self._invalidate_cache()
         category_id = self.request.data.get('category')
         if not category_id:
             category, _ = Category.objects.get_or_create(
@@ -64,6 +71,14 @@ class CatalogServiceViewSet(viewsets.ModelViewSet):
             serializer.save(category=category)
         else:
             serializer.save()
+
+    def perform_update(self, serializer):
+        self._invalidate_cache()
+        serializer.save()
+
+    def perform_destroy(self, instance):
+        self._invalidate_cache()
+        instance.delete()
 
 class ServiceRequestViewSet(viewsets.ModelViewSet):
     queryset = ServiceRequest.objects.select_related('user', 'user__profile', 'catalog_service', 'catalog_service__category').all()
@@ -76,7 +91,25 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
     ordering_fields = ['created_at', 'price', 'scheduled_time']
 
     def list(self, request, *args, **kwargs):
-        return super().list(request, *args, **kwargs)
+        # Generate cache key based on query params and user
+        # We only cache public (non-user-specific) requests if user_me is not present
+        user_me = request.query_params.get('user_me')
+        
+        # Build cache key from params
+        params = request.query_params.dict()
+        if not user_me:
+             cache_key = generate_cache_key("service_requests_public", params)
+        else:
+             cache_key = generate_cache_key(f"service_requests_user_{request.user.id}", params)
+
+        cached_data = cache.get(cache_key)
+        if cached_data:
+            return Response(cached_data)
+
+        response = super().list(request, *args, **kwargs)
+        if response.status_code == 200:
+            cache.set(cache_key, response.data, 60 * 5) # Cache for 5 mins
+        return response
 
 
     def get_queryset(self):
@@ -196,12 +229,7 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
             )
             
             # Invalidate search cache so new request appears immediately
-            try:
-                cache.delete_pattern("service_search_*")
-            except Exception as e:
-                # If cache.delete_pattern is not available (non-redis backends), fallback to clear
-                # or just ignore if it's a minor performance hit
-                pass
+            invalidate_cache_pattern("service_requests_*")
         except Exception as e:
             logger.error(f"Error creating service request: {e}", exc_info=True)
             from rest_framework.exceptions import ValidationError
@@ -275,6 +303,9 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
                 request=request
             )
                 
+            # Invalidate Caches
+            invalidate_cache_pattern("service_requests_*")
+
             serializer = self.get_serializer(service_request)
             return Response(serializer.data)
         except Proposal.DoesNotExist:
@@ -319,6 +350,9 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
                 details={'proposal_id': str(approved_proposal.id)},
                 request=request
             )
+            
+            # Invalidate Caches
+            invalidate_cache_pattern("service_requests_*")
             
             return Response({'status': 'approval cancelled'})
         return Response({'error': 'No approved proposal found'}, status=status.HTTP_404_NOT_FOUND)

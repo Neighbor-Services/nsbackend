@@ -4,6 +4,8 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from .models import Notification, DeviceToken
 from .serializers import NotificationSerializer, DeviceTokenSerializer
+from ns_backend.cache_utils import invalidate_cache_pattern
+from django.core.cache import cache
 
 class NotificationViewSet(viewsets.ModelViewSet):
     queryset = Notification.objects.select_related('user').all()
@@ -15,18 +17,28 @@ class NotificationViewSet(viewsets.ModelViewSet):
         return self.queryset.filter(user=self.request.user)
 
     def list(self, request, *args, **kwargs):
-        return super().list(request, *args, **kwargs)
+        cache_key = f"notifications_user_{request.user.id}"
+        cached_data = cache.get(cache_key)
+        if cached_data:
+            return Response(cached_data)
+
+        response = super().list(request, *args, **kwargs)
+        if response.status_code == 200:
+            cache.set(cache_key, response.data, 60 * 5) # 5 mins
+        return response
 
     @action(detail=True, methods=['post'])
     def mark_as_read(self, request, pk=None):
         notification = self.get_object()
         notification.is_read = True
         notification.save()
+        cache.delete(f"notifications_user_{request.user.id}")
         return Response({'status': 'notification marked as read'})
 
     @action(detail=False, methods=['post'])
     def mark_all_as_read(self, request):
         self.get_queryset().update(is_read=True)
+        cache.delete(f"notifications_user_{request.user.id}")
         return Response({'status': 'all notifications marked as read'})
 
 class DeviceTokenViewSet(viewsets.ModelViewSet):

@@ -9,6 +9,7 @@ class ProfileFilter(django_filters.FilterSet):
     category_id = django_filters.UUIDFilter(field_name="catalog_service__category__id")
     category_name = django_filters.CharFilter(field_name="catalog_service__category__name", lookup_expr='icontains')
     service_name = django_filters.CharFilter(field_name="catalog_service__name", lookup_expr='icontains')
+    service_id = django_filters.UUIDFilter(field_name="catalog_service__id")
     city = django_filters.CharFilter(field_name="city", lookup_expr='icontains')
     user = django_filters.UUIDFilter(field_name="user__id")
 

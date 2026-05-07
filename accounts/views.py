@@ -30,6 +30,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters
 from .filters import ProfileFilter
 from audit.utils import log_audit_action
+from ns_backend.cache_utils import generate_cache_key, invalidate_cache_pattern
 
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
@@ -243,13 +244,23 @@ class ProfileViewSet(viewsets.ModelViewSet):
         return Response({"profile": serializer.data}, status=status.HTTP_201_CREATED)
 
     def list(self, request, *args, **kwargs):
+        # Cache popular providers specifically
+        is_popular = request.query_params.get('popular') == 'true'
+        if is_popular:
+            cache_key = "profile_popular"
+            cached_data = cache.get(cache_key)
+            if cached_data:
+                return Response({"providers": cached_data})
+
         queryset = self.filter_queryset(self.get_queryset())
         
         # If popular, return top 10 without pagination for cleaner frontend experience
-        if request.query_params.get('popular') == 'true':
+        if is_popular:
             queryset = queryset[:10]
             serializer = self.get_serializer(queryset, many=True)
-            return Response({"providers": serializer.data})
+            data = serializer.data
+            cache.set("profile_popular", data, 60 * 30) # 30 mins
+            return Response({"providers": data})
 
         page = self.paginate_queryset(queryset)
         if page is not None:
@@ -339,13 +350,20 @@ class ProfileViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'])
     def me(self, request):
+        cache_key = f"profile_me_{request.user.id}"
+        cached_data = cache.get(cache_key)
+        if cached_data:
+            return Response({"profile": cached_data})
+
         profile, created = Profile.objects.get_or_create(user=request.user)
         
         # Trigger streak and activity check
         profile.record_activity()
         
         serializer = self.get_serializer(profile)
-        return Response({"profile": serializer.data})
+        data = serializer.data
+        cache.set(cache_key, data, 60 * 15) # 15 mins
+        return Response({"profile": data})
 
     @action(detail=False, methods=['patch', 'put'])
     def update_me(self, request):
@@ -355,6 +373,11 @@ class ProfileViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(profile, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
+            
+            # Invalidate Caches
+            cache.delete(f"profile_me_{request.user.id}")
+            cache.delete("profile_popular")
+            invalidate_cache_pattern("ai_match_*")
             
             log_audit_action(
                 user=request.user,

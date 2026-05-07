@@ -9,6 +9,7 @@ from asgiref.sync import async_to_sync
 from .models import Notification, DeviceToken
 from .serializers import NotificationSerializer
 
+from django.core.cache import cache
 logger = logging.getLogger(__name__)
 
 # APNs specific logic has been removed since FCM now handles cross-platform native pushes.
@@ -26,6 +27,9 @@ def send_notification(user, title, message, notification_type, data=None, sender
         notification_type=notification_type,
         data=data
     )
+    
+    # Invalidate Cache
+    cache.delete(f"notifications_user_{user.id}")
     
     # 2. Enqueue Background Delivery
     # We use transaction.on_commit to ensure the task only runs after the notification
