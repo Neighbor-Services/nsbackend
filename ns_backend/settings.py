@@ -39,7 +39,7 @@ if env_path.exists():
 SECRET_KEY = 'django-insecure-^n&y0l=-ezgl0iwh0cw5*n18z5*--tfm(dbv))r-mjq%zs31@s'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
 ALLOWED_HOSTS = ['localhost', 'api.neighborservice.com', 'www.neighborservice.com', 'neighborservice.com', '127.0.0.1']
 
@@ -321,8 +321,12 @@ SIMPLE_JWT = {
 FIELD_ENCRYPTION_KEY = '0vziEohl8IILOzJbTBycGBuedQFlm6mCiWhlyeIHXDY='
 
 # CORS Configuration
-CORS_ALLOW_ALL_ORIGINS = True # For development
-
+# CORS_ALLOW_ALL_ORIGINS = True # For development
+CORS_ALLOW_ALL_ORIGINS = [
+    'https://neighborservice.com',
+    'https://api.neighborservice.com',
+    'https://www.neighborservice.com'
+]
 # Unfold Admin Settings
 from django.urls import reverse_lazy
 
