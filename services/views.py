@@ -161,25 +161,31 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
 
 
     def perform_create(self, serializer):
-        service_request = serializer.save(user=self.request.user)
-        
-        # Notify Provider if it's a direct request
-        if service_request.target_provider:
-            # Send Push Notification
-            sender_name = self.request.user.profile.first_name if hasattr(self.request.user, 'profile') and self.request.user.profile.first_name else self.request.user.email
-            send_notification(
-                user=service_request.target_provider,
-                title="New Direct Request",
-                message=f"{sender_name} sent you a direct service request for {service_request.title}.",
-                notification_type="DIRECT_REQUEST",
-                data={"request_id": str(service_request.id)}
-            )
+        try:
+            service_request = serializer.save(user=self.request.user)
             
-            # Send Email (async)
-            send_direct_request_email_task.delay(str(service_request.id))
-        else:
-            # Notify nearby providers for public requests
-            notify_nearby_providers_task.delay(str(service_request.id))
+            # Notify Provider if it's a direct request
+            if service_request.target_provider:
+                # Send Push Notification
+                sender_name = self.request.user.profile.first_name if hasattr(self.request.user, 'profile') and self.request.user.profile.first_name else self.request.user.email
+                send_notification(
+                    user=service_request.target_provider,
+                    title="New Direct Request",
+                    message=f"{sender_name} sent you a direct service request for {service_request.title}.",
+                    notification_type="DIRECT_REQUEST",
+                    data={"request_id": str(service_request.id)}
+                )
+                
+                # Send Email (async)
+                send_direct_request_email_task.delay(str(service_request.id))
+            else:
+                # Notify nearby providers for public requests
+                notify_nearby_providers_task.delay(str(service_request.id))
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            from rest_framework.exceptions import ValidationError
+            raise ValidationError({"detail": f"Backend Error: {str(e)}"})
 
     @action(detail=True, methods=['post'])
     def approve_proposal(self, request, pk=None):
