@@ -449,7 +449,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             action='ACCEPT_REQUEST',
             resource_type='Proposal',
             resource_id=proposal.id,
-            details={'service_request_id': str(service_request.id), 'price': str(proposal.price)},
+            details={'service_request_id': str(service_request.id), 'price': str(service_request.price)},
             request=self.request
         )
 
