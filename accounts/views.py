@@ -232,14 +232,18 @@ class ProfileViewSet(viewsets.ModelViewSet):
         profile = Profile.objects.filter(user=request.user).first()
         if profile:
             serializer = self.get_serializer(profile, data=request.data, partial=True)
-            serializer.is_valid(raise_exception=True)
+            if not serializer.is_valid():
+                print("PROFILE UPDATE ERRORS:", serializer.errors)
+                serializer.is_valid(raise_exception=True)
             serializer.save()
             return Response({"profile": serializer.data}, status=status.HTTP_200_OK)
         
         # Otherwise, create it (default behavior)
         # We need to manually inject the user if it's not in validated_data
         serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
+        if not serializer.is_valid():
+            print("PROFILE CREATE ERRORS:", serializer.errors)
+            serializer.is_valid(raise_exception=True)
         serializer.save(user=request.user)
         return Response({"profile": serializer.data}, status=status.HTTP_201_CREATED)
 
