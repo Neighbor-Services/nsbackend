@@ -391,7 +391,8 @@ class SubscriptionViewSet(viewsets.ModelViewSet):
             # Usually status is 'active' or 'incomplete'.
             if stripe_sub.status == 'active':
                 subscription.is_active = True
-                subscription.next_payment = timezone.datetime.fromtimestamp(stripe_sub.current_period_end)
+                if hasattr(stripe_sub, 'current_period_end') and stripe_sub.current_period_end:
+                    subscription.next_payment = timezone.datetime.fromtimestamp(stripe_sub.current_period_end, tz=timezone.utc)
             else:
                  # It's incomplete, waiting for payment. Frontend should handle client_secret if needed.
                  # For backward compatibility with current simple frontend, we might assume user has payment method.
@@ -472,7 +473,8 @@ class SubscriptionViewSet(viewsets.ModelViewSet):
                 # Treat 'active' or 'trialing' as active locally
                 if stripe_sub.status in ['active', 'trialing']:
                     subscription.is_active = True
-                    subscription.next_payment = timezone.datetime.fromtimestamp(stripe_sub.current_period_end)
+                    if hasattr(stripe_sub, 'current_period_end') and stripe_sub.current_period_end:
+                        subscription.next_payment = timezone.datetime.fromtimestamp(stripe_sub.current_period_end, tz=timezone.utc)
                     subscription.save()
                     print(f"DEBUG: Lazy Sync updated subscription to ACTIVE (Status: {stripe_sub.status})")
                 elif stripe_sub.status == 'incomplete':
@@ -481,7 +483,8 @@ class SubscriptionViewSet(viewsets.ModelViewSet):
                         invoice = stripe.Invoice.retrieve(stripe_sub.latest_invoice)
                         if invoice.status == 'paid':
                              subscription.is_active = True
-                             subscription.next_payment = timezone.datetime.fromtimestamp(stripe_sub.current_period_end)
+                             if hasattr(stripe_sub, 'current_period_end') and stripe_sub.current_period_end:
+                                 subscription.next_payment = timezone.datetime.fromtimestamp(stripe_sub.current_period_end, tz=timezone.utc)
                              subscription.save()
                              print("DEBUG: Lazy Sync updated subscription to ACTIVE (Found PAID invoice)")
             except Exception as e:

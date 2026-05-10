@@ -279,12 +279,13 @@ class ProfileViewSet(viewsets.ModelViewSet):
         # Hide unverified providers from public listings unless requested by themselves or staff
         if not self.request.user.is_staff:
             from django.db.models import Q
-            # Keep seekers, keep verified providers, keep the user's own profile
+            # Keep seekers, keep all providers (as requested), keep the user's own profile
             queryset = queryset.filter(
                 Q(user_type='SEEKER') | 
-                Q(user_type='PROVIDER', is_identity_verified=True) | 
+                Q(user_type='PROVIDER') | 
                 Q(user=self.request.user)
             )
+
 
         lat = self.request.query_params.get('lat')
         lng = self.request.query_params.get('lng')
@@ -337,11 +338,10 @@ class ProfileViewSet(viewsets.ModelViewSet):
         # Popular filter
         popular = self.request.query_params.get('popular') == 'true'
         if popular:
-            # Verified providers only, sorted by rating
+            # All providers, sorted by reviews
             queryset = queryset.filter(
-                user_type='PROVIDER', 
-                is_identity_verified=True
-            ).order_by('-average_rating', '-total_reviews')
+                user_type='PROVIDER'
+            ).order_by('-total_reviews')
 
         return queryset
 

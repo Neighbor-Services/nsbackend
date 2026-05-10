@@ -132,6 +132,13 @@ class ProfileSerializer(serializers.ModelSerializer):
             'neighbor_score'
         )
 
+    def to_internal_value(self, data):
+        if 'user_type' in data and not data.get('user_type'):
+            if hasattr(data, 'copy'):
+                data = data.copy()
+            data['user_type'] = 'SEEKER'
+        return super().to_internal_value(data)
+
 
 class LegalDocumentSerializer(serializers.ModelSerializer):
     class Meta:
