@@ -236,6 +236,12 @@ class ProfileViewSet(viewsets.ModelViewSet):
                 print("PROFILE UPDATE ERRORS:", serializer.errors)
                 serializer.is_valid(raise_exception=True)
             serializer.save()
+            
+            # Invalidate Cache
+            cache.delete(f"profile_me_{request.user.id}")
+            cache.delete("profile_popular")
+            invalidate_cache_pattern("ai_match_*")
+            
             return Response({"profile": serializer.data}, status=status.HTTP_200_OK)
         
         # Otherwise, create it (default behavior)
@@ -245,6 +251,12 @@ class ProfileViewSet(viewsets.ModelViewSet):
             print("PROFILE CREATE ERRORS:", serializer.errors)
             serializer.is_valid(raise_exception=True)
         serializer.save(user=request.user)
+        
+        # Invalidate Cache
+        cache.delete(f"profile_me_{request.user.id}")
+        cache.delete("profile_popular")
+        invalidate_cache_pattern("ai_match_*")
+        
         return Response({"profile": serializer.data}, status=status.HTTP_201_CREATED)
 
     def list(self, request, *args, **kwargs):
@@ -404,6 +416,11 @@ class ProfileViewSet(viewsets.ModelViewSet):
         if 'image' in request.FILES:
             profile.profile_picture = request.FILES['image']
             profile.save()
+            
+            # Invalidate Cache
+            cache.delete(f"profile_me_{request.user.id}")
+            cache.delete("profile_popular")
+            
             return Response({"profile": self.get_serializer(profile).data})
         return Response({"detail": "No image provided"}, status=status.HTTP_400_BAD_REQUEST)
 
