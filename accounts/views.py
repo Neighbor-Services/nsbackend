@@ -25,7 +25,7 @@ from .serializers import (
     OTPSerializer, ResendOTPSerializer, CustomTokenObtainPairSerializer,
     LegalDocumentSerializer
 )
-from .utils import send_otp_email
+from .tasks import send_otp_email_task
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters
 from .filters import ProfileFilter
@@ -33,6 +33,7 @@ from audit.utils import log_audit_action
 from ns_backend.cache_utils import generate_cache_key, invalidate_cache_pattern
 
 class CustomTokenObtainPairView(TokenObtainPairView):
+    throttle_scope = 'auth'
     serializer_class = CustomTokenObtainPairSerializer
 
     def post(self, request, *args, **kwargs):
@@ -65,6 +66,7 @@ class CustomTokenObtainPairView(TokenObtainPairView):
         return response
 
 class RegisterView(generics.CreateAPIView):
+    throttle_scope = 'auth'
     queryset = User.objects.all()
     permission_classes = (permissions.AllowAny,)
     serializer_class = UserSerializer
@@ -81,7 +83,7 @@ class RegisterView(generics.CreateAPIView):
         user.save()
         
         # Send OTP via email using helper
-        send_otp_email(user, otp)
+        send_otp_email_task.delay(user.id, otp)
 
         log_audit_action(
             user=user,
@@ -93,6 +95,7 @@ class RegisterView(generics.CreateAPIView):
         )
 
 class VerifyOTPView(generics.GenericAPIView):
+    throttle_scope = 'auth'
     permission_classes = (permissions.AllowAny,)
     serializer_class = OTPSerializer
 
@@ -113,6 +116,7 @@ class VerifyOTPView(generics.GenericAPIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class ResendOTPView(generics.GenericAPIView):
+    throttle_scope = 'auth'
     permission_classes = (permissions.AllowAny,)
     serializer_class = ResendOTPSerializer
 
@@ -126,7 +130,7 @@ class ResendOTPView(generics.GenericAPIView):
                 user.otp_code = otp
                 user.otp_expiry = timezone.now() + timedelta(minutes=10)
                 user.save()
-                send_otp_email(user, otp)
+                send_otp_email_task.delay(user.id, otp)
             return Response({"detail": "If an account exists, a new OTP has been sent."}, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -169,6 +173,7 @@ class ChangePasswordView(generics.UpdateAPIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class PasswordResetRequestView(generics.GenericAPIView):
+    throttle_scope = 'auth'
     permission_classes = (permissions.AllowAny,)
     serializer_class = PasswordResetRequestSerializer
 
@@ -184,7 +189,7 @@ class PasswordResetRequestView(generics.GenericAPIView):
                 user.save()
                 
                 # Send OTP via email
-                send_otp_email(user, otp)
+                send_otp_email_task.delay(user.id, otp)
                 
                 token = default_token_generator.make_token(user)
                 uid = urlsafe_base64_encode(force_bytes(user.pk))

@@ -1,8 +1,9 @@
 from celery import shared_task
 import logging
-from .models import PortfolioItem
+from .models import PortfolioItem, User
 from .ai_utils import analyze_portfolio_image
 import os
+from .utils import send_otp_email
 
 logger = logging.getLogger(__name__)
 
@@ -38,3 +39,17 @@ def analyze_portfolio_image_task(item_id):
         logger.error(f"PortfolioItem {item_id} does not exist.")
     except Exception as e:
         logger.error(f"Error in analyze_portfolio_image_task: {str(e)}")
+
+@shared_task
+def send_otp_email_task(user_id, otp):
+    """
+    Celery task to asynchronously send an OTP verification email.
+    """
+    try:
+        user = User.objects.get(id=user_id)
+        send_otp_email(user, otp)
+        logger.info(f"OTP email sent asynchronously to User {user_id}")
+    except User.DoesNotExist:
+        logger.error(f"Failed to send OTP: User {user_id} does not exist.")
+    except Exception as e:
+        logger.error(f"Error sending OTP email via Celery: {str(e)}")

@@ -2,6 +2,8 @@ from django.db import models
 from django.conf import settings
 import uuid
 from encrypted_model_fields.fields import EncryptedCharField
+from psqlextra.models import PostgresPartitionedModel
+from psqlextra.types import PostgresPartitioningMethod
 
 class Customer(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -27,7 +29,7 @@ class Wallet(models.Model):
     def __str__(self):
         return f"Wallet for {self.user.email} - {self.balance}"
 
-class WalletTransaction(models.Model):
+class WalletTransaction(PostgresPartitionedModel):
     TRANSACTION_TYPES = (
         ('CREDIT', 'Credit'),
         ('DEBIT', 'Debit'),
@@ -44,6 +46,15 @@ class WalletTransaction(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='COMPLETED')
     reference_id = models.CharField(max_length=100, blank=True, null=True) # E.g., Appointment ID or Stripe Payout ID
     created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['created_at']),
+        ]
+
+    class PartitioningMeta:
+        method = PostgresPartitioningMethod.RANGE
+        key = ["created_at"]
 
     def __str__(self):
         return f"{self.transaction_type} - {self.amount} - {self.wallet.user.email}"

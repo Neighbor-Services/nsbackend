@@ -57,6 +57,7 @@ CSRF_TRUSTED_ORIGINS = [
 INSTALLED_APPS = [
     'daphne',
     'unfold',  # Unfold admin
+    'psqlextra', # PostgreSQL partitioning
     'unfold.contrib.filters',  # Optional, if special filters are needed
     'unfold.contrib.forms',  # Optional, if special forms are needed
     'unfold.contrib.inlines',  # Optional, if special inlines are needed
@@ -166,7 +167,7 @@ SESSION_CACHE_ALIAS = "default"
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql',
+        'ENGINE': 'psqlextra.backend',
         'NAME': os.environ.get('POSTGRES_DB', 'nsapp'),
         'USER': os.environ.get('POSTGRES_USER', 'postgres'),
         'PASSWORD': os.environ.get('POSTGRES_PASSWORD', 'gentechco'),
@@ -285,12 +286,14 @@ REST_FRAMEWORK = {
     ),
     'DEFAULT_THROTTLE_CLASSES': [
         'rest_framework.throttling.AnonRateThrottle',
-        'rest_framework.throttling.UserRateThrottle'
+        'rest_framework.throttling.UserRateThrottle',
+        'rest_framework.throttling.ScopedRateThrottle',
     ],
     'DEFAULT_THROTTLE_RATES': {
         'anon': '100/day',
         'user': '1000/hour',
         'auth': '5/minute', # Custom rate for login/register
+        'payout': '3/day',  # Custom rate for payout requests
     },
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
@@ -634,3 +637,9 @@ _fcm_key_rel = os.environ.get(
     os.path.join('notifications', 'keys', 'firebase-service-account.json'),
 )
 FCM_SERVICE_ACCOUNT_KEY_PATH = _fcm_key_rel if os.path.isabs(_fcm_key_rel) else os.path.join(BASE_DIR, _fcm_key_rel)
+
+# PostgreSQL Partitioning Manager Configuration
+PSQLEXTRA_PARTITIONING_MANAGER = 'accounts.partitioning.manager'
+
+
+

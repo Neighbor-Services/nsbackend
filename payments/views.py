@@ -507,6 +507,11 @@ class WalletViewSet(viewsets.ModelViewSet):
     permission_classes = (permissions.IsAuthenticated,)
     authentication_classes = (JWTAuthentication,)
 
+    def get_throttles(self):
+        if self.action == 'request_payout':
+            self.throttle_scope = 'payout'
+        return super().get_throttles()
+
     def get_queryset(self):
         return self.queryset.filter(user=self.request.user)
 

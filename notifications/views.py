@@ -32,7 +32,9 @@ class NotificationViewSet(viewsets.ModelViewSet):
         transaction.on_commit(trigger_task)
 
     def list(self, request, *args, **kwargs):
-        cache_key = f"notifications_user_{request.user.id}"
+        # Include page and query params in cache key to avoid returning wrong page
+        page = request.query_params.get('page', '1')
+        cache_key = f"notifications_user_{request.user.id}_page_{page}"
         cached_data = cache.get(cache_key)
         if cached_data:
             return Response(cached_data)

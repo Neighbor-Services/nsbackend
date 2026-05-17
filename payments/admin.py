@@ -4,6 +4,7 @@ from django.db.models import Count, Sum
 from unfold.admin import ModelAdmin
 from unfold.decorators import display
 from .models import Customer, Subscription, SubscriptionPlan, Wallet, WalletTransaction, PayoutRequest
+from audit.utils import log_audit_action
 
 @admin.register(SubscriptionPlan)
 class SubscriptionPlanAdmin(ModelAdmin):
@@ -276,7 +277,19 @@ class PayoutRequestAdmin(ModelAdmin):
     @admin.action(description='Approve selected payout requests')
     def approve_payouts(self, request, queryset):
         from django.utils import timezone
-        updated = queryset.filter(status='PENDING').update(
+        pending_qs = queryset.filter(status='PENDING')
+        
+        for payout in pending_qs:
+            log_audit_action(
+                user=request.user,
+                action='ADMIN_APPROVE_PAYOUT',
+                resource_type='PayoutRequest',
+                resource_id=payout.id,
+                details={'amount': str(payout.amount), 'wallet_id': str(payout.wallet.id)},
+                request=request
+            )
+            
+        updated = pending_qs.update(
             status='PROCESSED',
             processed_at=timezone.now()
         )
@@ -285,7 +298,19 @@ class PayoutRequestAdmin(ModelAdmin):
     @admin.action(description='Reject selected payout requests')
     def reject_payouts(self, request, queryset):
         from django.utils import timezone
-        updated = queryset.filter(status='PENDING').update(
+        pending_qs = queryset.filter(status='PENDING')
+        
+        for payout in pending_qs:
+            log_audit_action(
+                user=request.user,
+                action='ADMIN_REJECT_PAYOUT',
+                resource_type='PayoutRequest',
+                resource_id=payout.id,
+                details={'amount': str(payout.amount), 'wallet_id': str(payout.wallet.id)},
+                request=request
+            )
+            
+        updated = pending_qs.update(
             status='REJECTED',
             processed_at=timezone.now()
         )
