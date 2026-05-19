@@ -35,7 +35,6 @@ class ServiceRequest(models.Model):
         ('OPEN', 'Open'),
         ('IN_PROGRESS', 'In Progress'),
         ('DONE', 'Done'),
-        ('CANCELLED', 'Cancelled'),
     )
     
     PAYMENT_MODE_CHOICES = (

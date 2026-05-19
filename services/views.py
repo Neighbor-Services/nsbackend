@@ -246,8 +246,11 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
         if service_request.user != request.user:
             return Response({'error': 'Not authorized'}, status=status.HTTP_401_UNAUTHORIZED)
             
-        if service_request.status != 'OPEN':
-            return Response({'error': 'Request is no longer open for proposals.'}, status=status.HTTP_400_BAD_REQUEST)
+        if service_request.status in ['IN_PROGRESS', 'DONE']:
+            return Response(
+                {'error': f'Request is already in progress or completed (current status: {service_request.status}).'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
         
         proposal_id = request.data.get('proposal_id')
         try:

@@ -48,8 +48,8 @@ def send_new_proposal_email_task(self, proposal_id):
             'provider_name': provider_name,
             'request_title': service_request.title,
             'request_id': str(service_request.id),
-            'price': proposal.price,
-            'description': proposal.description
+            'price': service_request.price,
+            'description': service_request.description
         }
         
         html_content = render_to_string('services/emails/proposal_received.html', context)
@@ -287,26 +287,30 @@ def notify_nearby_providers_task(self, request_id):
 def auto_expire_service_requests():
     """
     Periodic task to cancel OPEN requests older than 7 days.
+    Only expires requests that have NOT received any proposals — requests
+    with pending proposals are still active and should remain OPEN until
+    the seeker approves or explicitly cancels.
     """
     from .models import ServiceRequest
     
     threshold = timezone.now() - timedelta(days=7)
+    # Exclude any request that has at least one proposal (provider has shown interest)
     expired_requests = ServiceRequest.objects.filter(
         status='OPEN',
         created_at__lt=threshold
-    )
+    ).exclude(proposals__isnull=False)
     
     count = expired_requests.count()
     for req in expired_requests:
-        req.status = 'CANCELLED'
-        req.save()
+        req_id = req.id
+        req.delete()
         
         log_audit_action(
             user=None,
             action='AUTO_EXPIRE',
             resource_type='ServiceRequest',
-            resource_id=req.id,
-            details={'reason': 'Request expired after 7 days of inactivity'},
+            resource_id=req_id,
+            details={'reason': 'Request deleted after 7 days with no proposals'},
         )
     
     return f"Auto-expired {count} service requests."
