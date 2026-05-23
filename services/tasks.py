@@ -293,7 +293,7 @@ def auto_expire_service_requests():
     """
     from .models import ServiceRequest
     
-    threshold = timezone.now() - timedelta(days=7)
+    threshold = timezone.now() - timedelta(days=20)
     # Exclude any request that has at least one proposal (provider has shown interest)
     expired_requests = ServiceRequest.objects.filter(
         status='OPEN',

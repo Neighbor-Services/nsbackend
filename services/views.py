@@ -116,7 +116,17 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
         queryset = self.queryset
         user = self.request.user
         
-        if self.request.query_params.get('user_me'):
+        if self.action == 'retrieve':
+            if user.is_authenticated:
+                queryset = queryset.filter(
+                    Q(user=user) | 
+                    Q(target_provider=user) | 
+                    Q(proposals__provider=user) |
+                    (Q(status='OPEN') & Q(target_provider__isnull=True) & ~Q(proposals__is_approved=True))
+                )
+            else:
+                queryset = queryset.filter(Q(status='OPEN') & Q(target_provider__isnull=True) & ~Q(proposals__is_approved=True))
+        elif self.request.query_params.get('user_me'):
             queryset = queryset.filter(user=user)
         else:
             # EXCLUDE requests that already have an approved proposal

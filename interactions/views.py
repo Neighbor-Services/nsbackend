@@ -288,6 +288,19 @@ class AppointmentViewSet(viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         # Log incoming creation request
         print(f"Appointment creation request data: {request.data}")
+        
+        provider_id = request.data.get('provider')
+        appointment_date = request.data.get('appointment_date')
+        
+        if provider_id and appointment_date:
+            exists = Appointment.objects.filter(
+                provider_id=provider_id,
+                appointment_date=appointment_date,
+                status__in=['SCHEDULED', 'IN_PROGRESS']
+            ).exists()
+            if exists:
+                return Response({'error': 'An appointment already exists at this date and time'}, status=status.HTTP_400_BAD_REQUEST)
+
         serializer = self.get_serializer(data=request.data)
         try:
             serializer.is_valid(raise_exception=True)
