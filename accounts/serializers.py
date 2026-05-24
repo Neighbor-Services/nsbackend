@@ -75,8 +75,21 @@ class PortfolioItemSerializer(serializers.ModelSerializer):
 
 class SimpleProfileSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
-    catalog_service_name = serializers.ReadOnlyField(source='catalog_service.name')
+    catalog_service_name = serializers.SerializerMethodField()
+    catalog_service_names = serializers.SerializerMethodField()
+    catalog_service_ids = serializers.SerializerMethodField()
     profile_picture_url = serializers.SerializerMethodField()
+    max_catalog_services = serializers.SerializerMethodField()
+
+    def get_catalog_service_name(self, obj):
+        first_service = obj.catalog_services.first()
+        return first_service.name if first_service else None
+
+    def get_catalog_service_names(self, obj):
+        return [cs.name for cs in obj.catalog_services.all()]
+
+    def get_catalog_service_ids(self, obj):
+        return [str(cs.id) for cs in obj.catalog_services.all()]
 
     def get_profile_picture_url(self, obj):
         if obj and obj.profile_picture:
@@ -86,24 +99,41 @@ class SimpleProfileSerializer(serializers.ModelSerializer):
             return obj.profile_picture.url
         return None
 
+    def get_max_catalog_services(self, obj):
+        return obj.get_max_catalog_services()
+
     class Meta:
         model = Profile
         fields = [
             'id', 'user', 'user_type', 'profile_picture_url', 'first_name', 'last_name', 
-            'catalog_service_name', 'service', 'average_rating', 'total_reviews', 
-            'is_identity_verified', 'preferred_payment_mode', 'subscription_tier',
-            'streak_count', 'xp', 'level', 'neighbor_score'
+            'catalog_service_name', 'catalog_service_names', 'catalog_service_ids', 'service', 
+            'average_rating', 'total_reviews', 'is_identity_verified', 'preferred_payment_mode', 
+            'subscription_tier', 'streak_count', 'xp', 'level', 'neighbor_score',
+            'max_catalog_services'
         ]
         read_only_fields = ('average_rating', 'total_reviews', 'is_identity_verified')
 
 class ProfileSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
-    catalog_service_name = serializers.ReadOnlyField(source='catalog_service.name')
+    catalog_service_name = serializers.SerializerMethodField()
+    catalog_service_names = serializers.SerializerMethodField()
+    catalog_service_ids = serializers.SerializerMethodField()
     profile_picture_url = serializers.SerializerMethodField()
+    max_catalog_services = serializers.SerializerMethodField()
     portfolio_items = PortfolioItemSerializer(many=True, read_only=True)
     service_packages = ServicePackageSerializer(many=True, read_only=True)
     reviews_received = serializers.SerializerMethodField()
     
+    def get_catalog_service_name(self, obj):
+        first_service = obj.catalog_services.first()
+        return first_service.name if first_service else None
+
+    def get_catalog_service_names(self, obj):
+        return [cs.name for cs in obj.catalog_services.all()]
+
+    def get_catalog_service_ids(self, obj):
+        return [str(cs.id) for cs in obj.catalog_services.all()]
+
     def get_reviews_received(self, obj):
         from interactions.serializers import ReviewSerializer
         reviews = obj.user.reviews_received.select_related(
@@ -118,6 +148,27 @@ class ProfileSerializer(serializers.ModelSerializer):
                 return request.build_absolute_uri(obj.profile_picture.url)
             return obj.profile_picture.url
         return None
+
+    def get_max_catalog_services(self, obj):
+        return obj.get_max_catalog_services()
+    
+    def validate_catalog_services(self, value):
+        profile = self.instance
+        if not profile:
+            max_services = 0
+        else:
+            max_services = profile.get_max_catalog_services()
+            
+        if len(value) > 0 and max_services == 0:
+            raise serializers.ValidationError(
+                "An active paid subscription plan is required to offer catalog services."
+            )
+        elif max_services > 0 and len(value) > max_services:
+            raise serializers.ValidationError(
+                f"You cannot associate more than {max_services} catalog services on your current subscription plan. "
+                f"Please upgrade your subscription for a higher limit."
+            )
+        return value
     
     class Meta:
         model = Profile
@@ -138,6 +189,37 @@ class ProfileSerializer(serializers.ModelSerializer):
                 data = data.copy()
             data['user_type'] = 'SEEKER'
         return super().to_internal_value(data)
+
+    def update(self, instance, validated_data):
+        old_user_type = instance.user_type
+        new_user_type = validated_data.get('user_type', old_user_type)
+
+        if old_user_type == 'SEEKER' and new_user_type == 'PROVIDER':
+            # 1. Background check (identity verification) is required
+            if not instance.is_identity_verified:
+                raise serializers.ValidationError(
+                    {"user_type": "Identity verification (background check) is required to become a provider."}
+                )
+            
+            # 2. Subscription is also required (must be a paid active sub, no FREE auto-creation)
+            from payments.models import Subscription
+            sub = Subscription.objects.filter(user=instance.user, is_active=True).first()
+            if not sub:
+                raise serializers.ValidationError(
+                    {"user_type": "An active paid subscription plan is required to become a provider."}
+                )
+
+        elif old_user_type == 'PROVIDER' and new_user_type == 'SEEKER':
+            # 1. Void previous subscription
+            from payments.models import Subscription
+            Subscription.objects.filter(user=instance.user).delete()
+            # 2. Clear service catalogs (M2M)
+            instance.catalog_services.clear()
+            # 3. Set subscription tier to NONE
+            instance.subscription_tier = 'NONE'
+
+        return super().update(instance, validated_data)
+
 
 
 class LegalDocumentSerializer(serializers.ModelSerializer):

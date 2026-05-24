@@ -8,7 +8,7 @@ from audit.utils import log_audit_action
 
 @admin.register(SubscriptionPlan)
 class SubscriptionPlanAdmin(ModelAdmin):
-    list_display = ('name', 'tier', 'interval', 'display_formatted_price', 'currency', 'display_status', 'display_order', 'subscriber_count', 'updated_at')
+    list_display = ('name', 'tier', 'interval', 'max_catalog_services', 'display_formatted_price', 'currency', 'display_status', 'display_order', 'subscriber_count', 'updated_at')
     list_filter = ('is_active', 'currency', 'created_at')
     search_fields = ('name', 'description')
     list_editable = ('display_order',)
@@ -16,7 +16,7 @@ class SubscriptionPlanAdmin(ModelAdmin):
     
     fieldsets = (
         ('Plan Details', {
-            'fields': ('name', 'tier', 'description', 'display_order')
+            'fields': ('name', 'tier', 'description', 'max_catalog_services', 'display_order')
         }),
         ('Pricing', {
             'fields': (('price', 'currency', 'interval'), 'is_active'),

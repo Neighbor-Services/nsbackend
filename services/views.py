@@ -582,7 +582,7 @@ class MatchProvidersView(APIView):
             if len(matched_ids) >= 10: break
         
         # Now fetch full profile objects for the top 10 results
-        results = Profile.objects.filter(id__in=matched_ids).select_related('user', 'catalog_service', 'catalog_service__category').prefetch_related('portfolio_items', 'service_packages')
+        results = Profile.objects.filter(id__in=matched_ids).select_related('user').prefetch_related('catalog_services', 'catalog_services__category', 'portfolio_items', 'service_packages')
         
         # Maintain original score-based ordering
         results_map = {p.id: p for p in results}

@@ -34,7 +34,7 @@ class SubscriptionPlanSerializer(serializers.ModelSerializer):
     class Meta:
         model = SubscriptionPlan
         fields = ('id', 'name', 'tier', 'interval', 'description', 'price', 'currency', 'formatted_price', 
-                  'features', 'is_active', 'display_order', 'stripe_price_id', 
+                  'features', 'max_catalog_services', 'is_active', 'display_order', 'stripe_price_id', 
                   'stripe_product_id', 'created_at', 'updated_at')
         read_only_fields = ('id', 'created_at', 'updated_at')
 

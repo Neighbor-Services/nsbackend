@@ -514,6 +514,11 @@ UNFOLD = {
                         "icon": "notifications",
                         "link": reverse_lazy("admin:notifications_notification_changelist"),
                     },
+                    {
+                        "title": _("Device Tokens"),
+                        "icon": "devices",
+                        "link": reverse_lazy("admin:notifications_devicetoken_changelist"),
+                    },
                 ],
             },
             {

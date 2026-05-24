@@ -33,7 +33,7 @@ class PortfolioInline(TabularInline):
 
 @admin.register(Profile)
 class ProfileAdmin(ModelAdmin):
-    list_display = ('user_email', 'first_name', 'last_name', 'user_type', 'city', 'average_rating', 'total_reviews')
+    list_display = ('user_email', 'first_name', 'last_name', 'user_type', 'city', 'average_rating', 'total_reviews', 'device_token')
     list_filter = ('user_type', 'city', 'gender')
     search_fields = ('user__email', 'first_name', 'last_name', 'city')
     inlines = [PortfolioInline]
@@ -46,7 +46,7 @@ class ProfileAdmin(ModelAdmin):
             'fields': (('first_name', 'last_name'), 'gender', 'date_of_birth', 'bio')
         }),
         ('Service Info', {
-            'fields': ('catalog_service', 'service', 'average_rating', 'total_reviews')
+            'fields': ('catalog_services', 'service', 'average_rating', 'total_reviews')
         }),
         ('Contact & Location', {
             'fields': (('country_code', 'phone'), 'address', 'city', 'state', 'country', 'zip_code', ('latitude', 'longitude'))

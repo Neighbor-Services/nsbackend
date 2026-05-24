@@ -78,7 +78,6 @@ class PayoutRequest(models.Model):
 class SubscriptionPlan(models.Model):
     """Subscription plan with adjustable pricing"""
     TIERS = (
-        ('FREE', 'Free'),
         ('SILVER', 'Silver'),
         ('GOLD', 'Gold'),
         ('PLATINUM', 'Platinum'),
@@ -89,7 +88,7 @@ class SubscriptionPlan(models.Model):
     )
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=100, unique=True, help_text="Plan name (e.g., Basic, Premium, Enterprise)")
-    tier = models.CharField(max_length=10, choices=TIERS, default='FREE')
+    tier = models.CharField(max_length=10, choices=TIERS, default='SILVER')
     interval = models.CharField(max_length=10, choices=INTERVAL_CHOICES, default='month')
     description = models.TextField(blank=True, help_text="Detailed plan description")
     price = models.DecimalField(max_digits=10, decimal_places=2, help_text="Monthly price")
@@ -97,6 +96,7 @@ class SubscriptionPlan(models.Model):
     features = models.JSONField(default=list, blank=True, help_text="List of plan features")
     stripe_price_id = models.CharField(max_length=255, blank=True, null=True, help_text="Stripe Price ID")
     stripe_product_id = models.CharField(max_length=255, blank=True, null=True, help_text="Stripe Product ID")
+    max_catalog_services = models.PositiveIntegerField(default=1, help_text="Max catalog services a provider can offer (0 = unlimited)")
     is_active = models.BooleanField(default=True, help_text="Is this plan available for purchase?")
     display_order = models.IntegerField(default=0, help_text="Display order (lower numbers first)")
     created_at = models.DateTimeField(auto_now_add=True)

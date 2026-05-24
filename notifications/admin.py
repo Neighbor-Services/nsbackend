@@ -28,7 +28,7 @@ class DeviceTokenAdmin(ModelAdmin):
         (None, {
             'fields': ('user', 'token', 'platform', 'is_active')
         }),
-        ('Content', {
-            'fields': ('token', 'device_id', 'is_active')
+        ('Device details', {
+            'fields': ('device_id',)
         }),
     )

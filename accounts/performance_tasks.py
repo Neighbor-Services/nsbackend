@@ -37,9 +37,9 @@ def calculate_provider_metrics_task():
         # 2. Top 1%
         # Criteria: Rating > 4.8 + top 1% by volume in category
         if profile.average_rating >= 4.8 and profile.total_reviews >= 10:
-            category = profile.catalog_service
+            category = profile.catalog_services.first()
             if category:
-                category_providers = Profile.objects.filter(catalog_service=category).order_key('total_reviews')
+                category_providers = Profile.objects.filter(catalog_services=category).order_by('total_reviews')
                 count = category_providers.count()
                 if count > 10:
                     top_threshold = int(count * 0.01) or 1

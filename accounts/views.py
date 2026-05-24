@@ -224,7 +224,7 @@ class PasswordResetConfirmView(generics.GenericAPIView):
 
 
 class ProfileViewSet(viewsets.ModelViewSet):
-    queryset = Profile.objects.select_related('user', 'catalog_service').prefetch_related('portfolio_items', 'service_packages').all()
+    queryset = Profile.objects.select_related('user').prefetch_related('catalog_services', 'portfolio_items', 'service_packages').all()
     serializer_class = ProfileSerializer
     permission_classes = (permissions.IsAuthenticated,)
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]

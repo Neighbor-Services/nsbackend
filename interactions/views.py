@@ -234,9 +234,9 @@ class AppointmentViewSet(viewsets.ModelViewSet):
             if appointment.is_funded:
                 # Calculate Commission
                 # Tiers: FREE (20%), SILVER (15%), GOLD (10%), PLATINUM (5%)
-                tier = appointment.provider.profile.subscription_tier or 'FREE'
+                tier = appointment.provider.profile.subscription_tier or 'NONE'
                 commission_rates = {
-                    'FREE': 0.20,
+                    'NONE': 0.20,
                     'SILVER': 0.15,
                     'GOLD': 0.10,
                     'PLATINUM': 0.05

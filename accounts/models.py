@@ -52,7 +52,6 @@ class Profile(models.Model):
     )
     TIERS = (
         ("NONE", "None"),
-        ('FREE', 'Free'),
         ('SILVER', 'Silver'),
         ('GOLD', 'Gold'),
         ('PLATINUM', 'Platinum'),
@@ -70,7 +69,7 @@ class Profile(models.Model):
     first_name = models.CharField(max_length=100, blank=True, null=True)
     last_name = models.CharField(max_length=100, blank=True, null=True)
     date_of_birth = EncryptedDateField(blank=True, null=True)
-    catalog_service = models.ForeignKey('services.CatalogService', on_delete=models.SET_NULL, null=True, blank=True, related_name='profiles')
+    catalog_services = models.ManyToManyField('services.CatalogService', blank=True, related_name='profiles')
     service = models.CharField(max_length=255, blank=True, null=True)
     country = models.CharField(max_length=100, blank=True, null=True)
     state = models.CharField(max_length=100, blank=True, null=True)
@@ -118,7 +117,6 @@ class Profile(models.Model):
     def get_commission_rate(self):
         """Returns the platform commission rate based on subscription tier"""
         rates = {
-            'FREE': 0.20,
             'SILVER': 0.15,
             'GOLD': 0.10,
             'PLATINUM': 0.05,
@@ -156,12 +154,42 @@ class Profile(models.Model):
     def priority_score(self):
         """Returns a priority score for AI matching boosts"""
         scores = {
-            'FREE': 1.0,
             'SILVER': 1.1,
             'GOLD': 1.2,
             'PLATINUM': 1.5,
         }
         return scores.get(self.subscription_tier, 1.0)
+
+    def get_max_catalog_services(self):
+        """Returns the maximum number of catalog services this profile can offer based on subscription tier"""
+        from payments.models import SubscriptionPlan
+        
+        tier = self.subscription_tier
+        if tier == 'NONE':
+            return 0
+            
+        try:
+            plan = SubscriptionPlan.objects.filter(tier=tier, is_active=True).first()
+            if plan:
+                return plan.max_catalog_services
+        except Exception:
+            pass
+            
+        fallbacks = {
+            'SILVER': 3,
+            'GOLD': 5,
+            'PLATINUM': 0, # 0 = unlimited
+        }
+        return fallbacks.get(tier, 0)
+
+    def can_add_catalog_service(self):
+        """Returns True if the profile can add another catalog service, False otherwise"""
+        if self.subscription_tier == 'NONE':
+            return False
+        max_services = self.get_max_catalog_services()
+        if max_services == 0: # 0 = unlimited
+            return True
+        return self.catalog_services.count() < max_services
 
 class About(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
