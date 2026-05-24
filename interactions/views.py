@@ -330,6 +330,79 @@ class AppointmentViewSet(viewsets.ModelViewSet):
         # The logic is now inside create for better response wrapping
         pass
 
+    def destroy(self, request, *args, **kwargs):
+        appointment = self.get_object()
+        
+        # Only seeker or provider involved in the appointment can cancel/delete it
+        if request.user != appointment.seeker and request.user != appointment.provider:
+            return Response({'error': 'Not authorized'}, status=status.HTTP_403_FORBIDDEN)
+            
+        if appointment.status == 'CANCELLED':
+            return Response({'error': 'Appointment is already cancelled'}, status=status.HTTP_400_BAD_REQUEST)
+            
+        with transaction.atomic():
+            appointment.status = 'CANCELLED'
+            appointment.save()
+            
+            # If there's an associated proposal, mark it as not approved
+            if appointment.proposal:
+                appointment.proposal.is_approved = False
+                appointment.proposal.save()
+                
+            # If there's an associated service request, set it back to OPEN
+            if appointment.service_request:
+                appointment.service_request.status = 'OPEN'
+                appointment.service_request.save()
+                
+            # Handle refund if funded and payment_intent_id exists
+            if appointment.is_funded and appointment.payment_intent_id:
+                try:
+                    import stripe
+                    from django.conf import settings
+                    stripe.api_key = settings.STRIPE_SECRET_KEY
+                    stripe.Refund.create(payment_intent=appointment.payment_intent_id)
+                except Exception as refund_err:
+                    logger.error(f"Stripe Refund Error in Appointment Cancel: {refund_err}")
+            
+            # Send push/system notifications to both parties
+            # Notify Seeker
+            try:
+                send_notification(
+                    user=appointment.seeker,
+                    sender=request.user,
+                    title="Appointment Cancelled",
+                    message=f"The appointment '{appointment.title or 'Service'}' has been cancelled.",
+                    notification_type="APPOINTMENT",
+                    data={"appointment_id": str(appointment.id)}
+                )
+            except Exception as e:
+                logger.error(f"Failed to notify seeker: {e}")
+                
+            # Notify Provider
+            try:
+                send_notification(
+                    user=appointment.provider,
+                    sender=request.user,
+                    title="Appointment Cancelled",
+                    message=f"The appointment '{appointment.title or 'Service'}' has been cancelled.",
+                    notification_type="APPOINTMENT",
+                    data={"appointment_id": str(appointment.id)}
+                )
+            except Exception as e:
+                logger.error(f"Failed to notify provider: {e}")
+            
+            log_audit_action(
+                user=request.user,
+                action='CANCEL_APPOINTMENT',
+                resource_type='Appointment',
+                resource_id=appointment.id,
+                details={'is_funded': appointment.is_funded},
+                request=request
+            )
+            
+        return Response({'status': 'appointment cancelled'}, status=status.HTTP_200_OK)
+
+
     def _wrap_appointments(self, data, current_user):
         wrapped = []
         for item in data:
