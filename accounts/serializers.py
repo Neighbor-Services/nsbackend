@@ -195,13 +195,7 @@ class ProfileSerializer(serializers.ModelSerializer):
         new_user_type = validated_data.get('user_type', old_user_type)
 
         if old_user_type == 'SEEKER' and new_user_type == 'PROVIDER':
-            # 1. Background check (identity verification) is required
-            if not instance.is_identity_verified:
-                raise serializers.ValidationError(
-                    {"user_type": "Identity verification (background check) is required to become a provider."}
-                )
-            
-            # 2. Subscription is also required (must be a paid active sub, no FREE auto-creation)
+            # 1. Subscription is also required (must be a paid active sub, no FREE auto-creation)
             from payments.models import Subscription
             sub = Subscription.objects.filter(user=instance.user, is_active=True).first()
             if not sub:
