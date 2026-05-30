@@ -199,12 +199,12 @@ class BackgroundCheckViewSet(viewsets.ReadOnlyModelViewSet):
 
         # Build work location for Checkr
         work_location = {}
-        if profile.state:
-            work_location['state'] = profile.state
-        if profile.city:
-            work_location['city'] = profile.city
-        if profile.zip_code:
-            work_location['zipcode'] = profile.zip_code
+        # if profile.state:
+        #     work_location['state'] = profile.state
+        # if profile.city:
+        #     work_location['city'] = profile.city
+        # if profile.zip_code:
+        #     work_location['zipcode'] = profile.zip_code
         if profile.country:
             work_location['country'] = 'US'
 
