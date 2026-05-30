@@ -55,7 +55,7 @@ class FavoriteViewSet(viewsets.ModelViewSet):
         send_notification(
             user=favorite.favorite_user,
             sender=request.user,
-            title="New Fan!",
+            title="Potential Customer",
             message=f"Someone just added you to their favorites.",
             notification_type="SYSTEM", # Could be 'FAVORITE' if added later
             data={"favorite_id": str(favorite.id)}
