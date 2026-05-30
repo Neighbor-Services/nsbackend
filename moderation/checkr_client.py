@@ -13,7 +13,7 @@ from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
-CHECKR_BASE_URL = getattr(settings, 'CHECKR_BASE_URL', 'https://api.checkr.com')
+CHECKR_BASE_URL = 'https://api.checkr.com'
 
 
 def _get_auth():
