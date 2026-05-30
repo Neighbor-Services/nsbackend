@@ -206,7 +206,7 @@ class BackgroundCheckViewSet(viewsets.ReadOnlyModelViewSet):
         if profile.zip_code:
             work_location['zipcode'] = profile.zip_code
         if profile.country:
-            work_location['country'] = profile.country or 'US'
+            work_location['country'] = 'US'
 
         package = getattr(settings, 'CHECKR_PACKAGE', 'tasker_standard')
 
