@@ -21,6 +21,36 @@ def _get_auth():
     return (settings.CHECKR_API_KEY, '')
 
 
+def _make_request(method: str, url: str, json_payload: dict = None, timeout: int = 30) -> requests.Response:
+    """Helper to perform requests with standard headers, connection close, and retry logic on connection errors."""
+    import time
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Connection': 'close',
+    }
+    
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            response = requests.request(
+                method=method,
+                url=url,
+                auth=_get_auth(),
+                json=json_payload,
+                headers=headers,
+                timeout=timeout,
+            )
+            return response
+        except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
+            logger.warning(
+                "Checkr API request connection issue (attempt %s/%s) for %s: %s",
+                attempt + 1, max_retries, url, e
+            )
+            if attempt == max_retries - 1:
+                raise
+            time.sleep(1 * (attempt + 1))
+
+
 def _handle_response(response: requests.Response, context: str) -> dict:
     """Raise a descriptive exception on non-2xx responses."""
     try:
@@ -71,10 +101,10 @@ def create_candidate(profile) -> dict:
 
     logger.info("Creating Checkr candidate for user %s", profile.user.email)
 
-    response = requests.post(
+    response = _make_request(
+        'POST',
         f"{CHECKR_BASE_URL}/v1/candidates",
-        auth=_get_auth(),
-        json=payload,
+        json_payload=payload,
         timeout=30,
     )
     return _handle_response(response, 'create_candidate')
@@ -105,10 +135,10 @@ def create_invitation(candidate_id: str, package: str, work_location: dict) -> d
         candidate_id, package
     )
 
-    response = requests.post(
+    response = _make_request(
+        'POST',
         f"{CHECKR_BASE_URL}/v1/invitations",
-        auth=_get_auth(),
-        json=payload,
+        json_payload=payload,
         timeout=30,
     )
     return _handle_response(response, 'create_invitation')
@@ -127,9 +157,9 @@ def get_report(report_id: str) -> dict:
     """
     logger.info("Fetching Checkr report %s", report_id)
 
-    response = requests.get(
+    response = _make_request(
+        'GET',
         f"{CHECKR_BASE_URL}/v1/reports/{report_id}",
-        auth=_get_auth(),
         timeout=30,
     )
     return _handle_response(response, 'get_report')
@@ -137,9 +167,9 @@ def get_report(report_id: str) -> dict:
 
 def get_candidate(candidate_id: str) -> dict:
     """Fetch a Checkr candidate by ID."""
-    response = requests.get(
+    response = _make_request(
+        'GET',
         f"{CHECKR_BASE_URL}/v1/candidates/{candidate_id}",
-        auth=_get_auth(),
         timeout=30,
     )
     return _handle_response(response, 'get_candidate')

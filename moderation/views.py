@@ -116,136 +116,143 @@ class BackgroundCheckViewSet(viewsets.ReadOnlyModelViewSet):
         Prevents duplicate active checks (only one PENDING check allowed).
         Returns { id, invitation_url, status }.
         """
-        user = request.user
+        try:
+            user = request.user
 
-        # Guard: only one active check at a time
-        existing = BackgroundCheck.objects.filter(
-            provider=user,
-            status=BackgroundCheck.STATUS_PENDING,
-        ).first()
-        if existing:
-            return Response(
-                {
-                    'detail': 'You already have a pending background check.',
-                    'invitation_url': existing.invitation_url,
-                    'id': str(existing.id),
-                    'status': existing.status,
-                },
-                status=status.HTTP_200_OK,
-            )
+            # Guard: only one active check at a time
+            existing = BackgroundCheck.objects.filter(
+                provider=user,
+                status=BackgroundCheck.STATUS_PENDING,
+            ).first()
+            if existing:
+                return Response(
+                    {
+                        'detail': 'You already have a pending background check.',
+                        'invitation_url': existing.invitation_url,
+                        'id': str(existing.id),
+                        'status': existing.status,
+                    },
+                    status=status.HTTP_200_OK,
+                )
 
-        # Check global setting
-        setting = ModerationSetting.objects.first()
-        payment_mode = setting.background_check_payment_mode if setting else 'IN_APP_STRIPE'
+            # Check global setting
+            setting = ModerationSetting.objects.first()
+            payment_mode = setting.background_check_payment_mode if setting else 'IN_APP_STRIPE'
 
-        payment_intent_id = request.data.get('payment_intent_id')
+            payment_intent_id = request.data.get('payment_intent_id')
 
-        if payment_mode == 'IN_APP_STRIPE':
-            # Require payment intent
-            if not payment_intent_id:
-                 return Response(
-                     {'detail': 'A valid payment_intent_id is required to initiate a background check.'},
-                     status=status.HTTP_400_BAD_REQUEST,
-                 )
+            if payment_mode == 'IN_APP_STRIPE':
+                # Require payment intent
+                if not payment_intent_id:
+                     return Response(
+                         {'detail': 'A valid payment_intent_id is required to initiate a background check.'},
+                         status=status.HTTP_400_BAD_REQUEST,
+                     )
 
-            # Verify payment intent with Stripe
-            import stripe
+                # Verify payment intent with Stripe
+                import stripe
+                try:
+                     stripe.api_key = settings.STRIPE_SECRET_KEY
+                     intent = stripe.PaymentIntent.retrieve(payment_intent_id)
+                     if intent.status != 'succeeded':
+                         return Response(
+                             {'detail': f'Payment intent status is {intent.status}. Expected "succeeded".'},
+                             status=status.HTTP_400_BAD_REQUEST,
+                         )
+                     if intent.metadata.get('type') != 'background_check' or intent.metadata.get('user_id') != str(user.id):
+                         return Response(
+                             {'detail': 'Payment intent is not valid for this background check.'},
+                             status=status.HTTP_400_BAD_REQUEST,
+                         )
+                except Exception as e:
+                     logger.error("Stripe verification error in background check initiate: %s", e)
+                     return Response(
+                         {'detail': f'Payment verification failed: {str(e)}'},
+                         status=status.HTTP_400_BAD_REQUEST,
+                     )
+
+                # Ensure payment intent hasn't already been used
+                if BackgroundCheck.objects.filter(payment_intent_id=payment_intent_id).exists():
+                     return Response(
+                         {'detail': 'This payment has already been used for a background check.'},
+                         status=status.HTTP_400_BAD_REQUEST,
+                     )
+
+            # Validate provider has enough profile data
             try:
-                 stripe.api_key = settings.STRIPE_SECRET_KEY
-                 intent = stripe.PaymentIntent.retrieve(payment_intent_id)
-                 if intent.status != 'succeeded':
-                     return Response(
-                         {'detail': f'Payment intent status is {intent.status}. Expected "succeeded".'},
-                         status=status.HTTP_400_BAD_REQUEST,
-                     )
-                 if intent.metadata.get('type') != 'background_check' or intent.metadata.get('user_id') != str(user.id):
-                     return Response(
-                         {'detail': 'Payment intent is not valid for this background check.'},
-                         status=status.HTTP_400_BAD_REQUEST,
-                     )
-            except Exception as e:
-                 logger.error("Stripe verification error in background check initiate: %s", e)
-                 return Response(
-                     {'detail': f'Payment verification failed: {str(e)}'},
-                     status=status.HTTP_400_BAD_REQUEST,
-                 )
+                profile = user.profile
+            except Exception:
+                return Response(
+                    {'detail': 'Provider profile not found.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
-            # Ensure payment intent hasn't already been used
-            if BackgroundCheck.objects.filter(payment_intent_id=payment_intent_id).exists():
-                 return Response(
-                     {'detail': 'This payment has already been used for a background check.'},
-                     status=status.HTTP_400_BAD_REQUEST,
-                 )
+            if not profile.state and not profile.zip_code:
+                return Response(
+                    {
+                        'detail': (
+                            'Your profile must have a state or zip code set '
+                            'before initiating a background check.'
+                        )
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
-        # Validate provider has enough profile data
-        try:
-            profile = user.profile
-        except Exception:
-            return Response(
-                {'detail': 'Provider profile not found.'},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            # Build work location for Checkr
+            work_location = {}
+            # if profile.state:
+            #     work_location['state'] = profile.state
+            # if profile.city:
+            #     work_location['city'] = profile.city
+            # if profile.zip_code:
+            #     work_location['zipcode'] = profile.zip_code
+            if profile.country:
+                work_location['country'] = 'US'
 
-        if not profile.state and not profile.zip_code:
-            return Response(
-                {
-                    'detail': (
-                        'Your profile must have a state or zip code set '
-                        'before initiating a background check.'
-                    )
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            package = getattr(settings, 'CHECKR_PACKAGE', 'tasker_standard')
 
-        # Build work location for Checkr
-        work_location = {}
-        # if profile.state:
-        #     work_location['state'] = profile.state
-        # if profile.city:
-        #     work_location['city'] = profile.city
-        # if profile.zip_code:
-        #     work_location['zipcode'] = profile.zip_code
-        if profile.country:
-            work_location['country'] = 'US'
+            try:
+                # 1. Create Checkr candidate
+                candidate = checkr_client.create_candidate(profile)
+                candidate_id = candidate['id']
 
-        package = getattr(settings, 'CHECKR_PACKAGE', 'tasker_standard')
+                # 2. Create invitation (Checkr-hosted form flow)
+                invitation = checkr_client.create_invitation(
+                    candidate_id=candidate_id,
+                    package=package,
+                    work_location=work_location,
+                )
+            except CheckrAPIError as exc:
+                logger.error("Checkr API error during initiation for user %s: %s", user.email, exc)
+                return Response(
+                    {'detail': f'Background check initiation failed: {str(exc)}'},
+                    status=status.HTTP_502_BAD_GATEWAY,
+                )
 
-        try:
-            # 1. Create Checkr candidate
-            candidate = checkr_client.create_candidate(profile)
-            candidate_id = candidate['id']
-
-            # 2. Create invitation (Checkr-hosted form flow)
-            invitation = checkr_client.create_invitation(
-                candidate_id=candidate_id,
+            # 3. Persist BackgroundCheck record
+            bc = BackgroundCheck.objects.create(
+                provider=user,
+                checkr_candidate_id=candidate_id,
+                checkr_invitation_id=invitation.get('id'),
+                invitation_url=invitation.get('invitation_url'),
                 package=package,
-                work_location=work_location,
+                status=BackgroundCheck.STATUS_PENDING,
+                payment_intent_id=payment_intent_id,
             )
-        except CheckrAPIError as exc:
-            logger.error("Checkr API error during initiation for user %s: %s", user.email, exc)
+
+            logger.info(
+                "BackgroundCheck %s created for provider %s (invitation=%s)",
+                bc.id, user.email, bc.checkr_invitation_id,
+            )
+
+            serializer = self.get_serializer(bc)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        except Exception as exc:
+            logger.exception("Unexpected error in background check initiate:")
             return Response(
-                {'detail': f'Background check initiation failed: {str(exc)}'},
-                status=status.HTTP_502_BAD_GATEWAY,
+                {'detail': f'Internal server error: {str(exc)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
-
-        # 3. Persist BackgroundCheck record
-        bc = BackgroundCheck.objects.create(
-            provider=user,
-            checkr_candidate_id=candidate_id,
-            checkr_invitation_id=invitation.get('id'),
-            invitation_url=invitation.get('invitation_url'),
-            package=package,
-            status=BackgroundCheck.STATUS_PENDING,
-            payment_intent_id=payment_intent_id,
-        )
-
-        logger.info(
-            "BackgroundCheck %s created for provider %s (invitation=%s)",
-            bc.id, user.email, bc.checkr_invitation_id,
-        )
-
-        serializer = self.get_serializer(bc)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     # ------------------------------------------------------------------
     # POST /background-checks/{id}/resync/  (staff only)
