@@ -140,6 +140,8 @@ class BackgroundCheckViewSet(viewsets.ReadOnlyModelViewSet):
             payment_mode = setting.background_check_payment_mode if setting else 'IN_APP_STRIPE'
 
             payment_intent_id = request.data.get('payment_intent_id')
+            if not payment_intent_id:
+                payment_intent_id = None
 
             if payment_mode == 'IN_APP_STRIPE':
                 # Require payment intent
