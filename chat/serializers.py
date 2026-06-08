@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Conversation, Message
+from .models import Conversation, Message, ChatBlock
 
 class MessageSerializer(serializers.ModelSerializer):
     id = serializers.CharField(read_only=True)
@@ -63,3 +63,13 @@ class ConversationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Conversation
         fields = '__all__'
+
+
+class ChatBlockSerializer(serializers.ModelSerializer):
+    blocker_email = serializers.ReadOnlyField(source='blocker.email')
+    blocked_email = serializers.ReadOnlyField(source='blocked.email')
+
+    class Meta:
+        model = ChatBlock
+        fields = ('id', 'blocker', 'blocked', 'conversation', 'blocker_email', 'blocked_email', 'created_at')
+        read_only_fields = ('id', 'blocker', 'created_at')

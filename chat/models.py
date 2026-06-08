@@ -2,6 +2,7 @@ from django.db import models
 from django.conf import settings
 import uuid
 from encrypted_model_fields.fields import EncryptedTextField
+from accounts.models import User
 
 class Conversation(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -31,3 +32,23 @@ class Message(models.Model):
 
     def __str__(self):
         return f"From {self.sender.email} at {self.created_at}"
+
+
+class ChatBlock(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    blocker = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='blocked_chats'
+    )
+    blocked = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='blocked_by_chats'
+    )
+    conversation = models.ForeignKey(
+        Conversation, on_delete=models.CASCADE, related_name='blocks'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('blocker', 'blocked', 'conversation')
+
+    def __str__(self):
+        return f"{self.blocker.email} blocked {self.blocked.email} in {self.conversation.id}"

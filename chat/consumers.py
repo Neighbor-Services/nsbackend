@@ -2,7 +2,7 @@ import json
 from django.core.serializers.json import DjangoJSONEncoder
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
-from .models import Conversation, Message
+from .models import Conversation, Message, ChatBlock
 from django.contrib.auth import get_user_model
 
 User = get_user_model()
@@ -34,6 +34,11 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
         await self.accept()
         print(f"WS Accepted: Profile {self.user.email} joined conversation {self.conversation_id}")
+
+        # Check and broadcast block status on connection
+        block_status = await self.get_block_status()
+        if block_status:
+            await self.send(text_data=json.dumps(block_status, cls=DjangoJSONEncoder))
 
         # Broadcast online status
         await self.channel_layer.group_send(
@@ -146,6 +151,15 @@ class ChatConsumer(AsyncWebsocketConsumer):
             return
 
         if not self.user.is_authenticated:
+            return
+
+        # Check if the conversation is blocked before saving
+        is_blocked = await self.is_conversation_blocked()
+        if is_blocked:
+            await self.send(text_data=json.dumps({
+                'type': 'error',
+                'message': 'This conversation is blocked. You cannot send messages.'
+            }))
             return
             
         # Save message to database and get full object
@@ -316,6 +330,28 @@ class ChatConsumer(AsyncWebsocketConsumer):
             image=img_file,
             file_name=data.get('filename')
         )
+
+    @database_sync_to_async
+    def is_conversation_blocked(self):
+        """Check if there is an active block in this conversation."""
+        return ChatBlock.objects.filter(
+            conversation=self.conversation
+        ).exists()
+
+    @database_sync_to_async
+    def get_block_status(self):
+        """Return block status data if a block exists, else None."""
+        block = ChatBlock.objects.filter(
+            conversation=self.conversation
+        ).first()
+        if block:
+            return {
+                'type': 'block_status',
+                'blocker_id': str(block.blocker.id),
+                'blocked_id': str(block.blocked.id),
+                'is_blocked': True,
+            }
+        return None
 
 class PresenceConsumer(AsyncWebsocketConsumer):
     async def connect(self):

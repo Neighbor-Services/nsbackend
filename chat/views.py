@@ -1,7 +1,7 @@
 from rest_framework import viewsets, permissions
 from rest_framework.response import Response
-from .models import Conversation, Message
-from .serializers import ConversationSerializer, MessageSerializer
+from .models import Conversation, Message, ChatBlock
+from .serializers import ConversationSerializer, MessageSerializer, ChatBlockSerializer
 
 class ConversationViewSet(viewsets.ModelViewSet):
     queryset = Conversation.objects.all()
@@ -17,8 +17,18 @@ class ConversationViewSet(viewsets.ModelViewSet):
             conversation=OuterRef('pk')
         ).order_by('-created_at').values('id')[:1]
 
+        # Get conversation IDs where the current user is involved in a block
+        # (either as blocker or blocked)
+        blocked_conv_ids = ChatBlock.objects.filter(
+            conversation__participants=self.request.user
+        ).filter(
+            blocker=self.request.user
+        ).values_list('conversation_id', flat=True)
+
         return Conversation.objects.filter(
             participants=self.request.user
+        ).exclude(
+            id__in=blocked_conv_ids
         ).prefetch_related(
             'participants',
             Prefetch(
@@ -59,6 +69,122 @@ class ConversationViewSet(viewsets.ModelViewSet):
         
         return Response({"status": "success"})
 
+    @action(detail=False, methods=['post'], url_path='block_chat')
+    def block_chat(self, request):
+        """Block a user in a specific conversation."""
+        conversation_id = request.data.get('conversation_id')
+        user_id = request.data.get('user_id')
+
+        if not conversation_id or not user_id:
+            return Response(
+                {"error": "conversation_id and user_id are required"}, status=400
+            )
+
+        try:
+            conversation = Conversation.objects.get(
+                id=conversation_id, participants=request.user
+            )
+        except Conversation.DoesNotExist:
+            return Response({"error": "Conversation not found"}, status=404)
+
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        try:
+            blocked_user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            return Response({"error": "User not found"}, status=404)
+
+        # Verify the blocked user is actually a participant
+        if not conversation.participants.filter(id=blocked_user.id).exists():
+            return Response(
+                {"error": "User is not a participant in this conversation"}, status=400
+            )
+
+        block, created = ChatBlock.objects.get_or_create(
+            blocker=request.user,
+            blocked=blocked_user,
+            conversation=conversation,
+        )
+
+        if not created:
+            return Response({"status": "already_blocked"})
+
+        # Send a block_status event via WebSocket so the other user gets notified in real-time
+        try:
+            from channels.layers import get_channel_layer
+            from asgiref.sync import async_to_sync
+            channel_layer = get_channel_layer()
+            room_group_name = f'chat_{conversation.id}'
+            async_to_sync(channel_layer.group_send)(
+                room_group_name,
+                {
+                    'type': 'chat_status',
+                    'status_data': {
+                        'type': 'block_status',
+                        'blocker_id': str(request.user.id),
+                        'blocked_id': str(blocked_user.id),
+                        'is_blocked': True,
+                    }
+                }
+            )
+        except Exception:
+            pass  # Don't fail the block if WS notification fails
+
+        serializer = ChatBlockSerializer(block)
+        return Response({"status": "blocked", "block": serializer.data}, status=201)
+
+    @action(detail=False, methods=['post'], url_path='unblock_chat')
+    def unblock_chat(self, request):
+        """Unblock a user in a specific conversation."""
+        conversation_id = request.data.get('conversation_id')
+        user_id = request.data.get('user_id')
+
+        if not conversation_id or not user_id:
+            return Response(
+                {"error": "conversation_id and user_id are required"}, status=400
+            )
+
+        deleted_count, _ = ChatBlock.objects.filter(
+            blocker=request.user,
+            blocked_id=user_id,
+            conversation_id=conversation_id,
+        ).delete()
+
+        if deleted_count == 0:
+            return Response({"status": "not_blocked"})
+
+        # Send unblock notification via WebSocket
+        try:
+            from channels.layers import get_channel_layer
+            from asgiref.sync import async_to_sync
+            channel_layer = get_channel_layer()
+            room_group_name = f'chat_{conversation_id}'
+            async_to_sync(channel_layer.group_send)(
+                room_group_name,
+                {
+                    'type': 'chat_status',
+                    'status_data': {
+                        'type': 'block_status',
+                        'blocker_id': str(request.user.id),
+                        'blocked_id': str(user_id),
+                        'is_blocked': False,
+                    }
+                }
+            )
+        except Exception:
+            pass
+
+        return Response({"status": "unblocked"})
+
+    @action(detail=False, methods=['get'], url_path='blocked_users')
+    def blocked_users(self, request):
+        """List all users blocked by the current user."""
+        blocks = ChatBlock.objects.filter(
+            blocker=request.user
+        ).select_related('blocked', 'conversation')
+        serializer = ChatBlockSerializer(blocks, many=True)
+        return Response(serializer.data)
+
     def _wrap_conversations(self, data, request):
         from accounts.models import Profile
         from accounts.serializers import ProfileSerializer
@@ -77,6 +203,23 @@ class ConversationViewSet(viewsets.ModelViewSet):
         ).select_related('user')
         profiles_map = {str(p.user_id): p for p in profiles_qs}
 
+        # Bulk-fetch block status for all conversations in one query
+        conv_ids = [conv_data['id'] for conv_data in data]
+        blocked_set = set(
+            ChatBlock.objects.filter(
+                conversation_id__in=conv_ids,
+            ).filter(
+                blocker=request.user
+            ).values_list('conversation_id', flat=True)
+        )
+        # Also check if the current user has been blocked by the other party
+        blocked_by_set = set(
+            ChatBlock.objects.filter(
+                conversation_id__in=conv_ids,
+                blocked=request.user,
+            ).values_list('conversation_id', flat=True)
+        )
+
         wrapped = []
         for conv_data in data:
             conv_id = conv_data['id']
@@ -93,6 +236,10 @@ class ConversationViewSet(viewsets.ModelViewSet):
                 if not msg.get('is_seen', False) and str(msg.get('sender')) != me_id
             )
 
+            # Determine block status
+            is_blocked_by_me = str(conv_id) in {str(cid) for cid in blocked_set}
+            is_blocked_by_other = str(conv_id) in {str(cid) for cid in blocked_by_set}
+
             chat_data = {
                 "id": conv_id,
                 "chat_room": conv_id,
@@ -102,6 +249,8 @@ class ConversationViewSet(viewsets.ModelViewSet):
                 "created_at": conv_data.get('created_at'),
                 "updated_at": conv_data.get('updated_at'),
                 "last_message": messages_list[-1] if messages_list else None,
+                "is_blocked": is_blocked_by_me or is_blocked_by_other,
+                "is_blocked_by_me": is_blocked_by_me,
             }
 
             wrapped.append({
@@ -242,4 +391,3 @@ class MessageViewSet(viewsets.ModelViewSet):
                 "receiver": serialized_receiver,
             })
         return wrapped
-
