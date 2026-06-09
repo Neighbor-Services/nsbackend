@@ -75,16 +75,30 @@ class ConversationViewSet(viewsets.ModelViewSet):
         conversation_id = request.data.get('conversation_id')
         user_id = request.data.get('user_id')
 
-        if not conversation_id or not user_id:
+        if not user_id:
             return Response(
-                {"error": "conversation_id and user_id are required"}, status=400
+                {"error": "user_id is required"}, status=400
             )
 
-        try:
-            conversation = Conversation.objects.get(
-                id=conversation_id, participants=request.user
-            )
-        except Conversation.DoesNotExist:
+        conversation = None
+        if conversation_id:
+            try:
+                import uuid
+                val = uuid.UUID(str(conversation_id), version=4)
+                conversation = Conversation.objects.filter(id=val, participants=request.user).first()
+            except (ValueError, TypeError):
+                pass
+
+        if not conversation:
+            from django.contrib.auth import get_user_model
+            User = get_user_model()
+            try:
+                target_user = User.objects.get(id=user_id)
+                conversation = Conversation.objects.filter(participants=request.user).filter(participants=target_user).first()
+            except (User.DoesNotExist, ValueError):
+                pass
+
+        if not conversation:
             return Response({"error": "Conversation not found"}, status=404)
 
         from django.contrib.auth import get_user_model
@@ -139,15 +153,36 @@ class ConversationViewSet(viewsets.ModelViewSet):
         conversation_id = request.data.get('conversation_id')
         user_id = request.data.get('user_id')
 
-        if not conversation_id or not user_id:
+        if not user_id:
             return Response(
-                {"error": "conversation_id and user_id are required"}, status=400
+                {"error": "user_id is required"}, status=400
             )
+
+        conversation = None
+        if conversation_id:
+            try:
+                import uuid
+                val = uuid.UUID(str(conversation_id), version=4)
+                conversation = Conversation.objects.filter(id=val, participants=request.user).first()
+            except (ValueError, TypeError):
+                pass
+
+        if not conversation:
+            from django.contrib.auth import get_user_model
+            User = get_user_model()
+            try:
+                target_user = User.objects.get(id=user_id)
+                conversation = Conversation.objects.filter(participants=request.user).filter(participants=target_user).first()
+            except (User.DoesNotExist, ValueError):
+                pass
+
+        if not conversation:
+            return Response({"error": "Conversation not found"}, status=404)
 
         deleted_count, _ = ChatBlock.objects.filter(
             blocker=request.user,
             blocked_id=user_id,
-            conversation_id=conversation_id,
+            conversation_id=conversation.id,
         ).delete()
 
         if deleted_count == 0:
@@ -158,7 +193,7 @@ class ConversationViewSet(viewsets.ModelViewSet):
             from channels.layers import get_channel_layer
             from asgiref.sync import async_to_sync
             channel_layer = get_channel_layer()
-            room_group_name = f'chat_{conversation_id}'
+            room_group_name = f'chat_{conversation.id}'
             async_to_sync(channel_layer.group_send)(
                 room_group_name,
                 {
