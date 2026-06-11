@@ -376,10 +376,7 @@ class ProfileViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'])
     def me(self, request):
-        cache_key = f"profile_me_{request.user.id}"
-        cached_data = cache.get(cache_key)
-        if cached_data:
-            return Response({"profile": cached_data})
+       
 
         profile, created = Profile.objects.get_or_create(user=request.user)
         
@@ -388,7 +385,7 @@ class ProfileViewSet(viewsets.ModelViewSet):
         
         serializer = self.get_serializer(profile)
         data = serializer.data
-        cache.set(cache_key, data, 60 * 15) # 15 mins
+        
         return Response({"profile": data})
 
     @action(detail=False, methods=['patch', 'put'])
