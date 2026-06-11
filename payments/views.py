@@ -752,6 +752,12 @@ class StripeWebhookView(APIView):
                     subscription = Subscription.objects.get(stripe_subscription_id=subscription_id)
                     subscription.is_active = False
                     subscription.save()
+                    
+                    # Clear catalog services from the user's profile
+                    profile = Profile.objects.filter(user=subscription.user).first()
+                    if profile:
+                        profile.catalog_services.clear()
+                    
                     print(f"Deactivated subscription {subscription.id} due to deletion.")
                 except Subscription.DoesNotExist:
                     print(f"Subscription not found for ID: {subscription_id}")
