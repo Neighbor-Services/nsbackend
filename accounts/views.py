@@ -14,7 +14,7 @@ from django.utils import timezone
 from datetime import timedelta
 from django.core.cache import cache
 
-from backend.payments.models import Subscription
+from payments.models import Subscription
 from .models import (
     User, Profile, About, PortfolioItem, ServicePackage,
     LegalDocument

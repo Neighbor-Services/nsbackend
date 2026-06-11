@@ -2,8 +2,8 @@ from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from backend.accounts.models import Profile
-from backend.notifications.utils import send_notification
+from accounts.models import Profile
+from notifications.utils import send_notification
 from .models import Customer, Subscription, SubscriptionPlan, Wallet, PayoutRequest, WalletTransaction
 from .serializers import (CustomerSerializer, SubscriptionSerializer, SubscriptionPlanSerializer,
                           WalletSerializer, WalletTransactionSerializer, PayoutRequestSerializer)
