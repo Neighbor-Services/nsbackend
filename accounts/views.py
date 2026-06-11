@@ -13,6 +13,8 @@ import random
 from django.utils import timezone
 from datetime import timedelta
 from django.core.cache import cache
+
+from backend.payments.models import Subscription
 from .models import (
     User, Profile, About, PortfolioItem, ServicePackage,
     LegalDocument
@@ -363,7 +365,10 @@ class ProfileViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(
                 user_type='PROVIDER'
             ).order_by('-total_reviews')
-
+            for profile in queryset:
+                subscription = Subscription.objects.filter(user=profile.user).first()
+                if not subscription.is_active:
+                    queryset.exclude(user=profile.user)
         return queryset
 
     def get_object(self):

@@ -11,6 +11,7 @@ import math
 import logging
 from audit.utils import log_audit_action
 from audit.models import AuditLog
+from accounts.models import Profile
 
 logger = logging.getLogger(__name__)
 
@@ -28,17 +29,20 @@ def send_new_proposal_email_task(self, proposal_id):
         ).get(id=proposal_id)
         
         service_request = proposal.request
-        provider = proposal.provider
-        seeker = service_request.user
+        provider_user = proposal.provider
+        seeker_user = service_request.user
+        
+        provider = Profile.objects.get(user=provider_user)
+        seeker = Profile.objects.get(user=seeker_user)
         
         # Get names
         try:
-           provider_name = provider.profile.first_name if hasattr(provider, 'profile') else provider.email
+           provider_name = provider_user.profile.first_name if hasattr(provider, 'profile') else provider.email
         except:
             provider_name = provider.email
             
         try:
-            seeker_name = seeker.profile.first_name if hasattr(seeker, 'profile') else seeker.email
+            seeker_name = seeker_user.profile.first_name if hasattr(seeker, 'profile') else seeker.email
         except:
             seeker_name = seeker.email
 
@@ -84,19 +88,20 @@ def send_proposal_approval_email_task(self, proposal_id):
         ).get(id=proposal_id)
         
         service_request = proposal.request
-        provider = proposal.provider
-        seeker = service_request.user
-        
+        provider_user = proposal.provider
+        seeker_user = service_request.user
+        provider = Profile.objects.get(user=provider_user)
+        seeker = Profile.objects.get(user=seeker_user)
         # Get names
         try:
-           provider_name = provider.profile.first_name if hasattr(provider, 'profile') else provider.email
+           provider_name = provider_user.profile.first_name if hasattr(provider, 'profile') else provider.email
         except:
-            provider_name = provider.email
+            provider_name = provider.first_name
             
         try:
-            seeker_name = seeker.profile.first_name if hasattr(seeker, 'profile') else seeker.email
+            seeker_name = seeker_user.profile.first_name if hasattr(seeker, 'profile') else seeker.email
         except:
-            seeker_name = seeker.email
+            seeker_name = seeker.first_name
             
         subject = f'🎉 Proposal Accepted: {service_request.title}'
         
@@ -145,19 +150,22 @@ def send_direct_request_email_task(self, request_id):
         if not service_request.target_provider:
             return f"Service Request {request_id} has no target provider"
             
-        provider = service_request.target_provider
-        seeker = service_request.user
+        provider_user = service_request.target_provider
+        seeker_user = service_request.user
+        
+        provider = Profile.objects.get(user=provider_user)
+        seeker = Profile.objects.get(user=seeker_user)
         
         # Get names
         try:
-           provider_name = provider.profile.first_name if hasattr(provider, 'profile') else provider.email
+           provider_name = provider_user.profile.first_name if hasattr(provider, 'profile') else provider.email
         except:
-            provider_name = provider.email
+            provider_name = provider.first_name
             
         try:
-            seeker_name = seeker.profile.first_name if hasattr(seeker, 'profile') else seeker.email
+            seeker_name = seeker_user.profile.first_name if hasattr(seeker, 'profile') else seeker.email
         except:
-            seeker_name = seeker.email
+            seeker_name = seeker.first_name
             
         subject = f'📬 New Direct Service Request: {service_request.title}'
         

@@ -1,6 +1,9 @@
 from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
+
+from backend.accounts.models import Profile
+from backend.notifications.utils import send_notification
 from .models import Customer, Subscription, SubscriptionPlan, Wallet, PayoutRequest, WalletTransaction
 from .serializers import (CustomerSerializer, SubscriptionSerializer, SubscriptionPlanSerializer,
                           WalletSerializer, WalletTransactionSerializer, PayoutRequestSerializer)
@@ -426,6 +429,13 @@ class SubscriptionViewSet(viewsets.ModelViewSet):
                     # Fallback for older Stripe API versions if any
                     response_data['client_secret'] = stripe_sub.latest_invoice.payment_intent.client_secret
                   # Also helpful: publishableKey? frontend usually has it.
+            send_notification(
+                user=user,
+                title="Subscription Created",
+                message="You made a subscription plan",
+                notification_type="subscription",
+                data={"ip": request.META.get('REMOTE_ADDR')}
+            )
             
             log_audit_action(
                 user=request.user,
@@ -497,7 +507,28 @@ class SubscriptionViewSet(viewsets.ModelViewSet):
     def user_delete(self, request):
         subscription = Subscription.objects.filter(user=request.user).first()
         if subscription:
+            user = request.user
             subscription.delete()
+            
+            profile = Profile.objects.filter(user=user).first()
+            profile.catalog_services.set([])
+            profile.save()
+            
+            send_notification(
+                user=user,
+                title="Subscription Canceled",
+                message="You canceled youR subscription plan",
+                notification_type="subscription",
+                data={"ip": request.META.get('REMOTE_ADDR')}
+            )
+            log_audit_action(
+                        user=request.user,
+                        action='CANCEL SUBSCRIPTION',
+                        resource_type='Subscription',
+                        resource_id=request.user.id,
+                        details={'method': 'credentials'},
+                        request=request
+                    )
             return Response({"message": "Subscription deleted"}, status=status.HTTP_200_OK)
         return Response({"message": "No subscription found"}, status=status.HTTP_404_NOT_FOUND)
 

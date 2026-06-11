@@ -4,13 +4,15 @@ from django.conf import settings
 from django.utils import timezone
 from datetime import timedelta
 from .utils import generate_ics_content
+from accounts.models import Profile
 
 def send_appointment_reminder_email(appointment, reminder_type):
     """
     Sends an appointment reminder email to the seeker and provider.
     """
     subject = f'Reminder: {appointment.title or "Service Appointment"} ({reminder_type})'
-    
+    provider = Profile.objects.get(user=appointment.provider)
+    seeker = Profile.objects.get(user=appointment.seeker)
     # Format time for display
     start_time = appointment.appointment_date
     if not start_time:
@@ -26,8 +28,8 @@ Appointment Details:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Title: {appointment.title or "Service Appointment"}
 Scheduled Time: {time_str}
-Provider: {appointment.provider.email}
-Seeker: {appointment.seeker.email}
+Provider: {provider.first_name}
+Seeker: {seeker.first_name}
 
 Please ensure you are ready and available at the scheduled time.
 
