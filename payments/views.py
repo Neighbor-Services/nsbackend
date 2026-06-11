@@ -512,6 +512,7 @@ class SubscriptionViewSet(viewsets.ModelViewSet):
             
             profile = Profile.objects.filter(user=user).first()
             profile.catalog_services.clear()
+            profile.service = ""
             profile.save()
             
             send_notification(
@@ -757,6 +758,9 @@ class StripeWebhookView(APIView):
                     profile = Profile.objects.filter(user=subscription.user).first()
                     if profile:
                         profile.catalog_services.clear()
+                        profile.service = ""
+                        profile.subscription_tier = 'NONE'
+                        profile.save()
                     
                     print(f"Deactivated subscription {subscription.id} due to deletion.")
                 except Subscription.DoesNotExist:
