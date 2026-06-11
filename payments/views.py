@@ -430,7 +430,7 @@ class SubscriptionViewSet(viewsets.ModelViewSet):
                     response_data['client_secret'] = stripe_sub.latest_invoice.payment_intent.client_secret
                   # Also helpful: publishableKey? frontend usually has it.
             send_notification(
-                user=user,
+                user=request.user,
                 title="Subscription Created",
                 message="You made a subscription plan",
                 notification_type="subscription",
