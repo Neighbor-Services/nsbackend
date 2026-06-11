@@ -511,7 +511,7 @@ class SubscriptionViewSet(viewsets.ModelViewSet):
             subscription.delete()
             
             profile = Profile.objects.filter(user=user).first()
-            profile.catalog_services.set([])
+            profile.catalog_services.clear()
             profile.save()
             
             send_notification(
