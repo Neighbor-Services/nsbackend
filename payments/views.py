@@ -433,14 +433,14 @@ class SubscriptionViewSet(viewsets.ModelViewSet):
                 user=request.user,
                 title="Subscription Created",
                 message="You made a subscription plan",
-                notification_type="subscription",
+                notification_type="SYSTEM",
                 data={"ip": request.META.get('REMOTE_ADDR')}
             )
             
             log_audit_action(
                 user=request.user,
                 action='CREATE_SUBSCRIPTION',
-                resource_type='Subscription',
+                resource_type='subscription',
                 resource_id=subscription.id,
                 details={'plan_id': str(plan.id), 'stripe_sub_id': stripe_sub.id},
                 request=request
@@ -518,8 +518,8 @@ class SubscriptionViewSet(viewsets.ModelViewSet):
             send_notification(
                 user=user,
                 title="Subscription Canceled",
-                message="You canceled youR subscription plan",
-                notification_type="subscription",
+                message="You canceled your subscription plan",
+                notification_type="SYSTEM",
                 data={"ip": request.META.get('REMOTE_ADDR')}
             )
             log_audit_action(
