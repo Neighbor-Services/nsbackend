@@ -367,8 +367,9 @@ class ProfileViewSet(viewsets.ModelViewSet):
             ).order_by('-total_reviews')
             for profile in queryset:
                 subscription = Subscription.objects.filter(user=profile.user).first()
-                if not subscription.is_active:
-                    queryset.exclude(user=profile.user)
+                if subscription is not None:
+                    if not subscription.is_active:
+                        queryset.exclude(user=profile.user)
         return queryset
 
     def get_object(self):
