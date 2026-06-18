@@ -404,6 +404,9 @@ class SubscriptionViewSet(viewsets.ModelViewSet):
                  subscription.is_active = False # Safest.
                  
             subscription.save()
+            profile = Profile.objects.filter(user=request.user).first()
+            profile.subscription_interval = plan.interval
+            profile.save()
             print("DEBUG: Local Subscription Saved")
             
             # Return necessary data for frontend to Complete Payment if needed

@@ -109,7 +109,7 @@ class SimpleProfileSerializer(serializers.ModelSerializer):
             'catalog_service_name', 'catalog_service_names', 'catalog_service_ids', 'service', 
             'average_rating', 'total_reviews', 'is_identity_verified', 'preferred_payment_mode', 
             'subscription_tier', 'streak_count', 'xp', 'level', 'neighbor_score',
-            'max_catalog_services'
+            'max_catalog_services', 'subscription_interval'
         ]
         read_only_fields = ('average_rating', 'total_reviews', 'is_identity_verified')
 
