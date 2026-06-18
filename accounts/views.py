@@ -397,10 +397,6 @@ class ProfileViewSet(viewsets.ModelViewSet):
         if serializer.is_valid():
             serializer.save()
             
-            # Invalidate Caches
-            cache.delete(f"profile_me_{request.user.id}")
-            cache.delete("profile_popular")
-            invalidate_cache_pattern("ai_match_*")
             
             log_audit_action(
                 user=request.user,

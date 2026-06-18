@@ -207,8 +207,6 @@ class ProfileSerializer(serializers.ModelSerializer):
             # 1. Void previous subscription
             from payments.models import Subscription
             Subscription.objects.filter(user=instance.user).delete()
-            # 2. Clear service catalogs (M2M)
-            instance.catalog_services.clear()
             # 3. Set subscription tier to NONE
             instance.subscription_tier = 'NONE'
 
