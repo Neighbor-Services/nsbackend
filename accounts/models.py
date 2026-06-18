@@ -62,6 +62,7 @@ class Profile(models.Model):
         ('ON_SITE', 'On-Site Payment'),
     )
     INTERVAL_CHOICES = (
+        ("none", "None"),
         ('month', 'Monthly'),
         ('year', 'Yearly'),
     )
@@ -69,7 +70,7 @@ class Profile(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
     subscription_tier = models.CharField(max_length=10, choices=TIERS, default='NONE')
-    subscription_interval = models.CharField(max_length=10, choices=INTERVAL_CHOICES, default='month')
+    subscription_interval = models.CharField(max_length=10, choices=INTERVAL_CHOICES, default='none')
     preferred_payment_mode = models.CharField(max_length=10, choices=PAYMENT_MODES, default='ON_SITE')
     first_name = models.CharField(max_length=100, blank=True, null=True)
     last_name = models.CharField(max_length=100, blank=True, null=True)

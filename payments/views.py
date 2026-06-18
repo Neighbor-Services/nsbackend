@@ -516,6 +516,7 @@ class SubscriptionViewSet(viewsets.ModelViewSet):
             profile = Profile.objects.filter(user=user).first()
             profile.catalog_services.clear()
             profile.service = ""
+            profile.subscription_interval = "none"
             profile.save()
             
             send_notification(

@@ -9,8 +9,10 @@ def update_profile_tier_on_save(sender, instance, **kwargs):
         profile = instance.user.profile
         if instance.is_active and instance.plan:
             profile.subscription_tier = instance.plan.tier
+            profile.subscription_interval = instance.plan.interval
         else:
             profile.subscription_tier = 'NONE'
+            profile.subscription_interval = 'none'
             profile.catalog_services.clear()
             profile.service = ""
             
@@ -24,6 +26,7 @@ def update_profile_tier_on_delete(sender, instance, **kwargs):
     try:
         profile = instance.user.profile
         profile.subscription_tier = 'NONE'
+        profile.subscription_interval = 'none'
         profile.catalog_services.clear()
         profile.save()
     except Exception as e:
