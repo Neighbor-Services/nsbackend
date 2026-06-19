@@ -48,6 +48,9 @@ class ProfileAdmin(ModelAdmin):
         ('Service Info', {
             'fields': ('catalog_services', 'service', 'average_rating', 'total_reviews')
         }),
+        ('Subscription Info', {
+            'fields': ('subscription_tier', 'subscription_interval')
+        }),
         ('Contact & Location', {
             'fields': (('country_code', 'phone'), 'address', 'city', 'state', 'country', 'zip_code', ('latitude', 'longitude'))
         }),
