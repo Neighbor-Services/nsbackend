@@ -10,9 +10,6 @@ def update_profile_tier_on_save(sender, instance, **kwargs):
         if instance.is_active and instance.plan:
             profile.subscription_tier = instance.plan.tier
             profile.subscription_interval = instance.plan.interval
-        else:
-            profile.subscription_tier = 'NONE'
-            profile.subscription_interval = 'none'
             
         profile.save()
     except Exception as e:
