@@ -13,8 +13,6 @@ def update_profile_tier_on_save(sender, instance, **kwargs):
         else:
             profile.subscription_tier = 'NONE'
             profile.subscription_interval = 'none'
-            profile.catalog_services.clear()
-            profile.service = ""
             
         profile.save()
     except Exception as e:
