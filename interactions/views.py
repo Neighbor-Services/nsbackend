@@ -56,7 +56,7 @@ class FavoriteViewSet(viewsets.ModelViewSet):
             user=favorite.favorite_user,
             sender=request.user,
             title="Potential Customer",
-            message=f"Someone just added you to their favorites.",
+            message="Someone just added you to their favorites.",
             notification_type="SYSTEM", # Could be 'FAVORITE' if added later
             data={"favorite_id": str(favorite.id)}
         )
@@ -173,7 +173,7 @@ class AppointmentViewSet(viewsets.ModelViewSet):
                 user=appointment.seeker,
                 sender=appointment.provider,
                 title="Provider Arrived!",
-                message=f"The provider has successfully verified your secret code. Service is now in progress.",
+                message="The provider has successfully verified your secret code. Service is now in progress.",
                 notification_type="APPOINTMENT",
                 data={"appointment_id": str(appointment.id)}
             )
@@ -474,7 +474,7 @@ class DisputeViewSet(viewsets.ModelViewSet):
             user=dispute.defendant,
             sender=self.request.user,
             title="Dispute Raised",
-            message=f"A dispute has been raised against you for an appointment.",
+            message="A dispute has been raised against you for an appointment.",
             notification_type="SYSTEM",
             data={"dispute_id": str(dispute.id)}
         )

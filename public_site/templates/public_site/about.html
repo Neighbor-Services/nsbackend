@@ -4,111 +4,90 @@
 {% block title %}About Us | {{ site_settings.site_name|default:"Neighbor Service" }}{% endblock %}
 
 {% block content %}
-    <!-- Hero Section -->
-    <section class="hero" style="background-color: var(--secondary); color: var(--white); padding: 140px 0 100px;">
-        <div class="container" style="text-align: center;">
-            <h1 style="color: var(--white); margin-bottom: 1.5rem;">{{ about.title|default:"Empowering Neighborhoods" }}</h1>
-            <p style="font-size: 1.25rem; color: #94a3b8; max-width: 800px; margin: 0 auto;">
-                We are building a solid foundation for community trust. Neighbor Service is more than just an app; it's a movement to reconnect the people living right next door.
-            </p>
-        </div>
-    </section>
+<!-- ======================= HERO ======================= -->
+<section class="page-hero">
+  <div class="wrap rv">
+    <p class="eyebrow">About Us</p>
+    <h1>{{ about.title|default:"Empowering Neighborhoods" }}</h1>
+    <p class="lede">We are building a solid foundation for community trust. Neighbor Service is more than just an app; it's a movement to reconnect the people living right next door.</p>
+  </div>
+</section>
 
-    <!-- Mission & Vision -->
-    <section class="features" style="background-color: var(--white);">
-        <div class="container">
-            <div class="hero-grid" style="gap: 6rem; align-items: flex-start;">
-                <div>
-                    <h2 style="font-size: 2.5rem; color: var(--secondary); margin-bottom: 2rem;">{{ about.story_headline|default:"Our Story" }}</h2>
-                    {% if about %}
-                        <p style="margin-bottom: 1.5rem; font-size: 1.1rem; line-height: 1.8;">
-                            {{ about.story_text_1 }}
-                        </p>
-                        {% if about.story_text_2 %}
-                            <p style="margin-bottom: 1.5rem; font-size: 1.1rem; line-height: 1.8;">
-                                {{ about.story_text_2 }}
-                            </p>
-                        {% endif %}
-                    {% else %}
-                        <p style="margin-bottom: 1.5rem; font-size: 1.1rem; line-height: 1.8;">
-                            Neighbor Service was born out of a simple need: reliable help from the people we should know best. In an age of digital isolation, we saw an opportunity to use technology to bring communities closer together.
-                        </p>
-                        <p style="margin-bottom: 1.5rem; font-size: 1.1rem; line-height: 1.8;">
-                            Since our launch in 2025, we have helped thousands of neighbors find verified assistance, from emergency repairs to academic tutoring, while fostering a culture of mutual support and safety.
-                        </p>
-                    {% endif %}
-                    
-                    <div style="margin-top: 3rem; display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
-                        <div style="background: var(--surface); padding: 2rem; border-radius: 12px; border: 2px solid var(--border);">
-                            <h3 style="color: var(--primary); font-size: 2.5rem;">{{ about.year_founded|default:"2025" }}</h3>
-                            <p style="font-weight: 700; color: var(--secondary);">Founded</p>
-                        </div>
-                        <div style="background: var(--surface); padding: 2rem; border-radius: 12px; border: 2px solid var(--border);">
-                            <h3 style="color: var(--primary); font-size: 2.5rem;">{{ about.cities_covered|default:"50+" }}</h3>
-                            <p style="font-weight: 700; color: var(--secondary);">Cities Covered</p>
-                        </div>
-                    </div>
-                </div>
-                <div style="position: relative;">
-                    <div style="background-color: var(--primary); padding: 3rem; border-radius: 20px; color: var(--white); box-shadow: 0 20px 40px -10px rgba(249, 115, 22, 0.4);">
-                        <h3 style="font-size: 2rem; margin-bottom: 1.5rem;">Our Mission</h3>
-                        <p style="font-size: 1.15rem; line-height: 1.7; margin-bottom: 2rem; opacity: 0.9;">
-                            {{ about.mission_text|default:"To create the world's most trusted neighborhood network, where every resident can find secure, verified, and professional help within minutes." }}
-                        </p>
-                        <h3 style="font-size: 2rem; margin-bottom: 1.5rem;">Our Vision</h3>
-                        <p style="font-size: 1.15rem; line-height: 1.7; opacity: 0.9;">
-                            {{ about.vision_text|default:"A world where geographic proximity is matched by social connection, and every neighborhood is a self-sustaining ecosystem of help and opportunity." }}
-                        </p>
-                    </div>
-                </div>
-            </div>
+<!-- ======================= MISSION ======================= -->
+<section style="padding-top:40px">
+  <div class="wrap split">
+    <div class="rv">
+      <h2>{{ about.story_headline|default:"Our Story" }}</h2>
+      {% if about %}
+        <p style="margin-bottom:20px; font-size:16.5px;">{{ about.story_text_1 }}</p>
+        {% if about.story_text_2 %}
+            <p style="margin-bottom:20px; font-size:16.5px;">{{ about.story_text_2 }}</p>
+        {% endif %}
+      {% else %}
+        <p style="margin-bottom:20px; font-size:16.5px;">Neighbor Service was born out of a simple need: reliable help from the people we should know best. In an age of digital isolation, we saw an opportunity to use technology to bring communities closer together.</p>
+        <p style="margin-bottom:20px; font-size:16.5px;">Since our launch in 2025, we have helped thousands of neighbors find verified assistance, from emergency repairs to academic tutoring, while fostering a culture of mutual support and safety.</p>
+      {% endif %}
+      
+      <div style="display:flex; gap:30px; margin-top:40px;">
+        <div>
+            <b style="font-family:var(--syne); font-size:32px; color:var(--violet);">{{ about.year_founded|default:"2025" }}</b>
+            <span style="display:block; font-family:var(--futura); font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--sage);">Founded</span>
         </div>
-    </section>
+        <div>
+            <b style="font-family:var(--syne); font-size:32px; color:var(--violet);">{{ about.cities_covered|default:"50+" }}</b>
+            <span style="display:block; font-family:var(--futura); font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--sage);">Cities Covered</span>
+        </div>
+      </div>
+    </div>
+    
+    <div class="rv" style="background:linear-gradient(160deg,#221455 0%,#3D0BA8 55%,#5B16EE 130%); border-radius:26px; padding:46px 38px; color:#fff;">
+      <h3 style="color:#fff; margin-bottom:15px; font-size:26px;">Our Mission</h3>
+      <p style="color:#CDC2F2; font-size:16px; margin-bottom:30px;">{{ about.mission_text|default:"To create the world's most trusted neighborhood network, where every resident can find secure, verified, and professional help within minutes." }}</p>
+      
+      <h3 style="color:#fff; margin-bottom:15px; font-size:26px;">Our Vision</h3>
+      <p style="color:#CDC2F2; font-size:16px;">{{ about.vision_text|default:"A world where geographic proximity is matched by social connection, and every neighborhood is a self-sustaining ecosystem of help and opportunity." }}</p>
+    </div>
+  </div>
+</section>
 
-    <!-- Core Values -->
-    <section class="features" style="background-color: var(--surface);">
-        <div class="container">
-            <div class="section-header">
-                <h2>Our Core Values</h2>
-                <p>The solid principles that guide every decision we make.</p>
-            </div>
-            <div class="features-grid">
-                <div class="feature-card" style="background: var(--white);">
-                    <div class="feature-icon" style="background: var(--secondary);">
-                        <span class="material-icons-round">verified</span>
-                    </div>
-                    <h3>Unwavering Trust</h3>
-                    <p>We prioritize safety above all else. Every provider is strictly verified to ensure the highest standards of security.</p>
-                </div>
-                <div class="feature-card" style="background: var(--white);">
-                    <div class="feature-icon" style="background: var(--secondary);">
-                        <span class="material-icons-round">groups</span>
-                    </div>
-                    <h3>Community Focus</h3>
-                    <p>We believe in the power of local. Our platform is designed to support neighborhood talent and keep value within the community.</p>
-                </div>
-                <div class="feature-card" style="background: var(--white);">
-                    <div class="feature-icon" style="background: var(--secondary);">
-                        <span class="material-icons-round">security</span>
-                    </div>
-                    <h3>Solid Security</h3>
-                    <p>From data protection to escrow payments, we build every feature with a "security-first" mindset.</p>
-                </div>
-            </div>
-        </div>
-    </section>
+<!-- ======================= VALUES ======================= -->
+<section>
+  <div class="wrap">
+    <div class="head rv">
+      <p class="eyebrow">Our Core Values</p>
+      <h2>The principles that guide us.</h2>
+    </div>
+    <div class="tiles rv">
+        <article class="tile">
+            <div class="ic">🛡️</div>
+            <h3>Unwavering Trust</h3>
+            <p>We prioritize safety above all else. Every provider is strictly verified to ensure the highest standards of security.</p>
+        </article>
+        <article class="tile" style="transition-delay:.08s">
+            <div class="ic">🤝</div>
+            <h3>Community Focus</h3>
+            <p>We believe in the power of local. Our platform is designed to support neighborhood talent and keep value within the community.</p>
+        </article>
+        <article class="tile" style="transition-delay:.16s">
+            <div class="ic">🔒</div>
+            <h3>Solid Security</h3>
+            <p>From data protection to scheduling, we build every feature with a "security-first" mindset.</p>
+        </article>
+    </div>
+  </div>
+</section>
 
-    <!-- Join CTA -->
-    <section class="testimonials" style="background-color: var(--secondary);">
-        <div class="container" style="text-align: center;">
-            <h2 style="font-size: 3rem; margin-bottom: 2rem; color: var(--white);">Ready to join the movement?</h2>
-            <p style="font-size: 1.25rem; margin-bottom: 2.5rem; color: #94a3b8; max-width: 700px; margin-left: auto; margin-right: auto;">
-                Be part of a growing network of neighbors helping neighbors. Download the app today and start building a stronger community.
-            </p>
-            <div style="display: flex; gap: 1.5rem; justify-content: center;">
-                <a href="#" class="btn btn-primary" style="padding: 1rem 2.5rem;">GET STARTED</a>
-                <a href="{% url 'public_site:contact' %}" class="btn" style="border: 2px solid var(--white); color: var(--white); padding: 1rem 2.5rem;">TALK TO US</a>
-            </div>
-        </div>
-    </section>
+<!-- ======================= CTA ======================= -->
+<section class="prov" style="padding-top:0;">
+  <div class="wrap">
+    <div class="prov-card rv">
+      <h2>Ready to join the movement?</h2>
+      <p class="lede">Be part of a growing network of neighbors helping neighbors. Download the app today and start building a stronger community.</p>
+      <div style="display:flex; gap:16px; justify-content:center; flex-wrap:wrap; position:relative; z-index:1;">
+        <a class="btn btn-amber" href="{% url 'public_site:index' %}#download">GET STARTED</a>
+        <a class="btn btn-outline-w" href="{% url 'public_site:contact' %}">TALK TO US</a>
+      </div>
+    </div>
+  </div>
+</section>
 {% endblock %}

@@ -4,16 +4,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}{{ site_settings.site_name|default:"Neighbor Service" }} | Trusted Community Solutions{% endblock %}</title>
-    <meta name="description" content="{% block meta_description %}Connect with trusted neighbors for services, help, and community-driven solutions.{% endblock %}">
+    <title>{% block title %}{{ site_settings.site_name|default:"Neighbor Service" }} | Background-Checked Local Help{% endblock %}</title>
+    <meta name="description" content="{% block meta_description %}Find trusted local help — every provider background-checked before they appear, every job verified with a Security Code.{% endblock %}">
     
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Jost:wght@400;500;600&display=swap" rel="stylesheet">
     
-    <!-- Icons -->
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
     <link rel="icon" type="image/png" href="{% static 'public_site/images/logo.png' %}">
     
     <!-- Custom Static CSS -->
@@ -22,20 +20,22 @@
     {% block extra_css %}{% endblock %}
 </head>
 <body>
-    <nav>
-        <div class="container nav-content">
-            <a href="{% url 'public_site:index' %}" class="logo">
-                <img src="{% static 'public_site/images/logo.png' %}" alt="Neighbor Service" style="height: 40px; margin-right: 10px;">
-                {{ site_settings.site_name|default:"NeighborService" }}
+    <nav id="nav">
+        <div class="wrap nav-in">
+            <a class="logo" href="{% url 'public_site:index' %}" aria-label="{{ site_settings.site_name|default:'Neighbor Service' }}">
+                <img class="mark" src="{% static 'public_site/images/logo.png' %}" alt="">
+                <span class="logo-word"><b>Neighbor</b><i>Service</i></span>
             </a>
             <div class="nav-links" id="navLinks">
                 <a href="{% url 'public_site:services' %}">Services</a>
                 <a href="{% url 'public_site:about' %}">About Us</a>
                 <a href="{% url 'public_site:contact' %}">Contact</a>
             </div>
-            <button class="nav-toggle" id="navToggle">
-                <span class="material-icons-round">menu</span>
-            </button>
+            <div class="nav-cta">
+                <button class="nav-toggle" id="navToggle">☰</button>
+                <a class="btn btn-ghost" href="{% url 'public_site:index' %}#providers">Become a Provider</a>
+                <a class="btn btn-primary" href="{% url 'public_site:index' %}#download">Get the App</a>
+            </div>
         </div>
     </nav>
 
@@ -44,85 +44,60 @@
     </main>
 
     <footer>
-        <div class="footer-top">
-            <div class="container">
-                <div class="footer-grid">
-                    <div class="footer-brand">
-                        <a href="{% url 'public_site:index' %}" class="logo">
-                            <img src="{% static 'public_site/images/logo.png' %}" alt="Neighbor Service" style="height: 40px; margin-right: 10px;">
-                            {{ site_settings.site_name|default:"NeighborService" }}
-                        </a>
-                        <p>Neighbor Service is a solid-foundation platform built to reconnect local communities. We empower neighbors to help each other through verified connections and secure digital collaboration.</p>
-                        <div class="footer-contact-list">
-                            <div class="footer-contact-item">
-                                <span class="material-icons-round">email</span>
-                                {{ site_settings.contact_email|default:"hello@neighborservice.com" }}
-                            </div>
-                            <div class="footer-contact-item">
-                                <span class="material-icons-round">phone</span>
-                                {{ site_settings.contact_phone|default:"+1 (555) 000-0000" }}
-                            </div>
-                        </div>
-                        <div class="social-links">
-                            {% if site_settings.facebook_url %}<a href="{{ site_settings.facebook_url }}" class="social-icon"><span class="material-icons-round">facebook</span></a>{% endif %}
-                            {% if site_settings.twitter_url %}<a href="{{ site_settings.twitter_url }}" class="social-icon"><span class="material-icons-round">X</span></a>{% endif %}
-                            {% if site_settings.instagram_url %}<a href="{{ site_settings.instagram_url }}" class="social-icon"><span class="material-icons-round">instagram</span></a>{% endif %}
-                            {% if site_settings.linkedin_url %}<a href="{{ site_settings.linkedin_url }}" class="social-icon"><span class="material-icons-round">linkedin</span></a>{% endif %}
-                        </div>
-                    </div>
-                    <div class="footer-links">
-                        <h4>Platform</h4>
-                        <ul>
-                            <li><a href="{% url 'public_site:services' %}">Service Catalog</a></li>
-                            <li><a href="{% url 'public_site:index' %}#services">Marketplace</a></li>
-                            <li><a href="{% url 'public_site:index' %}#features">App Features</a></li>
-                            <li><a href="#">Verification</a></li>
-                        </ul>
-                    </div>
-                    <div class="footer-links">
-                        <h4>Company</h4>
-                        <ul>
-                            <li><a href="{% url 'public_site:about' %}">Our Story</a></li>
-                            <li><a href="{% url 'public_site:contact' %}">Support</a></li>
-                            <li><a href="{% url 'public_site:privacy' %}">Privacy Policy</a></li>
-                            <li><a href="{% url 'public_site:terms' %}">Terms of Service</a></li>
-                        </ul>
-                    </div>
-                    <div class="footer-cta-container">
-                        
-                        <div class="footer-app-badges">
-                            <a href="#" class="app-badge">
-                                <span class="material-icons-round">apple</span>
-                                <div class="badge-text">
-                                    <small>Get it on</small>
-                                    <span>App Store</span>
-                                </div>
-                            </a>
-                            <a href="#" class="app-badge">
-                                <span class="material-icons-round">shop</span>
-                                <div class="badge-text">
-                                    <small>Get it on</small>
-                                    <span>Google Play</span>
-                                </div>
-                            </a>
-                        </div>
-                    </div>
+        <div class="wrap">
+            <p class="f-mission rv">Neighbors <em>Helping</em> Neighbors.</p>
+            <div class="f-grid">
+                <div>
+                    <h4>Neighbor Service</h4>
+                    <a href="{% url 'public_site:index' %}#how">How it works</a>
+                    <a href="{% url 'public_site:index' %}#trust">Trust &amp; safety</a>
+                    <a href="{% url 'public_site:services' %}">Categories</a>
+                    <a href="{% url 'public_site:index' %}#providers">For providers</a>
+                </div>
+                <div>
+                    <h4>Trust &amp; Safety</h4>
+                    <a href="{% url 'public_site:index' %}#screening">How screening works</a>
+                    <a href="{% url 'public_site:index' %}#securitycode">The Security Code</a>
+                    <a href="{% url 'public_site:index' %}#trust">Background screening</a>
+                    <a href="{% url 'public_site:index' %}#faq">Trust &amp; safety FAQ</a>
+                    <a href="{% url 'public_site:contact' %}">Report a concern</a>
+                </div>
+                <div>
+                    <h4>Categories</h4>
+                    <a href="{% url 'public_site:services' %}#cat-1">Plumbing</a>
+                    <a href="{% url 'public_site:services' %}#cat-2">House cleaning</a>
+                    <a href="{% url 'public_site:services' %}#cat-3">Handyman</a>
+                    <a href="{% url 'public_site:services' %}#cat-4">Electrical</a>
+                    <a href="{% url 'public_site:services' %}">All categories</a>
+                </div>
+                <div>
+                    <h4>Legal</h4>
+                    <a href="{% url 'public_site:terms' %}">Terms &amp; Conditions</a>
+                    <a href="{% url 'public_site:privacy' %}">Privacy Policy</a>
+                    <a href="{% url 'public_site:contact' %}">Resolution Center</a>
+                    <a href="{% url 'public_site:contact' %}">Help &amp; Support</a>
+                </div>
+                <div>
+                    <h4>For Providers</h4>
+                    <a href="{% url 'public_site:index' %}#providers">Become a Provider</a>
+                    <a href="{% url 'public_site:index' %}#providers">Plans &amp; pricing</a>
+                    <a href="{% url 'public_site:index' %}#faq">Provider FAQ</a>
                 </div>
             </div>
-        </div>
-        <div class="footer-bottom">
-            <div class="container footer-bottom-content">
-                <p>&copy; 2026 {{ site_settings.site_name|default:"Neighbor Service Solutions LLC" }}. All rights reserved. Locally rooted, globally connected.</p>
-                <div class="footer-bottom-links">
-                    <a href="{% url 'public_site:privacy' %}">Privacy</a>
-                    <a href="{% url 'public_site:terms' %}">Terms</a>
-                    <a href="#">Trust & Safety</a>
-                </div>
+            <div class="f-legal">
+                &copy; 2026 {{ site_settings.site_name|default:"Neighbor Service App, Inc." }} &middot; Terms &amp; Conditions &middot; Privacy Policy &middot; Accessibility<br>
+                All providers complete third-party background screening through Checkr prior to activation.<br>
+                Neighbor Service App is not responsible for disputes involving off-platform transactions.
+                <span class="sign">Find trusted help. Offer trusted help. Strengthen your community.</span>
             </div>
         </div>
     </footer>
 
     <script>
+        // Nav scroll border
+        const nav = document.getElementById('nav');
+        addEventListener('scroll', () => nav.classList.toggle('scrolled', scrollY > 10), {passive: true});
+
         // Mobile Menu Toggle
         const navToggle = document.getElementById('navToggle');
         const navLinks = document.getElementById('navLinks');
@@ -130,11 +105,10 @@
         if (navToggle && navLinks) {
             navToggle.addEventListener('click', () => {
                 navLinks.classList.toggle('active');
-                const icon = navToggle.querySelector('.material-icons-round');
                 if (navLinks.classList.contains('active')) {
-                    icon.textContent = 'close';
+                    navToggle.textContent = '✕';
                 } else {
-                    icon.textContent = 'menu';
+                    navToggle.textContent = '☰';
                 }
             });
 
@@ -142,26 +116,19 @@
             navLinks.querySelectorAll('a').forEach(link => {
                 link.addEventListener('click', () => {
                     navLinks.classList.remove('active');
-                    navToggle.querySelector('.material-icons-round').textContent = 'menu';
+                    navToggle.textContent = '☰';
                 });
             });
         }
 
-        // Smooth Scroll for hash links
-        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-            anchor.addEventListener('click', function (e) {
-                e.preventDefault();
-                const targetId = this.getAttribute('href');
-                if (targetId === '#') return;
-                const target = document.querySelector(targetId);
-                if (target) {
-                    target.scrollIntoView({
-                        behavior: 'smooth',
-                        block: 'start'
-                    });
-                }
-            });
-        });
+        // Scroll reveals
+        const io = new IntersectionObserver(es => es.forEach(e => {
+            if(e.isIntersecting) {
+                e.target.classList.add('in');
+                io.unobserve(e.target);
+            }
+        }), {threshold: .16});
+        document.querySelectorAll('.rv').forEach(el => io.observe(el));
     </script>
     {% block extra_js %}{% endblock %}
 </body>

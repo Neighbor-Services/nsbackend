@@ -2,356 +2,261 @@
 {% load static %}
 
 {% block content %}
-    <!-- Hero Section -->
-    <section class="hero" style="background: linear-gradient(to bottom, var(--surface), var(--white)); border-bottom: none;">
-        <div class="container hero-grid" style="padding-top: 40px; padding-bottom: 100px;">
-            <div class="hero-content">
-                <div style="display: inline-flex; align-items: center; gap: 0.5rem; background: var(--secondary); color: var(--white); padding: 0.5rem 1rem; border-radius: 30px; font-size: 0.8rem; font-weight: 700; margin-bottom: 1.5rem; text-transform: uppercase; letter-spacing: 0.05em;">
-                    <span class="material-icons-round" style="font-size: 1rem; color: var(--primary);">auto_awesome</span>
-                    The Future of Community Support
-                </div>
-                {% if hero %}
-                    <h1>{{ hero.headline|safe }}</h1>
-                    <p>{{ hero.subheadline }}</p>
-                    
-                    <div class="app-badges">
-                        <a href="{{ hero.cta_link|default:'#' }}" class="app-badge">
-                            <span class="material-icons-round">apple</span>
-                            <div class="badge-text">
-                                <small>Download on the</small>
-                                <span>App Store</span>
-                            </div>
-                        </a>
-                        <a href="{{ hero.cta_link|default:'#' }}" class="app-badge">
-                            <span class="material-icons-round">shop</span>
-                            <div class="badge-text">
-                                <small>Get it on</small>
-                                <span>Google Play</span>
-                            </div>
-                        </a>
-                    </div>
+<!-- ======================= HERO ======================= -->
+<header class="hero" id="top">
+  <div class="hero-grain" aria-hidden="true"></div>
+  <div class="wrap hero-in">
+    <p class="eyebrow rv">Help is closer than you think · Now serving your community</p>
+    {% if hero %}
+        <h1 class="rv">{{ hero.headline|safe }}<br><span class="accent">right next door.<svg viewBox="0 0 320 14" preserveAspectRatio="none" aria-hidden="true"><path d="M4 10 C 90 2, 230 2, 316 9" stroke="#F2A33C" stroke-width="5" fill="none" stroke-linecap="round"/></svg></span></h1>
+        <p class="lede rv">{{ hero.subheadline }}</p>
+    {% else %}
+        <h1 class="rv">Trusted help,<br><span class="accent">right next door.<svg viewBox="0 0 320 14" preserveAspectRatio="none" aria-hidden="true"><path d="M4 10 C 90 2, 230 2, 316 9" stroke="#F2A33C" stroke-width="5" fill="none" stroke-linecap="round"/></svg></span></h1>
+        <p class="lede rv">Find trusted local professionals in minutes — or grow your business by serving the people right in your own community. Every provider is background screened before approval.</p>
+    {% endif %}
+
+    <div class="search-shell rv">
+      <form class="search-bar" id="heroSearch" aria-label="Try Smart Search">
+        <svg class="spark" width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3z" fill="currentColor"/><circle cx="19" cy="5" r="1.6" fill="currentColor"/></svg>
+        <input id="heroInput" type="text" aria-label="Describe what you need" autocomplete="off">
+        <button class="btn btn-primary" type="submit">Find Help</button>
+      </form>
+      <div class="demo-chip" id="demoChip" role="status"></div>
+    </div>
+
+    <div class="trust-strip rv" role="list">
+      <div class="ti" role="listitem"><span class="tic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3l7 3v5c0 4.6-3 8.6-7 10-4-1.4-7-5.4-7-10V6l7-3z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Every provider<br>background-screened</div>
+      <div class="ti" role="listitem"><span class="tic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3z" fill="currentColor"/><circle cx="19" cy="5" r="1.4" fill="currentColor"/></svg></span>AI-powered<br>Smart Search™</div>
+      <div class="ti" role="listitem"><span class="tic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="4" y="9" width="16" height="11" rx="3" stroke="currentColor" stroke-width="2"/><path d="M8 9V7a4 4 0 018 0v2" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="14.5" r="1.6" fill="currentColor"/></svg></span>Secure scheduling<br>&amp; verification</div>
+      <div class="ti" role="listitem"><span class="tic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 11a3 3 0 100-6 3 3 0 000 6zM3 19c0-3 2.7-5 6-5s6 2 6 5M16 6.5a3 3 0 010 5.8M21 19c0-2.4-1.6-4.2-4-4.8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Neighbors<br>helping neighbors</div>
+    </div>
+  </div>
+</header>
+
+<!-- ======================= TRUST ======================= -->
+<section id="trust">
+  <div class="wrap">
+    <div class="head rv">
+      <p class="eyebrow">Our one unbreakable rule</p>
+      <h2>Trust Begins Before<br>The First Conversation.</h2>
+      <p class="lede">Most platforms help you find someone. Neighbor Service App helps you find someone you can feel confident about inviting into your home. Before any provider can offer services, they must successfully complete a third-party background screening.</p>
+    </div>
+    <div class="tiles">
+      <article class="tile rv">
+        <div class="ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3l7 3v5c0 4.6-3 8.6-7 10-4-1.4-7-5.4-7-10V6l7-3z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <span class="tag">Background checked</span>
+        <h3>Screened before they appear</h3>
+        <p>Every provider completes third-party screening through Checkr before activation. You'll see the badge on every profile — because every profile has earned it.</p>
+      </article>
+      <article class="tile rv" style="transition-delay:.08s">
+        <div class="ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="4" y="9" width="16" height="11" rx="3" stroke="currentColor" stroke-width="2"/><path d="M8 9V7a4 4 0 018 0v2" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="14.5" r="1.7" fill="currentColor"/></svg></div>
+        <span class="tag">NSA Security Code™</span>
+        <h3>Verified at the door</h3>
+        <p>Every appointment generates a unique code that confirms your provider's arrival — and confirms the job is complete. From hello to handshake.</p>
+      </article>
+      <article class="tile rv" style="transition-delay:.16s">
+        <div class="ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3.5l2.5 5.1 5.6.8-4 4 .9 5.6-5-2.7-5 2.7.9-5.6-4-4 5.6-.8L12 3.5z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></div>
+        <span class="tag">Real jobs only</span>
+        <h3>Reviews you can believe</h3>
+        <p>Ratings on Neighbor Service App can only come from verified, completed jobs. No imported reviews. No mystery five-stars.</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= SMART SEARCH ======================= -->
+<section id="smart" style="padding-top:0">
+  <div class="wrap split">
+    <div class="phone-stage rv">
+      <div class="phone" aria-label="Neighbor Service app — Smart Search screen">
+        <div class="screen">
+          {% if hero and hero.image %}
+            <img src="{{ hero.image.url }}" alt="App Screen">
+          {% else %}
+            <img src="{% static 'public_site/images/app_mockup.png' %}" alt="App Screen">
+          {% endif %}
+        </div>
+      </div>
+      <div class="float-chip fc1"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 3l7 3v5c0 4.6-3 8.6-7 10-4-1.4-7-5.4-7-10V6l7-3z" stroke="currentColor" stroke-width="2"/><path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>Screened · 1.2 mi away</div>
+      <div class="float-chip fc2"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M12 7v5l3.2 2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>Responds in ~12 min</div>
+    </div>
+    <div>
+      <p class="eyebrow left rv">Smart Search™</p>
+      <h2 class="rv" style="margin:20px 0 18px">Just Say<br>What You Need.</h2>
+      <p class="lede rv" style="margin-bottom:38px">Searching shouldn't feel like work. No categories to guess. No forms to fight. Type "leaking kitchen sink, today" or "photographer for Saturday" and Smart Search weighs what matters — availability, distance, ratings, response time, and that every match is background-checked — then hands you a short list of great options instead of forty maybes.</p>
+      <div class="steps">
+        {% if steps %}
+            {% for step in steps %}
+            <div class="step rv"><span class="n">{{ forloop.counter }}</span><div><h3>{{ step.title }}</h3><p>{{ step.description }}</p></div></div>
+            {% endfor %}
+        {% else %}
+            <div class="step rv"><span class="n">1</span><div><h3>Say it.</h3><p>In your own words. Typing or talking, both work.</p></div></div>
+            <div class="step rv"><span class="n">2</span><div><h3>We match it.</h3><p>Smart Search reads your need, your timing, and your location — and finds screened neighbors who fit.</p></div></div>
+            <div class="step rv"><span class="n">3</span><div><h3>Book it.</h3><p>Compare a short list of great options instead of forty maybes. Message your favorite, lock in a time. Done in minutes.</p></div></div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= CATEGORIES ======================= -->
+<section id="categories">
+  <div class="wrap">
+    <div class="head rv">
+      <p class="eyebrow">Popular categories</p>
+      <h2>Whatever The Task.<br>Find The Right Neighbor.</h2>
+      <p class="lede">Ten popular categories — and many more. One standard for all of them: background-checked, every time.</p>
+    </div>
+    <div class="cats rv">
+        {% if catalog_services %}
+            {% for service in catalog_services %}
+            <div class="cat" onclick="location.href='{% url 'public_site:services' %}'">
+                <div class="ci">✨</div>
+                <b>{{ service.name }}</b>
+                <span>{{ service.description|truncatewords:4 }}</span>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="cat"><div class="ci">🔧</div><b>Plumbing</b><span>Leaks, clogs, installs</span></div>
+            <div class="cat"><div class="ci">✨</div><b>House Cleaning</b><span>Deep cleans &amp; weekly</span></div>
+            <div class="cat"><div class="ci">🔨</div><b>Handyman</b><span>The whole to-do list</span></div>
+            <div class="cat"><div class="ci">⚡</div><b>Electrical</b><span>Outlets, fixtures, fans</span></div>
+            <div class="cat"><div class="ci">🌿</div><b>Landscaping</b><span>Mowing, beds, cleanups</span></div>
+        {% endif %}
+    </div>
+    <p class="cats-foot rv" style="margin-top: 46px; text-align: center;">Don't see your job? Just describe it in <b>Smart Search</b> — it's smarter than a category list.</p>
+  </div>
+</section>
+
+<!-- ======================= TESTIMONIALS ======================= -->
+<section class="quotes" id="stories">
+  <div class="wrap">
+    <div class="head rv">
+      <p class="eyebrow">Word from the neighborhood</p>
+      <h2>Word travels fast<br>around here.</h2>
+    </div>
+    <div class="q-grid">
+      {% if testimonials %}
+        {% for t in testimonials %}
+        <article class="q-card rv"><span class="q-stars">★★★★★</span><span class="qm">"</span>
+            <p>{{ t.content }}</p>
+            <div class="q-meta">
+                {% if t.image %}
+                    <img class="pic" src="{{ t.image.url }}" alt="{{ t.name }}">
                 {% else %}
-                    <h1>Stronger Communities <br><span style="color: var(--primary);">Built Together.</span></h1>
-                    <p>Neighbor Service is the most trusted platform to connect with verified neighbors for essential services, local help, and community growth. All in one simple mobile app.</p>
-                    
-                    <div class="app-badges">
-                        <a href="#" class="app-badge">
-                            <span class="material-icons-round">apple</span>
-                            <div class="badge-text">
-                                <small>Download on the</small>
-                                <span>App Store</span>
-                            </div>
-                        </a>
-                        <a href="#" class="app-badge">
-                            <span class="material-icons-round">shop</span>
-                            <div class="badge-text">
-                                <small>Get it on</small>
-                                <span>Google Play</span>
-                            </div>
-                        </a>
-                    </div>
+                    <svg class="pic" viewBox="0 0 46 46"><circle cx="23" cy="23" r="23" fill="#EFE9FD"/><circle cx="23" cy="18" r="7" fill="#C9B5F2"/><path d="M9 40c2-8 8-12 14-12s12 4 14 12" fill="#C9B5F2"/></svg>
                 {% endif %}
-                
-                <div style="margin-top: 3rem; display: flex; align-items: center; gap: 1.5rem; color: var(--text-muted);">
-                    <div style="display: flex; -webkit-mask-image: linear-gradient(to right, black 80%, transparent); mask-image: linear-gradient(to right, black 80%, transparent);">
-                        <div style="width: 40px; height: 40px; background: #e2e8f0; border-radius: 50%; border: 3px solid var(--white); margin-right: -12px; display: flex; align-items: center; justify-content: center;"><span class="material-icons-round" style="font-size: 1.2rem;">person</span></div>
-                        <div style="width: 40px; height: 40px; background: #cbd5e1; border-radius: 50%; border: 3px solid var(--white); margin-right: -12px; display: flex; align-items: center; justify-content: center;"><span class="material-icons-round" style="font-size: 1.2rem;">person</span></div>
-                        <div style="width: 40px; height: 40px; background: #94a3b8; border-radius: 50%; border: 3px solid var(--white); margin-right: -12px; display: flex; align-items: center; justify-content: center;"><span class="material-icons-round" style="font-size: 1.2rem;">person</span></div>
-                    </div>
-                    <span style="font-size: 0.95rem; font-weight: 600;">Joined by 15,000+ neighbors this month</span>
-                </div>
+                <div><b>{{ t.name }}</b><span>{{ t.role }}</span></div>
             </div>
-            <div class="hero-image">
-                <div class="phone-mockup" style="transform: rotate(0deg); box-shadow: 0 40px 80px -20px rgba(0,0,0,0.3);">
-                    {% if hero and hero.image %}
-                        <img src="{{ hero.image.url }}" alt="Hero App Image">
-                    {% else %}
-                        <img src="{% static 'public_site/images/app_mockup.png' %}" alt="Neighbor Service App">
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-    </section>
+        </article>
+        {% endfor %}
+      {% else %}
+        <article class="q-card rv"><span class="q-stars">★★★★★</span><span class="qm">"</span>
+            <p>I found a tutor for my son in 20 minutes — and I knew she was background-checked before I ever sent the first message. That changes how the whole thing feels.</p>
+            <div class="q-meta"><svg class="pic" viewBox="0 0 46 46"><circle cx="23" cy="23" r="23" fill="#EFE9FD"/><circle cx="23" cy="18" r="7" fill="#C9B5F2"/><path d="M9 40c2-8 8-12 14-12s12 4 14 12" fill="#C9B5F2"/></svg><div><b>Dana</b><span>Grapevine · Tutoring</span></div></div>
+        </article>
+        <article class="q-card rv" style="transition-delay:.07s"><span class="q-stars">★★★★★</span><span class="qm">"</span>
+            <p>I literally typed "leaking sink, today." Three plumbers, all screened, one booked by lunch. I keep telling people it can't be that easy. It was.</p>
+            <div class="q-meta"><svg class="pic" viewBox="0 0 46 46"><circle cx="23" cy="23" r="23" fill="#EAF0EB"/><circle cx="23" cy="18" r="7" fill="#9FB8A4"/><path d="M9 40c2-8 8-12 14-12s12 4 14 12" fill="#9FB8A4"/></svg><div><b>Marcus</b><span>Euless · Plumbing</span></div></div>
+        </article>
+      {% endif %}
+    </div>
+  </div>
+</section>
 
-    <!-- Popular Services Section -->
-    <section id="services" class="features" style="background-color: var(--white); border-top: 2px solid var(--border);">
-        <div class="container">
-            <div class="section-header">
-                <h2>Browse Our Marketplace</h2>
-                <p>Connect with local experts across dozens of verified categories.</p>
+<!-- ======================= FAQ ======================= -->
+<section id="faq" style="padding-top:130px">
+  <div class="wrap">
+    <div class="head rv">
+      <p class="eyebrow">Good questions</p>
+      <h2>Asked over the fence.</h2>
+    </div>
+    <div class="faq-wrap rv">
+        {% if faqs %}
+            {% for faq in faqs %}
+            <div class="faq-item"><button class="faq-q" aria-expanded="false">{{ faq.question }}<span class="pm">+</span></button>
+                <div class="faq-a"><p>{{ faq.answer }}</p></div>
             </div>
-            <div class="features-grid">
-                {% if catalog_services %}
-                    {% for service in catalog_services %}
-                        <div class="feature-card">
-                            <div class="feature-icon">
-                                <span class="material-icons-round">volunteer_activism</span>
-                            </div>
-                            <h3>{{ service.name }}</h3>
-                            <p>{{ service.description|truncatewords:15 }}</p>
-                        </div>
-                    {% endfor %}
-                {% else %}
-                    <div class="feature-card" style="border-bottom: 6px solid var(--primary);">
-                        <div class="feature-icon"><span class="material-icons-round">home_repair_service</span></div>
-                        <h3>Handyman Pros</h3>
-                        <p>Reliable fixes for your home, from plumbing to electrical work.</p>
-                        <a href="{% url 'public_site:services' %}" style="margin-top: 1rem; display: inline-block; font-weight: 700; color: var(--primary);">EXPLORE <span class="material-icons-round" style="font-size: 1.1rem; vertical-align: middle;">arrow_forward</span></a>
-                    </div>
-                    <div class="feature-card" style="border-bottom: 6px solid var(--accent);">
-                        <div class="feature-icon" style="background: var(--accent);"><span class="material-icons-round">school</span></div>
-                        <h3>Verified Tutors</h3>
-                        <p>Expert academic and skill-based learning from neighbors you trust.</p>
-                        <a href="{% url 'public_site:services' %}" style="margin-top: 1rem; display: inline-block; font-weight: 700; color: var(--accent);">EXPLORE <span class="material-icons-round" style="font-size: 1.1rem; vertical-align: middle;">arrow_forward</span></a>
-                    </div>
-                    <div class="feature-card" style="border-bottom: 6px solid var(--secondary);">
-                        <div class="feature-icon" style="background: var(--secondary);"><span class="material-icons-round">cleaning_services</span></div>
-                        <h3>Clean & Organize</h3>
-                        <p>Professional home maintenance and organization for a better living space.</p>
-                        <a href="{% url 'public_site:services' %}" style="margin-top: 1rem; display: inline-block; font-weight: 700; color: var(--secondary);">EXPLORE <span class="material-icons-round" style="font-size: 1.1rem; vertical-align: middle;">arrow_forward</span></a>
-                    </div>
-                {% endif %}
+            {% endfor %}
+        {% else %}
+            <div class="faq-item"><button class="faq-q" aria-expanded="false">How does provider screening actually work?<span class="pm">+</span></button>
+                <div class="faq-a"><p>Every provider must complete a background screening through Checkr, an independent third-party screening company, before their profile can go live. No provider appears on Neighbor Service — or can contact you — without completing it.</p></div>
             </div>
-        </div>
-    </section>
+            <div class="faq-item"><button class="faq-q" aria-expanded="false">What does it cost me as a seeker?<span class="pm">+</span></button>
+                <div class="faq-a"><p>Nothing. Searching, matching, messaging, and booking are free for seekers. Providers support the platform with a flat monthly subscription.</p></div>
+            </div>
+        {% endif %}
+    </div>
+  </div>
+</section>
 
-    <!-- Trust & Safety Section -->
-    <section class="features" style="background-color: var(--secondary); color: var(--white); padding: 120px 0;">
-        <div class="container">
-            <div class="hero-grid" style="gap: 6rem; align-items: center;">
-                <div>
-                    <h2 style="color: var(--white); font-size: 3rem; margin-bottom: 2rem;">Safety is Our <br><span style="color: var(--primary);">Solid Foundation.</span></h2>
-                    <p style="color: #94a3b8; font-size: 1.25rem; margin-bottom: 3rem; line-height: 1.8;">
-                        We believe that a community can only thrive on trust. That's why we've built the most rigorous verification system in the neighborhood services industry.
-                    </p>
-                    <div style="display: grid; gap: 2rem;">
-                        <div style="display: flex; gap: 1.5rem;">
-                            <div style="background: var(--primary); width: 48px; height: 48px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                                <span class="material-icons-round">verified</span>
-                            </div>
-                            <div>
-                                <h4 style="color: var(--white); margin-bottom: 0.5rem; font-size: 1.2rem;">ID Verification</h4>
-                                <p style="color: #94a3b8;">Every provider must pass a strict government ID verification check before offering services.</p>
-                            </div>
-                        </div>
-                        <div style="display: flex; gap: 1.5rem;">
-                            <div style="background: var(--accent); width: 48px; height: 48px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                                <span class="material-icons-round">gpp_good</span>
-                            </div>
-                            <div>
-                                <h4 style="color: var(--white); margin-bottom: 0.5rem; font-size: 1.2rem;">Escrow Protection</h4>
-                                <p style="color: #94a3b8;">Payments are held securely in escrow and only released when you confirm the job is done perfectly.</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div style="background: #1e293b; padding: 4rem; border-radius: 30px; border: 1px solid rgba(255,255,255,0.1);">
-                    <div style="text-align: center; margin-bottom: 3rem;">
-                        <span class="material-icons-round" style="font-size: 4rem; color: var(--primary); margin-bottom: 1rem;">stars</span>
-                        <h3 style="color: var(--white);">Community Rating</h3>
-                        <p style="color: #94a3b8;">4.9 out of 5 based on 10,000+ reviews</p>
-                    </div>
-                    <div style="display: grid; gap: 1rem;">
-                        <div style="height: 12px; background: #0f172a; border-radius: 6px; overflow: hidden;"><div style="width: 95%; height: 100%; background: var(--primary);"></div></div>
-                        <div style="height: 12px; background: #0f172a; border-radius: 6px; overflow: hidden;"><div style="width: 80%; height: 100%; background: var(--primary);"></div></div>
-                        <div style="height: 12px; background: #0f172a; border-radius: 6px; overflow: hidden;"><div style="width: 90%; height: 100%; background: var(--primary);"></div></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- How It Works Section -->
-    <section class="how-it-works" style="padding: 120px 0;">
-        <div class="container">
-            <div class="section-header">
-                <h2>Three Simple Steps</h2>
-                <p>Getting the help you need has never been this straightforward.</p>
-            </div>
-            <div class="steps-grid">
-                {% if steps %}
-                    {% for step in steps %}
-                        <div class="step-item">
-                            <div class="step-number">{{ forloop.counter }}</div>
-                            <h3>{{ step.title }}</h3>
-                            <p>{{ step.description }}</p>
-                        </div>
-                    {% endfor %}
-                {% else %}
-                    <div class="step-item">
-                        <div class="step-number">1</div>
-                        <h3>Post a Request</h3>
-                        <p>Describe what you need, set your budget, and post it to your local neighborhood feed in seconds.</p>
-                    </div>
-                    <div class="step-item">
-                        <div class="step-number">2</div>
-                        <h3>Choose a Pro</h3>
-                        <p>Receive offers from verified neighbors, compare profiles and ratings, and pick the best match for your task.</p>
-                    </div>
-                    <div class="step-item">
-                        <div class="step-number">3</div>
-                        <h3>Task Completed</h3>
-                        <p>Get the job done, release payment securely through the app, and leave a review for your neighbor.</p>
-                    </div>
-                {% endif %}
-            </div>
-        </div>
-    </section>
-
-    <!-- Stats Section -->
-    <section class="stats" style="border-top: 1px solid rgba(255,255,255,0.1); border-bottom: 1px solid rgba(255,255,255,0.1);">
-        <div class="container stats-grid">
-            {% if stats %}
-                {% for stat in stats %}
-                    <div class="stat-item">
-                        <h3>{{ stat.value }}</h3>
-                        <p>{{ stat.label }}</p>
-                    </div>
-                {% endfor %}
-            {% else %}
-                <div class="stat-item">
-                    <h3>15k+</h3>
-                    <p>Neighbors</p>
-                </div>
-                <div class="stat-item">
-                    <h3>50+</h3>
-                    <p>Categories</p>
-                </div>
-                <div class="stat-item">
-                    <h3>$2M+</h3>
-                    <p>Earned by Neighbors</p>
-                </div>
-                <div class="stat-item">
-                    <h3>98%</h3>
-                    <p>Satisfaction</p>
-                </div>
-            {% endif %}
-        </div>
-    </section>
-
-    <!-- Testimonials Section -->
-    <section id="testimonials" class="testimonials">
-        <div class="container">
-            <div class="section-header">
-                <h2>Voices of the Community</h2>
-                <p>Real stories from people who have transformed their neighborhood experience.</p>
-            </div>
-            <div class="testimonials-grid">
-                {% if testimonials %}
-                    {% for t in testimonials %}
-                        <div class="testimonial-card">
-                            <div class="testimonial-content">"{{ t.content }}"</div>
-                            <div class="testimonial-author">
-                                <div class="author-img" style="background: var(--primary); display: flex; align-items: center; justify-content: center; color: white;">
-                                    {% if t.image %}
-                                        <img src="{{ t.image.url }}" alt="{{ t.name }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: inherit;">
-                                    {% else %}
-                                        <span class="material-icons-round">person</span>
-                                    {% endif %}
-                                </div>
-                                <div class="author-info">
-                                    <h4>{{ t.name }}</h4>
-                                    <p>{{ t.role }}</p>
-                                </div>
-                            </div>
-                        </div>
-                    {% endfor %}
-                {% else %}
-                    <div class="testimonial-card">
-                        <div class="testimonial-content">"I used to struggle finding a reliable plumber. With this app, I found a verified neighbor who fixed my leak in an hour. Safe and solid!"</div>
-                        <div class="testimonial-author">
-                            <div class="author-img" style="background: var(--primary); display: flex; align-items: center; justify-content: center; color: white;"><span class="material-icons-round">person</span></div>
-                            <div class="author-info">
-                                <h4>Robert K.</h4>
-                                <p>Homeowner in Accra</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="testimonial-card">
-                        <div class="testimonial-content">"As a part-time tutor, Neighbor Service has helped me find students right on my street. The escrow payment system gives me total peace of mind."</div>
-                        <div class="testimonial-author">
-                            <div class="author-img" style="background: var(--accent); display: flex; align-items: center; justify-content: center; color: white;"><span class="material-icons-round">person</span></div>
-                            <div class="author-info">
-                                <h4>Lydia M.</h4>
-                                <p>Math Tutor</p>
-                            </div>
-                        </div>
-                    </div>
-                {% endif %}
-            </div>
-        </div>
-    </section>
-
-    <!-- FAQ Section -->
-    <section id="faq" class="faq" style="background: var(--surface); padding: 120px 0;">
-        <div class="container">
-            <div class="section-header">
-                <h2>Frequently Asked Questions</h2>
-                <p>Everything you need to know about the Neighbor Service ecosystem.</p>
-            </div>
-            <div class="faq-list">
-                {% if faqs %}
-                    {% for faq in faqs %}
-                        <div class="faq-item">
-                            <div class="faq-question">{{ faq.question }} <span class="material-icons-round">add</span></div>
-                            <div class="faq-answer">{{ faq.answer }}</div>
-                        </div>
-                    {% endfor %}
-                {% else %}
-                    <div class="faq-item">
-                        <div class="faq-question">How does the verification process work? <span class="material-icons-round">add</span></div>
-                        <div class="faq-answer">We use automated ID verification and background check integrations to ensure every provider is who they say they are. Your safety is our #1 priority.</div>
-                    </div>
-                    <div class="faq-item">
-                        <div class="faq-question">Is my financial information safe? <span class="material-icons-round">add</span></div>
-                        <div class="faq-answer">Yes, we never store your full card details. All payments are processed through Stripe, a world-leader in secure financial transactions.</div>
-                    </div>
-                    <div class="faq-item">
-                        <div class="faq-question">How can I start offering my services? <span class="material-icons-round">add</span></div>
-                        <div class="faq-answer">Simply download the app, create a profile, and click "Become a Provider". Once verified, you can start bidding on local requests.</div>
-                    </div>
-                {% endif %}
-            </div>
-        </div>
-    </section>
-
-    <!-- Final App CTA -->
-    <section style="background: var(--white); padding: 120px 0; border-top: 2px solid var(--border);">
-        <div class="container" style="text-align: center;">
-            <div style="max-width: 800px; margin: 0 auto;">
-                <h2 style="font-size: 3.5rem; color: var(--secondary); margin-bottom: 2rem;">Your neighborhood, <span style="color: var(--primary);">reimagined.</span></h2>
-                <p style="font-size: 1.25rem; color: var(--text-muted); margin-bottom: 3.5rem;">Join thousands of neighbors who are already building a more connected and supportive community. Download the app today.</p>
-                <div class="app-badges" style="justify-content: center;">
-                    <a href="#" class="app-badge">
-                        <span class="material-icons-round">apple</span>
-                        <div class="badge-text">
-                            <small>Download on the</small>
-                            <span>App Store</span>
-                        </div>
-                    </a>
-                    <a href="#" class="app-badge">
-                        <span class="material-icons-round">shop</span>
-                        <div class="badge-text">
-                            <small>Get it on</small>
-                            <span>Google Play</span>
-                        </div>
-                    </a>
-                </div>
-            </div>
-        </div>
-    </section>
+<!-- ======================= DOWNLOAD CTA ======================= -->
+<section class="dl" id="download">
+  <div class="wrap">
+    <div class="dl-card rv">
+      <p class="eyebrow">Your neighborhood is waiting</p>
+      <h2>Ready To Find Trusted Help?<br>Or Ready To Offer It?</h2>
+      <p class="lede" style="margin-bottom: 50px;">Join a growing community of neighbors helping neighbors. Background-checked providers near you — some available today.</p>
+      <div class="store-row">
+        <a class="store" href="#" aria-label="Download on the App Store">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16.6 12.9c0-2.3 1.9-3.4 2-3.5-1.1-1.6-2.8-1.8-3.4-1.8-1.4-.1-2.8.8-3.5.8-.7 0-1.9-.8-3.1-.8-1.6 0-3 .9-3.8 2.3-1.6 2.8-.4 7 1.2 9.3.8 1.1 1.7 2.4 2.9 2.3 1.2 0 1.6-.7 3-.7s1.8.7 3.1.7c1.3 0 2.1-1.1 2.9-2.3.9-1.3 1.3-2.6 1.3-2.7-.1 0-2.6-1-2.6-3.6zM14.3 5.7c.6-.8 1.1-1.9.9-3-.9 0-2.1.6-2.7 1.4-.6.7-1.2 1.9-1 3 1.1.1 2.2-.5 2.8-1.4z"/></svg>
+          <span><span class="s1">Download on the</span><span class="s2">App Store</span></span>
+        </a>
+        <a class="store" href="#" aria-label="Get it on Google Play">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M4 3.5v17c0 .4.4.7.8.5l9.9-8.2c.3-.2.3-.7 0-.9L4.8 3.1c-.4-.3-.8 0-.8.4zM15.9 10l2.8-2.3c.4-.3 1-.3 1.4 0l1.4 1.2c.5.4.5 1.2 0 1.6l-1.4 1.2c-.4.3-1 .3-1.4 0L15.9 10z" opacity=".9"/></svg>
+          <span><span class="s1">Get it on</span><span class="s2">Google Play</span></span>
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
 {% endblock %}
 
 {% block extra_js %}
-    <script>
-        // FAQ Accordion
-        document.querySelectorAll('.faq-question').forEach(button => {
-            button.addEventListener('click', () => {
-                const faqItem = button.parentElement;
-                const isActive = faqItem.classList.contains('active');
-                document.querySelectorAll('.faq-item').forEach(item => item.classList.remove('active'));
-                if (!isActive) faqItem.classList.add('active');
-            });
-        });
-    </script>
+<script>
+/* hero: typewriter placeholder */
+const qs=['My kitchen sink is leaking and I need someone today…','Photographer for a birthday party next Saturday…','Weekly lawn care, medium yard, Bedford…','Math tutor for my 7th grader, twice a week…'];
+const inp=document.getElementById('heroInput');
+let qi=0,ci=0,del=false;
+const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+if(reduce && inp){inp.placeholder=qs[0];}
+else if(inp){(function type(){
+  const q=qs[qi];
+  if(document.activeElement===inp&&inp.value){setTimeout(type,1200);return}
+  inp.placeholder=q.slice(0,ci);
+  if(!del){ci++;if(ci>q.length){del=true;setTimeout(type,1700);return}}
+  else{ci--;if(ci===0){del=false;qi=(qi+1)%qs.length}}
+  setTimeout(type,del?16:42);
+})()}
+
+/* hero: demo interpretation chip */
+const heroSearch = document.getElementById('heroSearch');
+if(heroSearch && inp) {
+    heroSearch.addEventListener('submit',e=>{
+    e.preventDefault();
+    const v=(inp.value||inp.placeholder).toLowerCase();
+    let cat='Handyman';
+    if(v.includes('sink')||v.includes('leak')||v.includes('plumb'))cat='Plumbing';
+    else if(v.includes('photo'))cat='Photography';
+    else if(v.includes('lawn')||v.includes('yard'))cat='Landscaping';
+    else if(v.includes('tutor')||v.includes('math'))cat='Tutoring';
+    else if(v.includes('clean'))cat='House Cleaning';
+    else if(v.includes('mov'))cat='Moving';
+    else if(v.includes('electr')||v.includes('outlet')||v.includes('fan'))cat='Electrical';
+    const chip=document.getElementById('demoChip');
+    chip.innerHTML='✓ Understood — <b>'+cat+'</b>&nbsp;· near you · screened matches in the app';
+    chip.classList.add('show');
+    setTimeout(()=>document.querySelector('#download').scrollIntoView({behavior:reduce?'auto':'smooth'}),1400);
+    });
+}
+
+/* faq accordion */
+document.querySelectorAll('.faq-q').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    const item=btn.parentElement,a=item.querySelector('.faq-a'),open=item.classList.contains('open');
+    document.querySelectorAll('.faq-item.open').forEach(o=>{o.classList.remove('open');o.querySelector('.faq-a').style.maxHeight=null;o.querySelector('.faq-q').setAttribute('aria-expanded','false')});
+    if(!open){item.classList.add('open');a.style.maxHeight=a.scrollHeight+'px';btn.setAttribute('aria-expanded','true')}
+  });
+});
+</script>
 {% endblock %}
