@@ -1,0 +1,621 @@
+{% extends 'public_site/base.html' %}
+
+{% block title %}Resolution Center | Neighbor Service{% endblock %}
+
+{% block extra_css %}
+<style>
+
+:root{
+  --paper:#FBFAF7;
+  --ink:#122A48;
+  --ink-soft:#5A6275;
+  --violet:#5B16EE;
+  --violet-deep:#3D0BA8;
+  --lavender:#F0EAFD;
+  --lavender-line:#E2D8F8;
+  --sage:#66786C;
+  --sage-soft:#EAF0EB;
+  --amber:#F2A33C;
+  --amber-deep:#B07C1F;
+  --line:#E9E6DF;
+  --futura:'Futura','Futura PT','Century Gothic','Jost',sans-serif;
+  --syne:'Syne',sans-serif;
+  --max:1140px;
+  --nav-h:78px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{font-family:var(--syne);background:var(--paper);color:var(--ink);font-size:17px;line-height:1.65;-webkit-font-smoothing:antialiased}
+img{max-width:100%;display:block}
+a{color:inherit;text-decoration:none}
+.wrap{max-width:var(--max);margin:0 auto;padding:0 28px}
+
+/* ---------- type system ---------- */
+.eyebrow{font-family:var(--futura);font-size:12.5px;font-weight:600;letter-spacing:.22em;text-transform:uppercase;color:var(--sage);display:flex;align-items:center;gap:14px;justify-content:center}
+.eyebrow::before,.eyebrow::after{content:"";width:26px;height:1px;background:var(--sage);opacity:.55}
+.eyebrow.left{justify-content:flex-start}
+.eyebrow.left::before{display:none}
+h1,h2,h3{font-family:var(--syne);font-weight:800;line-height:1.08;letter-spacing:-.015em}
+h1{font-size:clamp(40px,6vw,68px)}
+h2{font-size:clamp(26px,3.4vw,38px)}
+h3{font-size:20px;font-weight:700;line-height:1.3}
+.lede{font-size:clamp(18px,2vw,21px);color:var(--ink-soft);line-height:1.7;font-weight:500}
+p{color:var(--ink-soft)}
+
+/* ---------- buttons ---------- */
+.btn{font-family:var(--futura);font-weight:600;font-size:13.5px;letter-spacing:.14em;text-transform:uppercase;display:inline-flex;align-items:center;gap:10px;padding:18px 34px;border-radius:2px;border:1.5px solid transparent;cursor:pointer;transition:transform .25s ease,box-shadow .25s ease,background .25s ease;white-space:nowrap}
+.btn-primary{background:var(--violet);color:#fff;box-shadow:0 10px 30px rgba(91,22,238,.22)}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 16px 36px rgba(91,22,238,.3);background:var(--violet-deep)}
+.btn-ghost{background:transparent;color:var(--ink);border-color:var(--ink)}
+.btn-ghost:hover{background:var(--ink);color:var(--paper);transform:translateY(-2px)}
+
+/* ---------- nav ---------- */
+nav{position:fixed;inset:0 0 auto 0;z-index:100;backdrop-filter:blur(14px);background:rgba(251,250,247,.82);border-bottom:1px solid transparent;transition:border-color .3s}
+nav.scrolled{border-color:var(--line)}
+.nav-in{display:flex;align-items:center;justify-content:space-between;height:var(--nav-h)}
+.logo{display:flex;align-items:center;gap:12px;font-family:var(--futura);font-weight:600;letter-spacing:.14em;font-size:15px;text-transform:uppercase}
+.logo .mark{width:auto;height:42px;display:block}
+.logo-word{display:flex;align-items:baseline;gap:7px;line-height:1}
+.logo-word b{color:var(--ink);font-weight:600}
+.logo-word i{color:var(--sage);font-style:normal;font-weight:600}
+.nav-cta{display:flex;gap:12px;align-items:center}
+.nav-cta .btn{padding:13px 24px;font-size:12px}
+@media(max-width:560px){.logo-word{display:none}.nav-cta .btn-ghost{display:none}}
+
+/* ---------- page hero ---------- */
+.p-hero{padding:150px 0 64px;position:relative;overflow:hidden}
+.p-hero-grain{position:absolute;inset:-20% -10% auto;height:150%;background:
+  radial-gradient(560px 380px at 14% 12%,rgba(91,22,238,.06),transparent 70%),
+  radial-gradient(620px 420px at 86% 4%,rgba(102,120,108,.12),transparent 70%);pointer-events:none}
+.p-hero-in{position:relative;text-align:center;max-width:760px;margin:0 auto}
+.p-hero h1{margin:24px 0 22px}
+.p-hero .lede{max-width:600px;margin:0 auto 30px}
+.updated{display:inline-flex;align-items:center;gap:9px;font-family:var(--futura);font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--violet-deep);background:var(--lavender);border:1px solid var(--lavender-line);padding:9px 18px;border-radius:999px}
+.updated .dot{width:7px;height:7px;border-radius:50%;background:var(--amber)}
+
+/* ---------- body layout ---------- */
+.policy{padding:30px 0 120px}
+.policy-layout{display:grid;grid-template-columns:248px 1fr;gap:64px;align-items:start}
+
+/* directory / TOC */
+.directory{position:sticky;top:calc(var(--nav-h) + 22px)}
+.directory-label{font-family:var(--futura);text-transform:uppercase;letter-spacing:.2em;font-size:11px;font-weight:600;color:var(--ink);margin:0 0 16px;padding-bottom:13px;border-bottom:1px solid var(--line)}
+.directory ol{list-style:none;counter-reset:toc}
+.directory a{counter-increment:toc;display:flex;gap:12px;font-family:var(--syne);font-weight:500;font-size:14px;line-height:1.35;color:var(--ink-soft);padding:8px 12px 8px 10px;border-left:2px solid transparent;border-radius:0 8px 8px 0;transition:color .2s,background .2s,border-color .2s}
+.directory a::before{content:counter(toc,decimal-leading-zero);font-family:var(--futura);font-variant-numeric:tabular-nums;color:var(--violet);font-weight:600;font-size:12px;flex:none;padding-top:1px}
+.directory a:hover{color:var(--ink);background:var(--lavender)}
+.directory a.active{color:var(--violet-deep);background:var(--lavender);border-left-color:var(--violet)}
+
+/* content */
+.content{max-width:720px}
+.intro{font-size:18px;color:var(--ink);border-bottom:1px solid var(--line);padding-bottom:30px}
+.sec{padding-top:46px;scroll-margin-top:calc(var(--nav-h) + 22px)}
+.sec-num{font-family:var(--futura);font-variant-numeric:tabular-nums;font-weight:600;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--violet);margin:0 0 8px}
+.sec h2{margin:0 0 18px}
+.sec p{margin:0 0 16px}
+.sec ul{list-style:none;margin:0 0 16px}
+.sec li{position:relative;padding-left:24px;margin-bottom:9px;color:var(--ink-soft)}
+.sec li::before{content:"";position:absolute;left:3px;top:.62em;width:7px;height:7px;border-radius:2px;background:var(--violet);transform:rotate(45deg)}
+.sec strong{font-weight:700;color:var(--ink)}
+
+/* "In plain terms" callout — calm sage secondary */
+.plain{background:var(--sage-soft);border-left:3px solid var(--sage);border-radius:0 16px 16px 0;padding:16px 22px;margin:0 0 22px}
+.plain .plain-label{display:block;font-family:var(--futura);text-transform:uppercase;letter-spacing:.16em;font-size:10.5px;font-weight:600;color:var(--sage);margin-bottom:5px}
+.plain p{margin:0;font-size:15.5px;line-height:1.6;color:#33433A}
+
+.inline-link{color:var(--violet);font-weight:600;border-bottom:1.5px solid var(--lavender-line);transition:border-color .2s,color .2s}
+.inline-link:hover{color:var(--violet-deep);border-color:var(--violet)}
+
+/* ---------- footer ---------- */
+footer{background:var(--ink);color:#AEB5C6;padding:90px 0 46px}
+.f-mission{font-family:var(--syne);font-weight:800;font-size:clamp(24px,3vw,34px);color:#fff;text-align:center;margin-bottom:76px;letter-spacing:-.01em}
+.f-mission em{font-style:normal;color:var(--sage)}
+.f-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:36px;padding-bottom:64px;border-bottom:1px solid #2A3349}
+.f-grid h4{font-family:var(--futura);font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:#fff;font-weight:600;margin-bottom:20px}
+.f-grid a{display:block;font-size:13.5px;margin-bottom:11px;color:#AEB5C6;transition:color .2s}
+.f-grid a:hover{color:#fff}
+@media(max-width:900px){.f-grid{grid-template-columns:repeat(2,1fr)}}
+.f-legal{padding-top:36px;font-size:12px;color:#7E88A0;line-height:1.8;text-align:center}
+.f-legal a{color:#7E88A0;border-bottom:1px solid #2A3349}
+.f-legal a:hover{color:#AEB5C6}
+.f-legal .sign{font-family:var(--syne);font-style:italic;font-weight:600;color:#AEB5C6;display:block;margin-top:22px;font-size:13.5px}
+
+/* ---------- reveal + responsive ---------- */
+.rv{opacity:0;transform:translateY(26px);transition:opacity .8s cubic-bezier(.2,.6,.2,1),transform .8s cubic-bezier(.2,.6,.2,1)}
+.rv.in{opacity:1;transform:none}
+:focus-visible{outline:3px solid var(--violet);outline-offset:3px;border-radius:3px}
+
+@media(max-width:920px){
+  .policy-layout{grid-template-columns:1fr;gap:18px}
+  .directory{position:static;background:#fff;border:1px solid var(--line);border-radius:22px;padding:20px 16px}
+  .directory ol{columns:2;column-gap:18px}
+}
+@media(max-width:560px){
+  body{font-size:16px}
+  .p-hero{padding:128px 0 52px}
+  .directory ol{columns:1}
+}
+@media(prefers-reduced-motion:reduce){
+  .rv{opacity:1;transform:none;transition:none}
+  html{scroll-behavior:auto}
+  *{animation:none!important;transition:none!important}
+}
+
+/* ---------- resolution center ---------- */
+.rc-flow{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;max-width:900px;margin:0 auto 60px}
+@media(max-width:760px){.rc-flow{grid-template-columns:1fr;max-width:420px}}
+.rc-flow .f{background:#fff;border:1px solid var(--line);border-radius:20px;padding:26px 24px}
+.rc-flow .f .n{font-family:var(--futura);font-size:11.5px;letter-spacing:.16em;color:var(--violet);font-weight:600;text-transform:uppercase}
+.rc-flow .f h3{font-size:18px;margin:10px 0 6px}
+.rc-flow .f p{font-size:14.5px}
+
+.rc-wrap{max-width:780px;margin:0 auto}
+.rc-card{background:#fff;border:1px solid var(--line);border-radius:26px;padding:38px 38px 30px;box-shadow:0 30px 60px -34px rgba(27,35,54,.18)}
+@media(max-width:560px){.rc-card{padding:26px 20px}}
+
+.rc-prog{display:flex;gap:8px;margin-bottom:32px}
+.rc-prog .pstep{flex:1;display:flex;flex-direction:column;gap:8px}
+.rc-prog .bar{height:4px;border-radius:999px;background:var(--line);transition:background .3s}
+.rc-prog .pstep.active .bar,.rc-prog .pstep.done .bar{background:var(--violet)}
+.rc-prog .lab{font-family:var(--futura);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft);font-weight:600}
+.rc-prog .pstep.active .lab{color:var(--violet-deep)}
+@media(max-width:560px){.rc-prog .lab{display:none}}
+
+.rc-step{display:none}
+.rc-step.show{display:block;animation:rcfade .4s ease}
+@keyframes rcfade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.rc-q{font-family:var(--syne);font-weight:800;font-size:23px;letter-spacing:-.01em;color:var(--ink);margin-bottom:6px}
+.rc-sub{font-size:15px;color:var(--ink-soft);margin-bottom:24px}
+
+.opt-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:560px){.opt-grid{grid-template-columns:1fr}}
+.opt{text-align:left;background:#fff;border:1.5px solid var(--line);border-radius:16px;padding:18px;cursor:pointer;display:flex;gap:14px;align-items:flex-start;transition:border-color .2s,background .2s,transform .2s;font-family:var(--syne);color:var(--ink)}
+.opt:hover{transform:translateY(-2px);border-color:var(--lavender-line)}
+.opt.selected{border-color:var(--violet);background:var(--lavender)}
+.opt .oic{width:40px;height:40px;border-radius:11px;background:var(--lavender);display:grid;place-items:center;color:var(--violet);flex:none}
+.opt.selected .oic{background:#fff}
+.opt b{display:block;font-size:15.5px;font-weight:700;line-height:1.25}
+.opt small{display:block;font-size:12.5px;color:var(--ink-soft);margin-top:3px;font-weight:400}
+
+.field{margin-bottom:18px}
+.field label{display:block;font-family:var(--futura);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink);font-weight:600;margin-bottom:8px}
+.field input,.field textarea{width:100%;font-family:var(--syne);font-size:15.5px;color:var(--ink);background:var(--paper);border:1.5px solid var(--line);border-radius:12px;padding:13px 14px;transition:border-color .2s}
+.field input:focus,.field textarea:focus{outline:none;border-color:var(--violet)}
+.field textarea{resize:vertical;min-height:120px;line-height:1.55}
+.field .hint{font-size:12.5px;color:var(--ink-soft);margin-top:6px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:560px){.two{grid-template-columns:1fr}}
+
+.chips{display:flex;flex-wrap:wrap;gap:10px}
+.chip{font-family:var(--futura);font-size:12px;letter-spacing:.06em;text-transform:uppercase;font-weight:600;border:1.5px solid var(--lavender-line);color:var(--violet);background:#fff;border-radius:999px;padding:9px 16px;cursor:pointer;transition:all .2s}
+.chip[aria-pressed="true"]{background:var(--violet);color:#fff;border-color:var(--violet)}
+
+.urgent{background:#FEF4E7;border-left:3px solid var(--amber);border-radius:0 14px 14px 0;padding:16px 20px;margin:0 0 24px}
+.urgent .ul{display:block;font-family:var(--futura);text-transform:uppercase;letter-spacing:.14em;font-size:10.5px;font-weight:600;color:var(--amber-deep);margin-bottom:5px}
+.urgent p{margin:0;font-size:14.5px;color:#6b5328;line-height:1.55}
+.urgent strong{color:#8a5600}
+
+.summary-box{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:20px;white-space:pre-wrap;font-family:var(--syne);font-size:13.5px;line-height:1.6;color:var(--ink);max-height:330px;overflow:auto}
+.rc-dl{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-top:18px}
+.copied{font-family:var(--futura);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--sage);font-weight:600}
+.guide{margin-top:26px}
+.guide h4{font-family:var(--futura);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink);font-weight:600;margin-bottom:12px}
+.guide ol{list-style:none;counter-reset:g}
+.guide li{counter-increment:g;position:relative;padding-left:38px;margin-bottom:14px;font-size:14.5px;color:var(--ink-soft);line-height:1.55}
+.guide li::before{content:counter(g);position:absolute;left:0;top:-2px;width:26px;height:26px;border-radius:50%;background:var(--lavender);color:var(--violet);font-family:var(--futura);font-weight:600;font-size:13px;display:grid;place-items:center}
+.guide a{color:var(--violet);border-bottom:1px solid var(--lavender-line)}
+
+.rc-actions{display:flex;justify-content:space-between;align-items:center;gap:14px;margin-top:28px;padding-top:22px;border-top:1px solid var(--line)}
+.btn[disabled]{opacity:.38;cursor:not-allowed;transform:none!important;box-shadow:none}
+.btn-light{background:#fff;color:var(--ink);border-color:var(--line)}
+.btn-light:hover{transform:translateY(-2px);box-shadow:0 12px 28px rgba(27,35,54,.12)}
+.link-btn{font-family:var(--futura);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-soft);font-weight:600;background:none;border:none;cursor:pointer;padding:8px 4px}
+.link-btn:hover{color:var(--violet)}
+
+.neutral-note{text-align:center;font-size:13.5px;color:var(--ink-soft);max-width:620px;margin:24px auto 0;line-height:1.7}
+.neutral-note a{color:var(--violet);border-bottom:1px solid var(--lavender-line)}
+
+.rc-head{text-align:center;max-width:640px;margin:0 auto 44px}
+.rc-head h2{margin:16px 0 12px}
+.duo{display:grid;grid-template-columns:1fr 1fr;gap:22px;max-width:900px;margin:0 auto}
+@media(max-width:760px){.duo{grid-template-columns:1fr;max-width:480px}}
+.duo .d{background:#fff;border:1px solid var(--line);border-radius:22px;padding:30px 28px}
+.duo .d h3{font-size:19px;margin-bottom:16px}
+.duo .d ul{list-style:none}
+.duo .d li{position:relative;padding-left:28px;margin-bottom:11px;font-size:14.5px;color:var(--ink-soft);line-height:1.5}
+.duo .d.can{border-top:3px solid var(--sage)}
+.duo .d.cant{border-top:3px solid var(--amber)}
+.duo .d.can li::before{content:"";position:absolute;left:4px;top:.5em;width:8px;height:8px;border-radius:2px;background:var(--sage);transform:rotate(45deg)}
+.duo .d.cant li::before{content:"";position:absolute;left:3px;top:.62em;width:10px;height:2px;border-radius:2px;background:var(--amber-deep)}
+.p-hero .hero-help{font-size:13.5px;color:var(--ink-soft);margin-top:18px}
+.p-hero .hero-help a{color:var(--violet);border-bottom:1px solid var(--lavender-line)}
+
+
+/* Fix for button conflict */
+.help-cta .btn { font-size: 13.5px !important; }
+</style>
+{% endblock %}
+
+{% block content %}
+<header class="p-hero">
+  <div class="p-hero-grain" aria-hidden="true"></div>
+  <div class="wrap p-hero-in">
+    <p class="eyebrow rv">Resolution Center · neutral by design</p>
+    <h1 class="rv">Let's get it sorted.</h1>
+    <p class="lede rv">Most issues between neighbors clear up with one honest conversation. When they don't, this is where you document what happened and report it. Neighbor Service App stays neutral — we give you the tools; you and the other neighbor reach the resolution.</p>
+    <p class="hero-help rv">Having a technical or account problem instead? <a href="support.html">Visit Help &amp; Support →</a></p>
+  </div>
+</header>
+
+<!-- ======================= POLICY ======================= -->
+<main class="policy">
+  <div class="wrap">
+
+    <!-- neutral framing -->
+    <div class="rc-flow rv">
+      <div class="f"><span class="n">Step one</span><h3>Talk it through</h3><p>Message the other neighbor in the app. A quick, direct conversation resolves most issues faster than anything else.</p></div>
+      <div class="f"><span class="n">Step two</span><h3>Document everything</h3><p>Use the form below to put the facts in one place. Keep your photos, receipts, and messages together.</p></div>
+      <div class="f"><span class="n">Step three</span><h3>Report to NSA</h3><p>Send us your record. We review reports against our policies and can act on violations — we don't mediate the outcome.</p></div>
+    </div>
+
+    <!-- guided flow -->
+    <div class="rc-wrap rv">
+      <div class="rc-card">
+        <div class="rc-prog" aria-hidden="true">
+          <div class="pstep" data-p="0"><span class="bar"></span><span class="lab">You</span></div>
+          <div class="pstep" data-p="1"><span class="bar"></span><span class="lab">Issue</span></div>
+          <div class="pstep" data-p="2"><span class="bar"></span><span class="lab">Details</span></div>
+          <div class="pstep" data-p="3"><span class="bar"></span><span class="lab">Report</span></div>
+        </div>
+
+        <!-- step 0: role -->
+        <div class="rc-step" data-step="0">
+          <p class="rc-q">First, who are you in this?</p>
+          <p class="rc-sub">This helps us frame the steps for your side of the booking.</p>
+          <div class="opt-grid">
+            <button type="button" class="opt" data-role="seeker" data-label="Seeker (I hired help)">
+              <span class="oic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="6" stroke="currentColor" stroke-width="2"/><path d="M16 16l4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
+              <span><b>I'm a Seeker</b><small>I hired or booked help</small></span>
+            </button>
+            <button type="button" class="opt" data-role="provider" data-label="Provider (I offered help)">
+              <span class="oic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M3 20l3-8 6-3 6 3 3 8" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="12" cy="6" r="3" stroke="currentColor" stroke-width="2"/></svg></span>
+              <span><b>I'm a Provider</b><small>I offered or performed a service</small></span>
+            </button>
+          </div>
+        </div>
+
+        <!-- step 1: category -->
+        <div class="rc-step" data-step="1">
+          <p class="rc-q">What happened?</p>
+          <p class="rc-sub">Pick the closest match. You'll add the details next.</p>
+          <div class="opt-grid">
+            <button type="button" class="opt" data-cat="service" data-label="Service quality" data-hint="Describe what was agreed versus what actually happened.">
+              <span class="oic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M14 7a4 4 0 01-5 5l-5 5 2 2 5-5a4 4 0 005-5l-2 2-2-2 2-2z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></span>
+              <span><b>Service quality</b><small>Work wasn't done right or as agreed</small></span>
+            </button>
+            <button type="button" class="opt" data-cat="noshow" data-label="No-show or cancellation" data-hint="Note the scheduled time and when you realized it wasn't happening.">
+              <span class="oic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M12 7v5l3.2 2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
+              <span><b>No-show or cancellation</b><small>Someone didn't show or canceled late</small></span>
+            </button>
+            <button type="button" class="opt" data-cat="payment" data-label="Payment issue" data-hint="Include amounts, dates, and how payment was made.">
+              <span class="oic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="3" y="6" width="18" height="12" rx="3" stroke="currentColor" stroke-width="2"/><path d="M3 10h18" stroke="currentColor" stroke-width="2"/></svg></span>
+              <span><b>Payment issue</b><small>A charge, refund, or payment dispute</small></span>
+            </button>
+            <button type="button" class="opt" data-cat="property" data-label="Property damage or theft" data-hint="Describe what was damaged or missing and note any photos you have.">
+              <span class="oic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M3 11.5 12 4l9 7.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 10v9h14v-9" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></span>
+              <span><b>Property damage or theft</b><small>Damage, loss, or theft during a job</small></span>
+            </button>
+            <button type="button" class="opt" data-cat="safety" data-label="Safety concern" data-hint="Describe what happened. If you're in immediate danger, contact emergency services first.">
+              <span class="oic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 3l7 3v5c0 4.6-3 8.6-7 10-4-1.4-7-5.4-7-10V6l7-3z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M12 8v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="15.5" r="1" fill="currentColor"/></svg></span>
+              <span><b>Safety concern</b><small>Threats, harassment, or feeling unsafe</small></span>
+            </button>
+            <button type="button" class="opt" data-cat="reviews" data-label="Reviews or profile" data-hint="Quote the review or describe the profile problem.">
+              <span class="oic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 3.5l2.5 5.1 5.6.8-4 4 .9 5.6-5-2.7-5 2.7.9-5.6-4-4 5.6-.8L12 3.5z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></span>
+              <span><b>Reviews or profile</b><small>An unfair review or profile problem</small></span>
+            </button>
+            <button type="button" class="opt" data-cat="other" data-label="Something else" data-hint="Share the key facts: what, when, and who was involved.">
+              <span class="oic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="5" cy="12" r="1.6" fill="currentColor"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><circle cx="19" cy="12" r="1.6" fill="currentColor"/></svg></span>
+              <span><b>Something else</b><small>Anything not listed above</small></span>
+            </button>
+          </div>
+        </div>
+
+        <!-- step 2: details -->
+        <div class="rc-step" data-step="2">
+          <p class="rc-q">Add the details</p>
+          <p class="rc-sub">The clearer your record, the easier it is to resolve. Only the description is required.</p>
+          <div class="urgent" id="urgent" style="display:none"><span class="ul" id="urgentLabel"></span><p id="urgentText"></p></div>
+          <div class="two">
+            <div class="field"><label for="ref">Booking or job reference</label><input id="ref" type="text" autocomplete="off" placeholder="e.g. NSA-48213"><p class="hint">Optional — find it under your bookings.</p></div>
+            <div class="field"><label for="other">The other neighbor</label><input id="other" type="text" autocomplete="off" placeholder="Name or @handle"><p class="hint">Optional, if you have it.</p></div>
+          </div>
+          <div class="field" style="max-width:260px"><label for="date">Date of service</label><input id="date" type="date"></div>
+          <div class="field"><label for="desc">What happened?</label><textarea id="desc" placeholder="Describe the situation in your own words…"></textarea><p class="hint" id="descHint">Share the key facts: what, when, and who was involved.</p></div>
+          <div class="field">
+            <label>What outcome are you hoping for?</label>
+            <div class="chips" id="chips">
+              <button type="button" class="chip" aria-pressed="false" data-out="Refund">Refund</button>
+              <button type="button" class="chip" aria-pressed="false" data-out="Partial refund">Partial refund</button>
+              <button type="button" class="chip" aria-pressed="false" data-out="Redo the work">Redo the work</button>
+              <button type="button" class="chip" aria-pressed="false" data-out="Cancel booking">Cancel booking</button>
+              <button type="button" class="chip" aria-pressed="false" data-out="Apology">Apology</button>
+              <button type="button" class="chip" aria-pressed="false" data-out="Other">Other</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- step 3: review -->
+        <div class="rc-step" data-step="3">
+          <p class="rc-q">Your resolution record</p>
+          <p class="rc-sub">Here's everything in one place. Copy or download it for your records, then follow the steps below.</p>
+          <div class="summary-box" id="summary" tabindex="0" aria-label="Resolution record summary"></div>
+          <div class="rc-dl">
+            <button type="button" class="btn btn-primary" id="submitBtn">Submit to NSA</button>
+            <button type="button" class="btn btn-light" id="downloadBtn">Download</button>
+            <button type="button" class="btn btn-light" id="copyBtn">Copy</button>
+            <span class="copied" id="copied" hidden>Copied ✓</span>
+            <span class="copied" id="submittedMsg" hidden style="color:var(--violet)">Submitted ✓</span>
+          </div>
+          <div class="guide">
+            <h4>What to do next</h4>
+            <ol>
+              <li>Message the other neighbor in the app and share what you're hoping for. Most issues end here.</li>
+              <li>Keep your evidence together — photos, receipts, and your in-app messages.</li>
+              <li>If it isn't resolved, submit this record to NSA at <a href="mailto:[Insert Email]">[Insert Email]</a> or tap “Report a concern” in the app. We review it against our policies.</li>
+            </ol>
+          </div>
+        </div>
+
+        <!-- actions -->
+        <div class="rc-actions">
+          <button type="button" class="link-btn" id="backBtn" style="visibility:hidden">← Back</button>
+          <button type="button" class="btn btn-primary" id="nextBtn" disabled>Continue</button>
+        </div>
+      </div>
+
+      <p class="neutral-note">Neighbor Service App is a neutral marketplace. We provide tools to document and report issues, but we don't mediate disputes or guarantee outcomes — see <a href="terms.html#disputes">Terms, Section 12</a>. Nothing is sent to NSA until you submit your record.</p>
+    </div>
+  </div>
+
+  <!-- can / can't -->
+  <div style="padding-top:96px">
+    <div class="wrap">
+      <div class="rc-head rv">
+        <p class="eyebrow">Knowing the boundaries</p>
+        <h2>What NSA Can &amp; Can't Do</h2>
+      </div>
+      <div class="duo rv">
+        <div class="d can">
+          <h3>What we can do</h3>
+          <ul>
+            <li>Give you tools to document and report an issue</li>
+            <li>Review reports against our platform policies</li>
+            <li>Remove reviews or content that break the rules</li>
+            <li>Suspend or terminate accounts for violations, fraud, or safety concerns</li>
+            <li>Point you to the right next step</li>
+          </ul>
+        </div>
+        <div class="d cant">
+          <h3>What we can't do</h3>
+          <ul>
+            <li>Mediate or decide disputes between users</li>
+            <li>Guarantee a refund, redo, or any specific outcome</li>
+            <li>Control or recover payments made off-platform</li>
+            <li>Take responsibility for services, property access, or interactions between users</li>
+            <li>Act as your legal representative</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+/* nav border on scroll */
+var nav=document.getElementById('nav');
+addEventListener('scroll',function(){nav.classList.toggle('scrolled',scrollY>10);},{passive:true});
+
+/* scroll reveals */
+var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}});},{threshold:.14});
+document.querySelectorAll('.rv').forEach(function(el){io.observe(el);});
+
+/* directory scroll-spy */
+var tocLinks=Array.prototype.slice.call(document.querySelectorAll('.directory a'));
+var map={};
+tocLinks.forEach(function(a){map[a.getAttribute('href').slice(1)]=a;});
+var sections=Array.prototype.slice.call(document.querySelectorAll('.sec'));
+if('IntersectionObserver' in window){
+  var current=null;
+  var spy=new IntersectionObserver(function(entries){
+    entries.forEach(function(entry){
+      if(entry.isIntersecting){
+        if(current)current.classList.remove('active');
+        var link=map[entry.target.id];
+        if(link){link.classList.add('active');current=link;}
+      }
+    });
+  },{rootMargin:'-28% 0px -62% 0px',threshold:0});
+  sections.forEach(function(s){spy.observe(s);});
+}
+</script>
+<script>
+(function(){
+  var state={role:'',roleLabel:'',cat:'',catLabel:'',hint:'',ref:'',other:'',date:'',desc:'',outcome:[]};
+  var step=0, last=3;
+  var steps=document.querySelectorAll('.rc-step');
+  var pSteps=document.querySelectorAll('.rc-prog .pstep');
+  var nextBtn=document.getElementById('nextBtn');
+  var backBtn=document.getElementById('backBtn');
+
+  function render(){
+    steps.forEach(function(s){s.classList.toggle('show', +s.dataset.step===step);});
+    pSteps.forEach(function(p){var i=+p.dataset.p;p.classList.toggle('active',i===step);p.classList.toggle('done',i<step);});
+    backBtn.style.visibility = step===0 ? 'hidden':'visible';
+    if(step===last){nextBtn.textContent='Start over';nextBtn.disabled=false;}
+    else{nextBtn.textContent='Continue';nextBtn.disabled=!canAdvance();}
+    var card=document.querySelector('.rc-card'); if(card&&step>0){card.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'});}
+  }
+  function canAdvance(){
+    if(step===0) return !!state.role;
+    if(step===1) return !!state.cat;
+    if(step===2) return document.getElementById('desc').value.trim().length>3;
+    return true;
+  }
+  function refresh(){ if(step!==last) nextBtn.disabled=!canAdvance(); }
+
+  // role select
+  document.querySelectorAll('[data-role]').forEach(function(b){
+    b.addEventListener('click',function(){
+      document.querySelectorAll('[data-role]').forEach(function(x){x.classList.remove('selected');});
+      b.classList.add('selected');
+      state.role=b.dataset.role; state.roleLabel=b.dataset.label; refresh();
+    });
+  });
+  // category select
+  document.querySelectorAll('[data-cat]').forEach(function(b){
+    b.addEventListener('click',function(){
+      document.querySelectorAll('[data-cat]').forEach(function(x){x.classList.remove('selected');});
+      b.classList.add('selected');
+      state.cat=b.dataset.cat; state.catLabel=b.dataset.label; state.hint=b.dataset.hint; refresh();
+    });
+  });
+  // outcome chips
+  document.querySelectorAll('#chips .chip').forEach(function(c){
+    c.addEventListener('click',function(){
+      var on=c.getAttribute('aria-pressed')==='true';
+      c.setAttribute('aria-pressed', on?'false':'true');
+      var v=c.dataset.out;
+      if(on){state.outcome=state.outcome.filter(function(x){return x!==v;});}
+      else{state.outcome.push(v);}
+    });
+  });
+  document.getElementById('desc').addEventListener('input',refresh);
+
+  function enterDetails(){
+    document.getElementById('descHint').textContent=state.hint||'Share the key facts: what, when, and who was involved.';
+    var u=document.getElementById('urgent'), ul=document.getElementById('urgentLabel'), ut=document.getElementById('urgentText');
+    if(state.cat==='safety'){
+      u.style.display='block'; ul.textContent='Your safety comes first';
+      ut.innerHTML='<strong>If you are in immediate danger, call 911.</strong> You can document the incident here afterward. For threats or harassment, consider contacting local law enforcement as well.';
+    } else if(state.cat==='property'){
+      u.style.display='block'; ul.textContent='Before you document';
+      ut.innerHTML='For theft or significant damage, <strong>consider filing a report with local police</strong> \u2014 a report number helps everyone. Keep photos and receipts together.';
+    } else { u.style.display='none'; }
+  }
+
+  function buildSummary(){
+    state.ref=document.getElementById('ref').value.trim();
+    state.other=document.getElementById('other').value.trim();
+    state.date=document.getElementById('date').value;
+    state.desc=document.getElementById('desc').value.trim();
+    var ref='NSA-RC-'+Math.random().toString(36).slice(2,8).toUpperCase();
+    var L=[];
+    L.push('NEIGHBOR SERVICE APP \u2014 RESOLUTION RECORD');
+    L.push('Reference (for your records): '+ref);
+    L.push('Created: '+new Date().toLocaleString());
+    L.push('');
+    if(state.cat==='safety') L.push('** SAFETY CONCERN \u2014 if in immediate danger, call 911 **\n');
+    if(state.cat==='property') L.push('** PROPERTY / THEFT \u2014 consider a local police report **\n');
+    L.push('Your role: '+(state.roleLabel||'\u2014'));
+    L.push('Issue type: '+(state.catLabel||'\u2014'));
+    L.push('Booking reference: '+(state.ref||'Not provided'));
+    L.push('Other neighbor: '+(state.other||'Not provided'));
+    L.push('Date of service: '+(state.date||'Not provided'));
+    L.push('');
+    L.push('WHAT HAPPENED');
+    L.push(state.desc||'\u2014');
+    L.push('');
+    L.push('HOPED-FOR OUTCOME');
+    L.push(state.outcome.length?state.outcome.join(', '):'Not specified');
+    L.push('');
+    L.push('NEXT STEPS');
+    L.push('1. Try to resolve directly with the other neighbor via in-app messaging.');
+    L.push('2. Keep your evidence: photos, receipts, and messages.');
+    L.push('3. Submit this record to NSA at [Insert Email] or "Report a concern" in the app.');
+    L.push('');
+    L.push('NOTE: Neighbor Service App is a neutral marketplace. We provide tools to');
+    L.push('document and report issues but do not mediate disputes or guarantee');
+    L.push('outcomes. See Terms & Conditions, Section 12.');
+    return {ref:ref,text:L.join('\n')};
+  }
+
+  var current=null;
+  function showReview(){ current=buildSummary(); document.getElementById('summary').textContent=current.text; }
+
+  nextBtn.addEventListener('click',function(){
+    if(step===last){ // start over
+      step=0; state={role:'',roleLabel:'',cat:'',catLabel:'',hint:'',ref:'',other:'',date:'',desc:'',outcome:[]};
+      document.querySelectorAll('.opt.selected').forEach(function(x){x.classList.remove('selected');});
+      document.querySelectorAll('#chips .chip').forEach(function(c){c.setAttribute('aria-pressed','false');});
+      ['ref','other','date','desc'].forEach(function(id){document.getElementById(id).value='';});
+      document.getElementById('urgent').style.display='none';
+      render(); return;
+    }
+    if(!canAdvance()) return;
+    step++;
+    if(step===2) enterDetails();
+    if(step===3) showReview();
+    render();
+  });
+  backBtn.addEventListener('click',function(){ if(step>0){step--; render();} });
+
+  document.getElementById('copyBtn').addEventListener('click',function(){
+    if(!current) return;
+    var done=function(){var c=document.getElementById('copied');c.hidden=false;setTimeout(function(){c.hidden=true;},2200);};
+    if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(current.text).then(done).catch(fallback);}
+    else fallback();
+    function fallback(){var t=document.createElement('textarea');t.value=current.text;document.body.appendChild(t);t.select();try{document.execCommand('copy');done();}catch(e){}document.body.removeChild(t);}
+  });
+  document.getElementById('downloadBtn').addEventListener('click',function(){
+    if(!current) return;
+    var blob=new Blob([current.text],{type:'text/plain'});
+    var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='resolution-record-'+current.ref+'.txt';
+    document.body.appendChild(a);a.click();document.body.removeChild(a);setTimeout(function(){URL.revokeObjectURL(a.href);},1000);
+  });
+
+  document.getElementById('submitBtn').addEventListener('click',function(){
+    var btn = this;
+    btn.disabled = true;
+    btn.textContent = 'Submitting...';
+    
+    fetch('{% url "public_site:resolution" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({
+            role: state.role,
+            issue_type: state.cat,
+            booking_ref: state.ref,
+            other_neighbor: state.other,
+            date_of_service: state.date,
+            description: state.desc,
+            expected_outcome: state.outcome.join(', ')
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        btn.textContent = 'Submit to NSA';
+        btn.disabled = false;
+        if (data.status === 'success') {
+            var msg = document.getElementById('submittedMsg');
+            msg.hidden = false;
+            setTimeout(function(){ msg.hidden = true; }, 3000);
+        } else {
+            alert('Error submitting report: ' + data.message);
+        }
+    })
+    .catch(error => {
+        btn.textContent = 'Submit to NSA';
+        btn.disabled = false;
+        alert('An error occurred. Please try again.');
+    });
+  });
+
+  render();
+})();
+</script>
+{% endblock %}
