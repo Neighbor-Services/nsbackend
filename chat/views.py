@@ -19,16 +19,14 @@ class ConversationViewSet(viewsets.ModelViewSet):
 
         # Get conversation IDs where the current user is involved in a block
         # (either as blocker or blocked)
-        blocked_conv_ids = ChatBlock.objects.filter(
-            conversation__participants=self.request.user
-        ).filter(
-            blocker=self.request.user
-        ).values_list('conversation_id', flat=True)
+        # blocked_conv_ids = ChatBlock.objects.filter(
+        #     conversation__participants=self.request.user
+        # ).filter(
+        #     blocker=self.request.user
+        # ).values_list('conversation_id', flat=True)
 
         return Conversation.objects.filter(
             participants=self.request.user
-        ).exclude(
-            id__in=blocked_conv_ids
         ).prefetch_related(
             'participants',
             Prefetch(
@@ -52,6 +50,7 @@ class ConversationViewSet(viewsets.ModelViewSet):
         return Response(self._wrap_conversations(serializer.data, request))
 
     from rest_framework.decorators import action
+
     @action(detail=False, methods=['post'], url_path='set_seen')
     def set_seen(self, request):
         receiver_id = request.data.get('receiver_id')
