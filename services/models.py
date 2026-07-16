@@ -54,8 +54,8 @@ class ServiceRequest(models.Model):
     service_type = models.CharField(max_length=255, null=True, blank=True) # Preserving for legacy/dynamic types
     with_image = models.BooleanField(default=False)
     image = models.ImageField(upload_to='requests/', blank=True, null=True)
-    longitude = models.DecimalField(max_digits=22, decimal_places=16, blank=True, null=True)
-    latitude = models.DecimalField(max_digits=22, decimal_places=16, blank=True, null=True)
+    longitude = models.DecimalField(max_digits=22, decimal_places=50, blank=True, null=True)
+    latitude = models.DecimalField(max_digits=22, decimal_places=50, blank=True, null=True)
     scheduled_time = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
