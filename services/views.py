@@ -87,7 +87,7 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
     authentication_classes = (JWTAuthentication,)
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['title', 'description', 'catalog_service__name']
-    filterset_fields = ['catalog_service', 'status', 'user', 'target_provider']
+    filterset_fields = ['status', 'user', 'target_provider']
     ordering_fields = ['created_at', 'price', 'scheduled_time']
 
     def list(self, request, *args, **kwargs):
@@ -151,7 +151,30 @@ class ServiceRequestViewSet(viewsets.ModelViewSet):
         
         # Prevent duplicates due to the M2M NOT criteria evaluation
         queryset = queryset.distinct()
-        
+
+        # ── Catalog-service filter ────────────────────────────────────────────
+        # Accepts either a single UUID or a comma-separated list of UUIDs.
+        # e.g.  ?catalog_service=uuid1
+        #       ?catalog_service=uuid1,uuid2,uuid3
+        catalog_service_param = self.request.query_params.get('catalog_service')
+        if catalog_service_param:
+            service_ids = [s.strip() for s in catalog_service_param.split(',') if s.strip()]
+            if len(service_ids) > 1:
+                queryset = queryset.filter(catalog_service__id__in=service_ids)
+            elif len(service_ids) == 1:
+                queryset = queryset.filter(catalog_service__id=service_ids[0])
+
+        # Also allow filtering by catalog service name (case-insensitive)
+        catalog_service_name_param = self.request.query_params.get('catalog_service_name')
+        if catalog_service_name_param:
+            names = [n.strip() for n in catalog_service_name_param.split(',') if n.strip()]
+            if names:
+                name_q = Q()
+                for name in names:
+                    name_q |= Q(catalog_service__name__icontains=name)
+                queryset = queryset.filter(name_q)
+        # ─────────────────────────────────────────────────────────────────────
+
         # Prefetch related data for serialization (eliminates N+1 queries)
         queryset = queryset.prefetch_related(
             'proposals',

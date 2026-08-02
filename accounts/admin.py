@@ -57,6 +57,9 @@ class ProfileAdmin(ModelAdmin):
         ('System', {
             'fields': ('device_token', 'bio_embedding')
         }),
+        ('Profile', {
+            'fields': ('is_identity_verified')
+        })
     )
     readonly_fields = ('average_rating', 'total_reviews', 'bio_embedding')
 

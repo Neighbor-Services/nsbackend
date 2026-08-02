@@ -23,6 +23,11 @@ REPLICATION_USER="ns_replica"
 REPLICATION_PASSWORD="gentechco_replica_pass"
 BACKUP_RETENTION_DAYS=30
 
+# ── Database credentials (set these before running) ──────────────────────────
+DB_NAME=""          # e.g. nsapp
+DB_USER=""          # e.g. ns_backend
+DB_PASSWORD=""      # e.g. your-secure-db-password
+
 # Colors
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -119,12 +124,20 @@ echo "========================================="
 echo ""
 
 echo -e "${YELLOW}Step 5: Setting up PostgreSQL primary database...${NC}"
+
+# Validate DB credentials are set
+if [ -z "$DB_NAME" ] || [ -z "$DB_USER" ] || [ -z "$DB_PASSWORD" ]; then
+    echo -e "${RED}✗ DB_NAME, DB_USER, and DB_PASSWORD must be set in the Configuration section before running.${NC}"
+    exit 1
+fi
+
 # Using PostgreSQL 18 with explicit user/group (consistent with systemd service)
-sudo -u postgres /usr/lib/postgresql/18/bin/psql -c "CREATE DATABASE nsapp;" || echo "Database already exists"
-sudo -u postgres /usr/lib/postgresql/18/bin/psql -c "CREATE USER $USER WITH PASSWORD 'gentechco';" || echo "User already exists"
-sudo -u postgres /usr/lib/postgresql/18/bin/psql -c "GRANT ALL PRIVILEGES ON DATABASE nsapp TO $USER;"
+sudo -u postgres /usr/lib/postgresql/18/bin/psql -c "CREATE DATABASE $DB_NAME;" || echo "Database already exists"
+sudo -u postgres /usr/lib/postgresql/18/bin/psql -c "CREATE USER $DB_USER WITH PASSWORD '$DB_PASSWORD';" || echo "User already exists"
+sudo -u postgres /usr/lib/postgresql/18/bin/psql -c "GRANT ALL PRIVILEGES ON DATABASE $DB_NAME TO $DB_USER;"
 # Fix for PostgreSQL 15+: Grant creation rights on public schema
-sudo -u postgres /usr/lib/postgresql/18/bin/psql -d nsapp -c "ALTER SCHEMA public OWNER TO $USER;"
+sudo -u postgres /usr/lib/postgresql/18/bin/psql -d $DB_NAME -c "ALTER SCHEMA public OWNER TO $DB_USER;"
+sudo -u postgres /usr/lib/postgresql/18/bin/psql -d $DB_NAME -c "GRANT ALL ON SCHEMA public TO $DB_USER;"
 
 echo -e "${GREEN}✓ Primary database configured${NC}"
 
@@ -291,7 +304,7 @@ if [ "$BACKUP_CHOICE" = "1" ]; then
 APP_DIR="/opt/ns_backend"
 BACKUP_DIR="$APP_DIR/backups/postgres"
 BACKUP_KEY_FILE="$APP_DIR/backup_key.bin"
-DB_NAME="nsapp"
+DB_NAME="__DB_NAME__"
 RETENTION_DAYS=30
 DATE=$(date +%Y%m%d_%H%M%S)
 TEMP_FILE="$BACKUP_DIR/${DB_NAME}_${DATE}.sql.gz"
@@ -330,9 +343,13 @@ else
     exit 1
 fi
 BACKUP_SCRIPT
-    
+
+    # Inject the actual DB_NAME value into the backup script
+    sed -i "s/__DB_NAME__/$DB_NAME/g" $APP_DIR/backup_postgres.sh
+
     chmod +x $APP_DIR/backup_postgres.sh
     chown root:root $APP_DIR/backup_postgres.sh
+
     
     # Add to crontab (daily at 2 AM)
     (crontab -l 2>/dev/null | grep -v "backup_postgres.sh"; echo "0 2 * * * $APP_DIR/backup_postgres.sh >> $APP_DIR/logs/backup.log 2>&1") | crontab -
