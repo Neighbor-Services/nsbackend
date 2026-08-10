@@ -4,7 +4,7 @@
 # Key differences from production:
 #   - Single daphne instance (port 7100) — no replicas
 #   - No PostgreSQL read-replica setup
-#   - Let's Encrypt SSL (Certbot) instead of Cloudflare Origin Cert
+#   - Cloudflare Origin Certificate (same as production) instead of Let's Encrypt
 #   - Celery concurrency capped at 2 workers
 #   - Encrypted backups retained for 7 days (vs 30 in production)
 #   - Separate staging database (nsapp_staging)
@@ -38,7 +38,6 @@ STAGING_DB_PASSWORD="gentechco"     # update if you prefer a distinct staging pa
 # Staging domain — update before running
 STAGING_DOMAIN="staging.neighborservice.com"
 STAGING_API_DOMAIN="api.staging.neighborservice.com"
-STAGING_EMAIL="devops@neighborservice.com"  # Used by Certbot for expiry notices
 
 # Colors
 GREEN='\033[0;32m'
@@ -102,7 +101,7 @@ echo "   Main domain    : $STAGING_DOMAIN"
 echo "   API domain     : $STAGING_API_DOMAIN"
 echo "   App port       : $APP_PORT"
 echo "   Database       : $STAGING_DB_NAME"
-echo "   SSL            : Let's Encrypt (Certbot)"
+echo "   SSL            : Cloudflare Origin Certificate"
 echo "   ─────────────────────────────────────────────"
 echo ""
 read -p "   Proceed with staging deployment? [y/N]: " CONFIRM
@@ -137,8 +136,7 @@ apt-get install -y \
     cron \
     openssl
 
-# Certbot via snap (preferred on modern Ubuntu) or apt fallback
-snap install --classic certbot 2>/dev/null || apt-get install -y certbot python3-certbot-nginx
+# Certbot not needed — using Cloudflare Origin Certificate
 
 echo -e "${GREEN}✓ System dependencies installed${NC}"
 
@@ -327,53 +325,46 @@ supervisorctl update
 echo -e "${GREEN}✓ Supervisor configured${NC}"
 
 # ─────────────────────────────────────────────
-# Phase 5: Nginx + Let's Encrypt SSL
+# Phase 5: Nginx + Cloudflare SSL
 # ─────────────────────────────────────────────
 echo ""
 echo "========================================="
-echo "Phase 5: Nginx & Let's Encrypt SSL"
+echo "Phase 5: Nginx & Cloudflare SSL"
 echo "========================================="
 echo ""
 
-echo -e "${YELLOW}Step 9: Writing temporary Nginx config for ACME challenge...${NC}"
+echo -e "${YELLOW}Step 9: Setting up Cloudflare Origin Certificate...${NC}"
 
-mkdir -p /var/www/certbot
+mkdir -p /etc/ssl/cloudflare
+chmod 755 /etc/ssl/cloudflare
 
-cat > /etc/nginx/sites-available/$APP_NAME << EOF
-server {
-    listen 80;
-    server_name $STAGING_DOMAIN $STAGING_API_DOMAIN;
+if [ ! -s /etc/ssl/cloudflare/origin.pem ] || [ ! -s /etc/ssl/cloudflare/origin-key.pem ]; then
+    echo ""
+    echo "========================================="
+    echo "Cloudflare Origin Certificate Setup"
+    echo "========================================="
+    echo ""
+    echo "Please follow these steps in the Cloudflare Dashboard:"
+    echo "1. Go to SSL/TLS → Origin Server"
+    echo "2. Click 'Create Certificate'"
+    echo "3. Hostnames: $STAGING_DOMAIN, *.$STAGING_DOMAIN"
+    echo "4. Validity: 15 years"
+    echo "5. Click 'Create'"
+    echo ""
+    echo -e "${YELLOW}Paste the Origin Certificate below and press Ctrl+D when done:${NC}"
+    cat > /etc/ssl/cloudflare/origin.pem
 
-    location /.well-known/acme-challenge/ {
-        root /var/www/certbot;
-    }
+    echo ""
+    echo -e "${YELLOW}Paste the Private Key below and press Ctrl+D when done:${NC}"
+    cat > /etc/ssl/cloudflare/origin-key.pem
 
-    location / {
-        return 301 https://\$host\$request_uri;
-    }
-}
-EOF
+    chmod 644 /etc/ssl/cloudflare/origin.pem
+    chmod 600 /etc/ssl/cloudflare/origin-key.pem
 
-ln -sf /etc/nginx/sites-available/$APP_NAME /etc/nginx/sites-enabled/
-rm -f /etc/nginx/sites-enabled/default
+    echo -e "${GREEN}✓ Cloudflare certificates saved${NC}"
+fi
 
-nginx -t && systemctl reload nginx
-echo -e "${GREEN}✓ Temporary Nginx config applied${NC}"
-
-echo ""
-echo -e "${YELLOW}Step 10: Obtaining Let's Encrypt certificates...${NC}"
-
-certbot certonly \
-    --webroot \
-    --webroot-path=/var/www/certbot \
-    --non-interactive \
-    --agree-tos \
-    --email "$STAGING_EMAIL" \
-    --domains "$STAGING_DOMAIN,$STAGING_API_DOMAIN"
-
-echo -e "${GREEN}✓ Let's Encrypt certificates issued${NC}"
-
-echo -e "${YELLOW}Step 11: Writing final Nginx config with SSL (main + API subdomains)...${NC}"
+echo -e "${YELLOW}Step 10: Writing Nginx config (Cloudflare SSL)...${NC}"
 
 cat > /etc/nginx/sites-available/$APP_NAME << EOF
 # ─── Neighbor Service Staging Nginx ─────────────────────────────────────────
@@ -400,16 +391,28 @@ server {
     listen 443 ssl http2;
     server_name $STAGING_API_DOMAIN;
 
-    ssl_certificate     /etc/letsencrypt/live/$STAGING_DOMAIN/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/$STAGING_DOMAIN/privkey.pem;
+    ssl_certificate     /etc/ssl/cloudflare/origin.pem;
+    ssl_certificate_key /etc/ssl/cloudflare/origin-key.pem;
     ssl_protocols       TLSv1.2 TLSv1.3;
     ssl_ciphers         ECDHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384;
     ssl_prefer_server_ciphers on;
     ssl_session_cache   shared:SSL:10m;
 
-    # Restrict access to team IPs only (uncomment and fill in)
-    # allow  YOUR.TEAM.IP.HERE/32;
-    # deny   all;
+    # Cloudflare Real IP
+    set_real_ip_from 173.245.48.0/20;
+    set_real_ip_from 103.21.244.0/22;
+    set_real_ip_from 103.22.200.0/22;
+    set_real_ip_from 103.31.4.0/22;
+    set_real_ip_from 141.101.64.0/18;
+    set_real_ip_from 108.162.192.0/18;
+    set_real_ip_from 190.93.240.0/20;
+    set_real_ip_from 188.114.96.0/20;
+    set_real_ip_from 197.234.240.0/22;
+    set_real_ip_from 198.41.128.0/17;
+    set_real_ip_from 162.158.0.0/15;
+    set_real_ip_from 104.16.0.0/13;
+    set_real_ip_from 172.64.0.0/13;
+    real_ip_header CF-Connecting-IP;
 
     client_max_body_size 100M;
 
@@ -468,7 +471,6 @@ server {
         proxy_set_header X-Forwarded-Proto \$scheme;
     }
 
-    # Redirect everything else on the API subdomain to the main staging site
     location / {
         return 301 https://$STAGING_DOMAIN\$request_uri;
     }
@@ -482,16 +484,28 @@ server {
     listen 443 ssl http2;
     server_name $STAGING_DOMAIN;
 
-    ssl_certificate     /etc/letsencrypt/live/$STAGING_DOMAIN/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/$STAGING_DOMAIN/privkey.pem;
+    ssl_certificate     /etc/ssl/cloudflare/origin.pem;
+    ssl_certificate_key /etc/ssl/cloudflare/origin-key.pem;
     ssl_protocols       TLSv1.2 TLSv1.3;
     ssl_ciphers         ECDHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384;
     ssl_prefer_server_ciphers on;
     ssl_session_cache   shared:SSL:10m;
 
-    # Restrict access to team IPs only (uncomment and fill in)
-    # allow  YOUR.TEAM.IP.HERE/32;
-    # deny   all;
+    # Cloudflare Real IP
+    set_real_ip_from 173.245.48.0/20;
+    set_real_ip_from 103.21.244.0/22;
+    set_real_ip_from 103.22.200.0/22;
+    set_real_ip_from 103.31.4.0/22;
+    set_real_ip_from 141.101.64.0/18;
+    set_real_ip_from 108.162.192.0/18;
+    set_real_ip_from 190.93.240.0/20;
+    set_real_ip_from 188.114.96.0/20;
+    set_real_ip_from 197.234.240.0/22;
+    set_real_ip_from 198.41.128.0/17;
+    set_real_ip_from 162.158.0.0/15;
+    set_real_ip_from 104.16.0.0/13;
+    set_real_ip_from 172.64.0.0/13;
+    real_ip_header CF-Connecting-IP;
 
     client_max_body_size 100M;
 
@@ -533,7 +547,18 @@ server {
     access_log $APP_DIR/logs/nginx-access.log;
     error_log  $APP_DIR/logs/nginx-error.log warn;
 }
+
+server {
+    listen 443 ssl http2 default_server;
+    server_name _;
+    ssl_certificate     /etc/ssl/cloudflare/origin.pem;
+    ssl_certificate_key /etc/ssl/cloudflare/origin-key.pem;
+    return 444;
+}
 EOF
+
+ln -sf /etc/nginx/sites-available/$APP_NAME /etc/nginx/sites-enabled/
+rm -f /etc/nginx/sites-enabled/default
 
 nginx -t
 
@@ -546,10 +571,7 @@ else
     exit 1
 fi
 
-# Weekly auto-renew cron for Let's Encrypt (Sunday midnight)
-(crontab -l 2>/dev/null | grep -v "certbot renew"; \
-    echo "0 0 * * 0 certbot renew --quiet --post-hook 'systemctl reload nginx'") | crontab -
-echo -e "${GREEN}✓ Let's Encrypt auto-renewal cron registered (weekly)${NC}"
+echo -e "${GREEN}✓ Cloudflare SSL configured — certificates are valid for 15 years${NC}"
 
 # ─────────────────────────────────────────────
 # Phase 6: Permissions & Start Services
@@ -616,7 +638,7 @@ echo -e "${CYAN}App instance   :${NC} 1  (port $APP_PORT)"
 echo -e "${CYAN}Main URL       :${NC} https://$STAGING_DOMAIN"
 echo -e "${CYAN}API URL        :${NC} https://$STAGING_API_DOMAIN"
 echo -e "${CYAN}Database       :${NC} $STAGING_DB_NAME"
-echo -e "${CYAN}SSL            :${NC} Let's Encrypt ✓"
+echo -e "${CYAN}SSL            :${NC} Cloudflare Origin Certificate ✓"
 echo ""
 
 if [ "$BACKUP_CHOICE" = "1" ]; then
@@ -657,7 +679,7 @@ echo "  Restart all      : sudo supervisorctl restart ${APP_NAME}_all:*"
 echo "  App logs         : tail -f $APP_DIR/logs/daphne.log"
 echo "  Celery logs      : tail -f $APP_DIR/logs/celery.log"
 echo "  Nginx logs       : tail -f $APP_DIR/logs/nginx-access.log"
-echo "  Renew SSL now    : sudo certbot renew --force-renewal"
+echo "  SSL cert        : /etc/ssl/cloudflare/origin.pem (15-year Cloudflare Origin Cert)"
 echo ""
 echo "  Create superuser :"
 echo "    cd $APP_DIR && source venv/bin/activate && python manage.py createsuperuser"
