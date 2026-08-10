@@ -338,7 +338,7 @@ echo -e "${YELLOW}Step 9: Setting up Cloudflare Origin Certificate...${NC}"
 mkdir -p /etc/ssl/cloudflare
 chmod 755 /etc/ssl/cloudflare
 
-if [ ! -s /etc/ssl/cloudflare/origin.pem ] || [ ! -s /etc/ssl/cloudflare/origin-key.pem ]; then
+# if [ ! -s /etc/ssl/cloudflare/origin.pem ] || [ ! -s /etc/ssl/cloudflare/origin-key.pem ]; then
     echo ""
     echo "========================================="
     echo "Cloudflare Origin Certificate Setup"
@@ -362,7 +362,7 @@ if [ ! -s /etc/ssl/cloudflare/origin.pem ] || [ ! -s /etc/ssl/cloudflare/origin-
     chmod 600 /etc/ssl/cloudflare/origin-key.pem
 
     echo -e "${GREEN}✓ Cloudflare certificates saved${NC}"
-fi
+# fi
 
 echo -e "${YELLOW}Step 10: Writing Nginx config (Cloudflare SSL)...${NC}"
 
