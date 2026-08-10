@@ -11,8 +11,8 @@ echo "========================================="
 echo ""
 
 # Configuration
-APP_NAME="ns_backend"
-APP_DIR="/opt/ns_backend"
+APP_NAME="ns_backend_prod"
+APP_DIR="/opt/ns_backend_prod"
 VENV_DIR="$APP_DIR/venv"
 DOMAIN="neighborservice.com"  # Update this if your domain is different (e.g. .gh)
 USER="afari"
@@ -24,7 +24,7 @@ REPLICATION_PASSWORD="gentechco_replica_pass"
 BACKUP_RETENTION_DAYS=30
 
 # ── Database credentials (set these before running) ──────────────────────────
-DB_NAME=""          # e.g. nsapp
+DB_NAME="neighborservice"          # e.g. nsapp
 DB_USER=""          # e.g. ns_backend
 DB_PASSWORD=""      # e.g. your-secure-db-password
 
