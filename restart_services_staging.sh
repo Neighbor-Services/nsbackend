@@ -28,14 +28,9 @@ echo -e "${YELLOW}1. Restarting Redis Instances...${NC}"
 systemctl restart redis-server || echo "Primary Redis not found"
 echo -e "${GREEN}✓ Redis services restarted${NC}"
 
-echo -e "${YELLOW}2. Restarting Application (Supervisor)...${NC}"
-supervisorctl restart ${APP_NAME}_app
-echo -e "${GREEN}✓ Application restarted${NC}"
-
-echo -e "${YELLOW}3. Restarting Celery Services...${NC}"
-supervisorctl restart ${APP_NAME}_celery
-supervisorctl restart ${APP_NAME}_celery_beat
-echo -e "${GREEN}✓ Celery services restarted${NC}"
+echo -e "${YELLOW}2. Restarting Application Replicas and Celery (Supervisor)...${NC}"
+supervisorctl restart ${APP_NAME}_all:*
+echo -e "${GREEN}✓ Application and Celery services restarted${NC}"
 
 echo -e "${YELLOW}4. Restarting Nginx...${NC}"
 systemctl restart nginx
