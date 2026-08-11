@@ -41,16 +41,11 @@ SECRET_KEY = 'django-insecure-^n&y0l=-ezgl0iwh0cw5*n18z5*--tfm(dbv))r-mjq%zs31@s
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-ALLOWED_HOSTS = ['localhost', 'api.neighborservice.com', 'www.neighborservice.com', 'neighborservice.com', '127.0.0.1']
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,api.neighborservice.com,www.neighborservice.com,neighborservice.com,127.0.0.1').split(',')
 
-CSRF_TRUSTED_ORIGINS = [
-    'https://neighborservice.com',
-    'https://www.neighborservice.com',
-    'https://api.neighborservice.com',
-    'http://localhost:3000',
-    'http://localhost:8000',
-    'http://localhost:8080',
-]
+CSRF_TRUSTED_ORIGINS = os.getenv('CSRF_TRUSTED_ORIGINS', 
+    'https://neighborservice.com,https://www.neighborservice.com,https://api.neighborservice.com,http://localhost:3000,http://localhost:8000,http://localhost:8080'
+).split(',')
 
 # Application definition
 
