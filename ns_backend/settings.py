@@ -39,7 +39,7 @@ if env_path.exists():
 SECRET_KEY = 'django-insecure-^n&y0l=-ezgl0iwh0cw5*n18z5*--tfm(dbv))r-mjq%zs31@s'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
 
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,api.neighborservice.com,www.neighborservice.com,neighborservice.com,127.0.0.1,staging.neighborservice.com,api.staging.neighborservice.com').split(',')
 
