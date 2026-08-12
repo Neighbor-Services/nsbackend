@@ -285,7 +285,7 @@ REST_FRAMEWORK = {
         'rest_framework.throttling.ScopedRateThrottle',
     ],
     'DEFAULT_THROTTLE_RATES': {
-        'anon': '100/day',
+        'anon': '10000/day',
         'user': '1000/hour',
         'auth': '5/minute', # Custom rate for login/register
         'payout': '3/day',  # Custom rate for payout requests
