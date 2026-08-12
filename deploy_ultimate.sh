@@ -11,8 +11,8 @@ echo "========================================="
 echo ""
 
 # Configuration
-APP_NAME="ns_backend_prod"
-APP_DIR="/opt/ns_backend_prod"
+APP_NAME="ns_backend"
+APP_DIR="/opt/ns_backend"
 VENV_DIR="$APP_DIR/venv"
 DOMAIN="neighborservice.com"  # Update this if your domain is different (e.g. .gh)
 USER="afari"

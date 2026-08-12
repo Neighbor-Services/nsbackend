@@ -1,4 +1,5 @@
 from rest_framework import generics, viewsets, permissions, status
+from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.decorators import action
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -35,6 +36,7 @@ from audit.utils import log_audit_action
 from ns_backend.cache_utils import generate_cache_key, invalidate_cache_pattern
 
 class CustomTokenObtainPairView(TokenObtainPairView):
+    throttle_classes = [ScopedRateThrottle]
     throttle_scope = 'auth'
     serializer_class = CustomTokenObtainPairSerializer
 
@@ -68,6 +70,7 @@ class CustomTokenObtainPairView(TokenObtainPairView):
         return response
 
 class RegisterView(generics.CreateAPIView):
+    throttle_classes = [ScopedRateThrottle]
     throttle_scope = 'auth'
     queryset = User.objects.all()
     permission_classes = (permissions.AllowAny,)
@@ -97,6 +100,7 @@ class RegisterView(generics.CreateAPIView):
         )
 
 class VerifyOTPView(generics.GenericAPIView):
+    throttle_classes = [ScopedRateThrottle]
     throttle_scope = 'auth'
     permission_classes = (permissions.AllowAny,)
     serializer_class = OTPSerializer
@@ -118,6 +122,7 @@ class VerifyOTPView(generics.GenericAPIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class ResendOTPView(generics.GenericAPIView):
+    throttle_classes = [ScopedRateThrottle]
     throttle_scope = 'auth'
     permission_classes = (permissions.AllowAny,)
     serializer_class = ResendOTPSerializer
@@ -175,6 +180,7 @@ class ChangePasswordView(generics.UpdateAPIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class PasswordResetRequestView(generics.GenericAPIView):
+    throttle_classes = [ScopedRateThrottle]
     throttle_scope = 'auth'
     permission_classes = (permissions.AllowAny,)
     serializer_class = PasswordResetRequestSerializer
