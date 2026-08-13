@@ -1,46 +1,533 @@
 {% extends 'public_site/base.html' %}
 
-{% block title %}Terms of Service | Neighbor Service{% endblock %}
+{% block title %}Terms & Conditions | Neighbor Service App{% endblock %}
+{% block meta_description %}The terms that govern your use of Neighbor Service App — the marketplace connecting neighbors with background-screened local help.{% endblock %}
+
+{% block extra_css %}
+<style>
+
+:root{
+  --paper:#FBFAF7;
+  --ink:#122A48;
+  --ink-soft:#5A6275;
+  --violet:#5B16EE;
+  --violet-deep:#3D0BA8;
+  --lavender:#F0EAFD;
+  --lavender-line:#E2D8F8;
+  --sage:#66786C;
+  --sage-soft:#EAF0EB;
+  --amber:#F2A33C;
+  --amber-deep:#B07C1F;
+  --line:#E9E6DF;
+  --futura:'Futura','Futura PT','Century Gothic','Jost',sans-serif;
+  --syne:'Syne',sans-serif;
+  --max:1140px;
+  --nav-h:78px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{font-family:var(--syne);background:var(--paper);color:var(--ink);font-size:17px;line-height:1.65;-webkit-font-smoothing:antialiased}
+img{max-width:100%;display:block}
+a{color:inherit;text-decoration:none}
+.wrap{max-width:var(--max);margin:0 auto;padding:0 28px}
+
+/* ---------- type system ---------- */
+.eyebrow{font-family:var(--futura);font-size:12.5px;font-weight:600;letter-spacing:.22em;text-transform:uppercase;color:var(--sage);display:flex;align-items:center;gap:14px;justify-content:center}
+.eyebrow::before,.eyebrow::after{content:"";width:26px;height:1px;background:var(--sage);opacity:.55}
+.eyebrow.left{justify-content:flex-start}
+.eyebrow.left::before{display:none}
+h1,h2,h3{font-family:var(--syne);font-weight:800;line-height:1.08;letter-spacing:-.015em}
+h1{font-size:clamp(40px,6vw,68px)}
+h2{font-size:clamp(26px,3.4vw,38px)}
+h3{font-size:20px;font-weight:700;line-height:1.3}
+.lede{font-size:clamp(18px,2vw,21px);color:var(--ink-soft);line-height:1.7;font-weight:500}
+p{color:var(--ink-soft)}
+
+/* ---------- buttons ---------- */
+.btn{font-family:var(--futura);font-weight:600;font-size:13.5px;letter-spacing:.14em;text-transform:uppercase;display:inline-flex;align-items:center;gap:10px;padding:18px 34px;border-radius:2px;border:1.5px solid transparent;cursor:pointer;transition:transform .25s ease,box-shadow .25s ease,background .25s ease;white-space:nowrap}
+.btn-primary{background:var(--violet);color:#fff;box-shadow:0 10px 30px rgba(91,22,238,.22)}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 16px 36px rgba(91,22,238,.3);background:var(--violet-deep)}
+.btn-ghost{background:transparent;color:var(--ink);border-color:var(--ink)}
+.btn-ghost:hover{background:var(--ink);color:var(--paper);transform:translateY(-2px)}
+
+/* ---------- nav ---------- */
+nav{position:fixed;inset:0 0 auto 0;z-index:100;backdrop-filter:blur(14px);background:rgba(251,250,247,.82);border-bottom:1px solid transparent;transition:border-color .3s}
+nav.scrolled{border-color:var(--line)}
+.nav-in{display:flex;align-items:center;justify-content:space-between;height:var(--nav-h)}
+.logo{display:flex;align-items:center;gap:12px;font-family:var(--futura);font-weight:600;letter-spacing:.14em;font-size:15px;text-transform:uppercase}
+.logo .mark{width:auto;height:42px;display:block}
+.logo-word{display:flex;align-items:baseline;gap:7px;line-height:1}
+.logo-word b{color:var(--ink);font-weight:600}
+.logo-word i{color:var(--sage);font-style:normal;font-weight:600}
+.nav-cta{display:flex;gap:12px;align-items:center}
+.nav-cta .btn{padding:13px 24px;font-size:12px}
+@media(max-width:560px){.logo-word{display:none}.nav-cta .btn-ghost{display:none}}
+
+/* ---------- page hero ---------- */
+.p-hero{padding:150px 0 64px;position:relative;overflow:hidden}
+.p-hero-grain{position:absolute;inset:-20% -10% auto;height:150%;background:
+  radial-gradient(560px 380px at 14% 12%,rgba(91,22,238,.06),transparent 70%),
+  radial-gradient(620px 420px at 86% 4%,rgba(102,120,108,.12),transparent 70%);pointer-events:none}
+.p-hero-in{position:relative;text-align:center;max-width:760px;margin:0 auto}
+.p-hero h1{margin:24px 0 22px}
+.p-hero .lede{max-width:600px;margin:0 auto 30px}
+.updated{display:inline-flex;align-items:center;gap:9px;font-family:var(--futura);font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--violet-deep);background:var(--lavender);border:1px solid var(--lavender-line);padding:9px 18px;border-radius:999px}
+.updated .dot{width:7px;height:7px;border-radius:50%;background:var(--amber)}
+
+/* ---------- body layout ---------- */
+.policy{padding:30px 0 120px}
+.policy-layout{display:grid;grid-template-columns:248px 1fr;gap:64px;align-items:start}
+
+/* directory / TOC */
+.directory{position:sticky;top:calc(var(--nav-h) + 22px)}
+.directory-label{font-family:var(--futura);text-transform:uppercase;letter-spacing:.2em;font-size:11px;font-weight:600;color:var(--ink);margin:0 0 16px;padding-bottom:13px;border-bottom:1px solid var(--line)}
+.directory ol{list-style:none;counter-reset:toc}
+.directory a{counter-increment:toc;display:flex;gap:12px;font-family:var(--syne);font-weight:500;font-size:14px;line-height:1.35;color:var(--ink-soft);padding:8px 12px 8px 10px;border-left:2px solid transparent;border-radius:0 8px 8px 0;transition:color .2s,background .2s,border-color .2s}
+.directory a::before{content:counter(toc,decimal-leading-zero);font-family:var(--futura);font-variant-numeric:tabular-nums;color:var(--violet);font-weight:600;font-size:12px;flex:none;padding-top:1px}
+.directory a:hover{color:var(--ink);background:var(--lavender)}
+.directory a.active{color:var(--violet-deep);background:var(--lavender);border-left-color:var(--violet)}
+
+/* content */
+.content{max-width:720px}
+.intro{font-size:18px;color:var(--ink);border-bottom:1px solid var(--line);padding-bottom:30px}
+.sec{padding-top:46px;scroll-margin-top:calc(var(--nav-h) + 22px)}
+.sec-num{font-family:var(--futura);font-variant-numeric:tabular-nums;font-weight:600;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--violet);margin:0 0 8px}
+.sec h2{margin:0 0 18px}
+.sec p{margin:0 0 16px}
+.sec ul{list-style:none;margin:0 0 16px}
+.sec li{position:relative;padding-left:24px;margin-bottom:9px;color:var(--ink-soft)}
+.sec li::before{content:"";position:absolute;left:3px;top:.62em;width:7px;height:7px;border-radius:2px;background:var(--violet);transform:rotate(45deg)}
+.sec strong{font-weight:700;color:var(--ink)}
+
+/* "In plain terms" callout — calm sage secondary */
+.plain{background:var(--sage-soft);border-left:3px solid var(--sage);border-radius:0 16px 16px 0;padding:16px 22px;margin:0 0 22px}
+.plain .plain-label{display:block;font-family:var(--futura);text-transform:uppercase;letter-spacing:.16em;font-size:10.5px;font-weight:600;color:var(--sage);margin-bottom:5px}
+.plain p{margin:0;font-size:15.5px;line-height:1.6;color:#33433A}
+
+.inline-link{color:var(--violet);font-weight:600;border-bottom:1.5px solid var(--lavender-line);transition:border-color .2s,color .2s}
+.inline-link:hover{color:var(--violet-deep);border-color:var(--violet)}
+
+/* ---------- footer ---------- */
+footer{background:var(--ink);color:#AEB5C6;padding:90px 0 46px}
+.f-mission{font-family:var(--syne);font-weight:800;font-size:clamp(24px,3vw,34px);color:#fff;text-align:center;margin-bottom:76px;letter-spacing:-.01em}
+.f-mission em{font-style:normal;color:var(--sage)}
+.f-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:36px;padding-bottom:64px;border-bottom:1px solid #2A3349}
+.f-grid h4{font-family:var(--futura);font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:#fff;font-weight:600;margin-bottom:20px}
+.f-grid a{display:block;font-size:13.5px;margin-bottom:11px;color:#AEB5C6;transition:color .2s}
+.f-grid a:hover{color:#fff}
+@media(max-width:900px){.f-grid{grid-template-columns:repeat(2,1fr)}}
+.f-legal{padding-top:36px;font-size:12px;color:#7E88A0;line-height:1.8;text-align:center}
+.f-legal a{color:#7E88A0;border-bottom:1px solid #2A3349}
+.f-legal a:hover{color:#AEB5C6}
+.f-legal .sign{font-family:var(--syne);font-style:italic;font-weight:600;color:#AEB5C6;display:block;margin-top:22px;font-size:13.5px}
+
+/* ---------- reveal + responsive ---------- */
+.rv{opacity:0;transform:translateY(26px);transition:opacity .8s cubic-bezier(.2,.6,.2,1),transform .8s cubic-bezier(.2,.6,.2,1)}
+.rv.in{opacity:1;transform:none}
+:focus-visible{outline:3px solid var(--violet);outline-offset:3px;border-radius:3px}
+
+@media(max-width:920px){
+  .policy-layout{grid-template-columns:1fr;gap:18px}
+  .directory{position:static;background:#fff;border:1px solid var(--line);border-radius:22px;padding:20px 16px}
+  .directory ol{columns:2;column-gap:18px}
+}
+@media(max-width:560px){
+  body{font-size:16px}
+  .p-hero{padding:128px 0 52px}
+  .directory ol{columns:1}
+}
+@media(prefers-reduced-motion:reduce){
+  .rv{opacity:1;transform:none;transition:none}
+  html{scroll-behavior:auto}
+  *{animation:none!important;transition:none!important}
+}
+
+</style>
+{% endblock %}
 
 {% block content %}
-<!-- ======================= HERO ======================= -->
-<section class="page-hero">
-  <div class="wrap rv">
-    <p class="eyebrow">Legal</p>
-    <h1>Terms of Service</h1>
-    <p class="lede">Please read these terms carefully. They govern your use of the Neighbor Service platform and our commitment to you.</p>
+<header class="p-hero">
+  <div class="p-hero-grain" aria-hidden="true"></div>
+  <div class="wrap p-hero-in">
+    <p class="eyebrow rv">The agreement · in plain terms</p>
+    <h1 class="rv">Terms &amp; Conditions</h1>
+    <p class="lede rv">These terms set out the agreement between you and Neighbor Service App when you use the Platform. We've kept the legal language intact and added a plain-terms summary to every section, so you always know what you're agreeing to.</p>
+    <span class="updated rv"><span class="dot" aria-hidden="true"></span> Last updated: July 1, 2026</span>
   </div>
-</section>
+</header>
 
-<!-- ======================= DOCS ======================= -->
-<div style="padding:40px 0 80px">
-  <div class="wrap" style="max-width:860px">
-    {% if docs %}
-      {% for doc in docs %}
-      <section style="padding-top:46px;border-top:1px solid #E9E6DF;margin-top:40px">
-        <p style="font-family:'Jost',sans-serif;font-size:12px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:#5B16EE;margin:0 0 10px">Section {{ forloop.counter|stringformat:'02d' }}</p>
-        <h2 style="margin:0 0 20px;font-size:clamp(20px,2.4vw,28px)">{{ doc.title }}</h2>
-        <div style="color:#5A6275;line-height:1.75;">
-          {{ doc.content|safe|linebreaks }}
+<!-- ======================= POLICY ======================= -->
+<main class="policy">
+  <div class="wrap policy-layout">
+
+    <!-- directory -->
+    <aside class="directory" aria-label="Sections">
+      <p class="directory-label">On this page</p>
+      <ol>
+        <li><a href="#overview">Platform overview</a></li>
+        <li><a href="#eligibility">Eligibility</a></li>
+        <li><a href="#accounts">User accounts</a></li>
+        <li><a href="#role">Role of the Platform</a></li>
+        <li><a href="#contractor">Independent contractors</a></li>
+        <li><a href="#screening">Background checks</a></li>
+        <li><a href="#payments">Payments</a></li>
+        <li><a href="#promotions">Subscriptions &amp; promotions</a></li>
+        <li><a href="#reviews">Ratings &amp; reviews</a></li>
+        <li><a href="#property">Home entry &amp; property</a></li>
+        <li><a href="#conduct">User conduct</a></li>
+        <li><a href="#disputes">Disputes between users</a></li>
+        <li><a href="#liability">Limitation of liability</a></li>
+        <li><a href="#indemnification">Indemnification</a></li>
+        <li><a href="#termination">Suspension &amp; termination</a></li>
+        <li><a href="#privacy">Privacy</a></li>
+        <li><a href="#changes">Changes to the Platform</a></li>
+        <li><a href="#law">Governing law</a></li>
+        <li><a href="#arbitration">Dispute resolution</a></li>
+        <li><a href="#contact">Contact information</a></li>
+      </ol>
+    </aside>
+
+    <!-- content -->
+    <div class="content">
+      <p class="intro rv">
+        Welcome to Neighbor Service App (“NSA,” “we,” “our,” or “us”). These Terms of Service
+        (“Terms”) govern your access to and use of the Neighbor Service App platform, including our mobile
+        applications, website, and related services (collectively, the “Platform”). By accessing or using
+        the Platform, you agree to be bound by these Terms. <strong>If you do not agree to these Terms, you may
+        not use the Platform.</strong>
+      </p>
+
+      <section class="sec rv" id="overview">
+        <p class="sec-num">Section 01</p>
+        <h2>Platform overview</h2>
+        <div class="plain">
+          <span class="plain-label">In plain terms</span>
+          <p>Neighbor Service App is a marketplace. We connect people who need help with independent providers — we don't do the work ourselves and we're not a party to your deal.</p>
+        </div>
+        <p>Neighbor Service App is a technology platform that connects individuals seeking services (“Seekers”) with independent service providers (“Providers”).</p>
+        <ul>
+          <li>NSA does not provide services, employ Providers, or supervise work performed by Providers.</li>
+          <li>All services offered through the Platform are provided solely by independent Providers.</li>
+          <li>NSA is not a party to agreements or transactions between Seekers and Providers.</li>
+        </ul>
+      </section>
+
+      <section class="sec rv" id="eligibility">
+        <p class="sec-num">Section 02</p>
+        <h2>Eligibility</h2>
+        <div class="plain">
+          <span class="plain-label">In plain terms</span>
+          <p>You must be 18 or older, legally able to enter a contract, and honest in your registration details.</p>
+        </div>
+        <p>To use the Platform you must:</p>
+        <ul>
+          <li>be at least 18 years of age;</li>
+          <li>have the legal capacity to enter binding agreements;</li>
+          <li>provide accurate registration information.</li>
+        </ul>
+        <p>Individuals under the age of 18 are not permitted to create accounts or use the Platform. NSA reserves the right to suspend or terminate accounts that violate eligibility requirements.</p>
+      </section>
+
+      <section class="sec rv" id="accounts">
+        <p class="sec-num">Section 03</p>
+        <h2>User accounts</h2>
+        <div class="plain">
+          <span class="plain-label">In plain terms</span>
+          <p>Create an account to use key features. Keep your login details private — you're responsible for activity under your account.</p>
+        </div>
+        <p>To access certain features of the Platform you must create an account. Users may register using:</p>
+        <ul>
+          <li>email and password; or</li>
+          <li>third-party login providers such as Apple or Google.</li>
+        </ul>
+        <p>You are responsible for maintaining the confidentiality of your account credentials. You agree to notify NSA immediately if you suspect unauthorized use of your account. NSA is not responsible for losses resulting from unauthorized account access.</p>
+      </section>
+
+      <section class="sec rv" id="role">
+        <p class="sec-num">Section 04</p>
+        <h2>Role of the Platform</h2>
+        <div class="plain">
+          <span class="plain-label">In plain terms</span>
+          <p>We're the neutral middle. We don't perform, employ, or supervise Providers, and we don't guarantee their quality or qualifications.</p>
+        </div>
+        <p>NSA operates solely as a neutral marketplace connecting Seekers and Providers. NSA does not:</p>
+        <ul>
+          <li>perform services;</li>
+          <li>employ Providers;</li>
+          <li>supervise services;</li>
+          <li>guarantee service quality;</li>
+          <li>guarantee provider qualifications.</li>
+        </ul>
+        <p>Any agreements regarding services are solely between Seekers and Providers.</p>
+      </section>
+
+      <section class="sec rv" id="contractor">
+        <p class="sec-num">Section 05</p>
+        <h2>Independent contractor relationship</h2>
+        <div class="plain">
+          <span class="plain-label">In plain terms</span>
+          <p>Providers run their own businesses. There's no employment relationship with NSA, and Providers handle their own licenses, taxes, and methods.</p>
+        </div>
+        <p>Providers using the Platform operate as independent contractors. Nothing in these Terms creates an employment, partnership, or agency relationship between NSA and any Provider. Providers are solely responsible for:</p>
+        <ul>
+          <li>determining how services are performed;</li>
+          <li>maintaining licenses and certifications;</li>
+          <li>complying with laws and regulations;</li>
+          <li>reporting and paying applicable taxes.</li>
+        </ul>
+        <p>Providers are not entitled to wages, benefits, or employment protections from NSA.</p>
+      </section>
+
+      <section class="sec rv" id="screening">
+        <p class="sec-num">Section 06</p>
+        <h2>Background checks and identity verification</h2>
+        <div class="plain">
+          <span class="plain-label">In plain terms</span>
+          <p>We offer screening through third parties like Checkr, but a completed check is never a guarantee. Always use your own judgment.</p>
+        </div>
+        <p>NSA may offer optional identity verification or background screening through third-party screening providers. Background checks:</p>
+        <ul>
+          <li>are conducted by independent third parties;</li>
+          <li>may be limited in scope;</li>
+          <li>may not identify all records.</li>
+        </ul>
+        <p>Completion of a background check does not guarantee the safety, reliability, or conduct of any user. Users should independently evaluate the suitability of any Provider.</p>
+      </section>
+
+      <section class="sec rv" id="payments">
+        <p class="sec-num">Section 07</p>
+        <h2>Payments</h2>
+        <div class="plain">
+          <span class="plain-label">In plain terms</span>
+          <p>You can pay through the app or off-platform. We only handle and stand behind on-platform payments — off-platform is at your own risk.</p>
+        </div>
+        <p>Payments for services may occur:</p>
+        <ul>
+          <li>through the Platform, using supported payment processing services; or</li>
+          <li>outside the Platform, using external payment methods chosen by the parties, including services such as bank transfers or third-party payment applications.</li>
+        </ul>
+        <p>NSA does not control or monitor payments made outside the Platform and is not responsible for disputes, fraud, or losses arising from off-platform transactions. Payment processing services may be provided by third-party providers such as Stripe.</p>
+      </section>
+
+      <section class="sec rv" id="promotions">
+        <p class="sec-num">Section 08</p>
+        <h2>Provider subscriptions and promotions</h2>
+        <div class="plain">
+          <span class="plain-label">In plain terms</span>
+          <p>Providers can pay for more visibility. Paying for placement doesn't mean NSA endorses them.</p>
+        </div>
+        <p>Providers may have the option to purchase subscription plans or promotional services that increase visibility within the Platform. Features may include:</p>
+        <ul>
+          <li>enhanced profile visibility;</li>
+          <li>featured provider listings;</li>
+          <li>additional platform tools.</li>
+        </ul>
+        <p>Promotional placement does not constitute an endorsement by NSA.</p>
+      </section>
+
+      <section class="sec rv" id="reviews">
+        <p class="sec-num">Section 09</p>
+        <h2>Ratings and reviews</h2>
+        <div class="plain">
+          <span class="plain-label">In plain terms</span>
+          <p>Reviews are users' own opinions, not ours. We may remove ones that break the rules, and we don't guarantee they're accurate.</p>
+        </div>
+        <p>Users may leave ratings and reviews regarding services performed. Ratings and reviews:</p>
+        <ul>
+          <li>reflect the opinions of individual users;</li>
+          <li>do not constitute endorsements by NSA;</li>
+          <li>may be removed if they violate platform policies.</li>
+        </ul>
+        <p>NSA does not guarantee the accuracy of reviews.</p>
+      </section>
+
+      <section class="sec rv" id="property">
+        <p class="sec-num">Section 10</p>
+        <h2>Home entry and property access</h2>
+        <div class="plain">
+          <span class="plain-label">In plain terms</span>
+          <p>Services often mean someone entering a home or property. That happens at your own risk — NSA isn't responsible for what goes wrong.</p>
+        </div>
+        <p>Services arranged through the Platform may involve entry into private residences, businesses, or other properties. Seekers and Providers acknowledge that allowing access to property or entering another user's property occurs at their own risk. NSA is not responsible for:</p>
+        <ul>
+          <li>property damage;</li>
+          <li>theft;</li>
+          <li>personal injury;</li>
+          <li>other claims arising from property access.</li>
+        </ul>
+      </section>
+
+      <section class="sec rv" id="conduct">
+        <p class="sec-num">Section 11</p>
+        <h2>User conduct</h2>
+        <div class="plain">
+          <span class="plain-label">In plain terms</span>
+          <p>Be honest and lawful. No fake info, impersonation, harassment, or trying to get around our safeguards.</p>
+        </div>
+        <p>Users agree not to:</p>
+        <ul>
+          <li>provide false information;</li>
+          <li>impersonate another person;</li>
+          <li>use the Platform for unlawful purposes;</li>
+          <li>harass or threaten other users;</li>
+          <li>attempt to circumvent platform safeguards.</li>
+        </ul>
+        <p>NSA may suspend or terminate accounts that violate these rules.</p>
+      </section>
+
+      <section class="sec rv" id="disputes">
+        <p class="sec-num">Section 12</p>
+        <h2>Disputes between users</h2>
+        <div class="plain">
+          <span class="plain-label">In plain terms</span>
+          <p>We're not required to referee disputes between users. We give you tools to report issues, but resolving them is between you and the other person.</p>
+        </div>
+        <p>NSA is not obligated to mediate disputes between users. While NSA may provide tools to report issues, all agreements regarding services are between Seekers and Providers. Users are responsible for resolving disputes directly with one another. You can document and report an issue through our <a class="inline-link" href="{% url 'public_site:resolution' %}">Resolution Center</a>.</p>
+      </section>
+
+      <section class="sec rv" id="liability">
+        <p class="sec-num">Section 13</p>
+        <h2>Limitation of liability</h2>
+        <div class="plain">
+          <span class="plain-label">In plain terms</span>
+          <p>To the maximum extent the law allows, NSA isn't liable for what happens between users, and total liability is capped at what you paid NSA in the last 12 months.</p>
+        </div>
+        <p>To the fullest extent permitted by law, Neighbor Service App shall not be liable for any damages arising from:</p>
+        <ul>
+          <li>services performed by Providers;</li>
+          <li>interactions between users;</li>
+          <li>property access arranged through the Platform;</li>
+          <li>payment disputes;</li>
+          <li>reliance on ratings or reviews;</li>
+          <li>background check results.</li>
+        </ul>
+        <p>NSA's total liability shall not exceed the amount paid by the user to NSA in the preceding twelve months.</p>
+      </section>
+
+      <section class="sec rv" id="indemnification">
+        <p class="sec-num">Section 14</p>
+        <h2>Indemnification</h2>
+        <div class="plain">
+          <span class="plain-label">In plain terms</span>
+          <p>If your use of the app leads to a claim against NSA, you agree to cover it.</p>
+        </div>
+        <p>You agree to indemnify and hold harmless Neighbor Service App and its affiliates from any claims, damages, or losses arising from:</p>
+        <ul>
+          <li>your use of the Platform;</li>
+          <li>your interactions with other users;</li>
+          <li>services you provide or receive through the Platform.</li>
+        </ul>
+      </section>
+
+      <section class="sec rv" id="termination">
+        <p class="sec-num">Section 15</p>
+        <h2>Account suspension and termination</h2>
+        <div class="plain">
+          <span class="plain-label">In plain terms</span>
+          <p>NSA can suspend or close accounts for breaking the rules, fraud, misuse, or safety reasons. You can close yours anytime.</p>
+        </div>
+        <p>NSA may suspend or terminate user accounts for:</p>
+        <ul>
+          <li>violations of these Terms;</li>
+          <li>fraudulent activity;</li>
+          <li>misuse of the Platform;</li>
+          <li>safety concerns.</li>
+        </ul>
+        <p>Users may terminate their accounts at any time.</p>
+      </section>
+
+      <section class="sec rv" id="privacy">
+        <p class="sec-num">Section 16</p>
+        <h2>Privacy</h2>
+        <div class="plain">
+          <span class="plain-label">In plain terms</span>
+          <p>How we handle your data is covered separately in our Privacy Policy.</p>
+        </div>
+        <p>Your use of the Platform is also governed by the NSA <a class="inline-link" href="{% url 'public_site:privacy' %}">Privacy Policy</a>. The Privacy Policy describes how we collect, use, and protect your information.</p>
+      </section>
+
+      <section class="sec rv" id="changes">
+        <p class="sec-num">Section 17</p>
+        <h2>Changes to the Platform</h2>
+        <div class="plain">
+          <span class="plain-label">In plain terms</span>
+          <p>We may change features or update these terms. Keep using the app and you accept the updates.</p>
+        </div>
+        <p>NSA reserves the right to modify or discontinue features of the Platform at any time. We may also update these Terms periodically. Continued use of the Platform constitutes acceptance of updated Terms.</p>
+      </section>
+
+      <section class="sec rv" id="law">
+        <p class="sec-num">Section 18</p>
+        <h2>Governing law</h2>
+        <div class="plain">
+          <span class="plain-label">In plain terms</span>
+          <p>These terms follow the laws of wherever NSA operates.</p>
+        </div>
+        <p>These Terms shall be governed by the laws of the jurisdiction in which NSA operates, without regard to conflict-of-law principles.</p>
+      </section>
+
+      <section class="sec rv" id="arbitration">
+        <p class="sec-num">Section 19</p>
+        <h2>Dispute resolution</h2>
+        <div class="plain">
+          <span class="plain-label">In plain terms</span>
+          <p>Where the law allows, disputes go to binding arbitration instead of court, and you give up the right to join a class action against NSA. This affects your legal rights — please read it carefully.</p>
+        </div>
+        <p>Where permitted by law, disputes arising under these Terms shall be resolved through binding arbitration rather than court proceedings. <strong>Users waive the right to participate in class actions against NSA.</strong></p>
+      </section>
+
+      <section class="sec rv" id="contact">
+        <p class="sec-num">Section 20</p>
+        <h2>Contact information</h2>
+        <div class="plain">
+          <span class="plain-label">In plain terms</span>
+          <p>Questions about these terms? Reach out.</p>
+        </div>
+        <p>If you have questions regarding these Terms, you may contact:</p>
+        <p>
+          <strong>Neighbor Service App</strong><br>
+          <a class="inline-link" href="mailto:info@neighborservice.com">info@neighborservice.com</a>
+        </p>
+
+        <div class="plain" style="background:var(--lavender);border-left-color:var(--violet);margin-top:34px">
+          <span class="plain-label" style="color:var(--violet-deep)">Account acknowledgment</span>
+          <p style="color:var(--ink)">By creating an account, you confirm you are at least 18 years old and agree to these Terms &amp; Conditions and the <a class="inline-link" href="{% url 'public_site:privacy' %}">Privacy Policy</a>.</p>
         </div>
       </section>
-      {% endfor %}
-    {% else %}
-      <div style="text-align:center; padding:60px 0;">
-        <div style="font-size:40px; margin-bottom:20px;">📄</div>
-        <h2>No Documents Found</h2>
-        <p class="lede">The terms of service is currently being finalized. Please check back soon.</p>
-      </div>
-    {% endif %}
+    </div>
   </div>
-</div>
+</main>
+{% endblock %}
 
-<!-- ======================= CTA ======================= -->
-<section style="background:var(--ink); color:#fff; text-align:center; padding:100px 0;">
-  <div class="wrap rv">
-    <h2 style="font-size:clamp(28px,4vw,46px); margin-bottom:20px;">Questions about our terms?</h2>
-    <p style="opacity:.7; max-width:520px; margin:0 auto 36px;">Our team is here to help clarify anything you need to know.</p>
-    <a href="{% url 'public_site:contact' %}" class="btn btn-primary">Contact Us</a>
-  </div>
-</section>
+{% block extra_js %}
+<script>
+
+/* nav border on scroll */
+var nav=document.getElementById('nav');
+addEventListener('scroll',function(){nav.classList.toggle('scrolled',scrollY>10);},{passive:true});
+
+/* scroll reveals */
+var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}});},{threshold:.14});
+document.querySelectorAll('.rv').forEach(function(el){io.observe(el);});
+
+/* directory scroll-spy */
+var tocLinks=Array.prototype.slice.call(document.querySelectorAll('.directory a'));
+var map={};
+tocLinks.forEach(function(a){map[a.getAttribute('href').slice(1)]=a;});
+var sections=Array.prototype.slice.call(document.querySelectorAll('.sec'));
+if('IntersectionObserver' in window){
+  var current=null;
+  var spy=new IntersectionObserver(function(entries){
+    entries.forEach(function(entry){
+      if(entry.isIntersecting){
+        if(current)current.classList.remove('active');
+        var link=map[entry.target.id];
+        if(link){link.classList.add('active');current=link;}
+      }
+    });
+  },{rootMargin:'-28% 0px -62% 0px',threshold:0});
+  sections.forEach(function(s){spy.observe(s);});
+}
+
+</script>
 {% endblock %}
