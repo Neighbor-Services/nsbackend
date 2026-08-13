@@ -86,11 +86,11 @@ def contact(request):
     return render(request, 'public_site/contact.html')
 
 def privacy(request):
-    docs = LegalDocument.objects.filter(doc_type='PRIVACY', is_active=True).order_by('-updated_at')
+    docs = LegalDocument.objects.filter(doc_type='PRIVACY', is_active=True).order_by('created_at')
     return render(request, 'public_site/privacy.html', {'docs': docs})
 
 def terms(request):
-    docs = LegalDocument.objects.filter(doc_type='TERMS', is_active=True).order_by('-updated_at')
+    docs = LegalDocument.objects.filter(doc_type='TERMS', is_active=True).order_by('created_at')
     return render(request, 'public_site/terms.html', {'docs': docs})
 
 def resolution(request):
