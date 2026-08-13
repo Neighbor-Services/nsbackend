@@ -1,46 +1,112 @@
 {% extends 'public_site/base.html' %}
 
 {% block title %}Privacy Policy | Neighbor Service{% endblock %}
+{% block meta_description %}Learn how Neighbor Service App collects, uses, and protects your personal information.{% endblock %}
+
+{% block extra_css %}
+<style>
+/* ---- page hero ---- */
+.p-hero{padding:150px 0 64px;position:relative;overflow:hidden}
+.p-hero-grain{position:absolute;inset:-20% -10% auto;height:150%;background:
+  radial-gradient(560px 380px at 14% 12%,rgba(91,22,238,.06),transparent 70%),
+  radial-gradient(620px 420px at 86% 4%,rgba(102,120,108,.12),transparent 70%);pointer-events:none}
+.p-hero-in{position:relative;text-align:center;max-width:760px;margin:0 auto}
+.p-hero h1{margin:24px 0 22px}
+.p-hero .lede{max-width:600px;margin:0 auto 30px}
+.updated{display:inline-flex;align-items:center;gap:9px;font-family:var(--futura,'Jost',sans-serif);font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--violet,#5B16EE);background:#F0EAFD;border:1px solid #E2D8F8;padding:9px 18px;border-radius:999px}
+.updated .dot{width:7px;height:7px;border-radius:50%;background:#F2A33C}
+.eyebrow{font-family:var(--futura,'Jost',sans-serif);font-size:12.5px;font-weight:600;letter-spacing:.22em;text-transform:uppercase;color:#66786C;display:flex;align-items:center;gap:14px;justify-content:center}
+.eyebrow::before,.eyebrow::after{content:"";width:26px;height:1px;background:#66786C;opacity:.55}
+
+/* ---- policy layout ---- */
+.policy{padding:30px 0 120px}
+.policy-layout{display:grid;grid-template-columns:248px 1fr;gap:64px;align-items:start}
+
+/* directory / TOC */
+.directory{position:sticky;top:calc(78px + 22px)}
+.directory-label{font-family:var(--futura,'Jost',sans-serif);text-transform:uppercase;letter-spacing:.2em;font-size:11px;font-weight:600;color:var(--ink,#122A48);margin:0 0 16px;padding-bottom:13px;border-bottom:1px solid #E9E6DF}
+.directory ol{list-style:none;counter-reset:toc}
+.directory a{counter-increment:toc;display:flex;gap:12px;font-weight:500;font-size:14px;line-height:1.35;color:#5A6275;padding:8px 12px 8px 10px;border-left:2px solid transparent;border-radius:0 8px 8px 0;transition:color .2s,background .2s,border-color .2s}
+.directory a::before{content:counter(toc,decimal-leading-zero);font-family:var(--futura,'Jost',sans-serif);font-variant-numeric:tabular-nums;color:#5B16EE;font-weight:600;font-size:12px;flex:none;padding-top:1px}
+.directory a:hover{color:var(--ink,#122A48);background:#F0EAFD}
+.directory a.active{color:#3D0BA8;background:#F0EAFD;border-left-color:#5B16EE}
+
+/* content */
+.content{max-width:720px}
+.intro{font-size:18px;color:var(--ink,#122A48);border-bottom:1px solid #E9E6DF;padding-bottom:30px}
+.sec{padding-top:46px;scroll-margin-top:calc(78px + 22px)}
+.sec-num{font-family:var(--futura,'Jost',sans-serif);font-variant-numeric:tabular-nums;font-weight:600;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:#5B16EE;margin:0 0 8px}
+.sec h2{margin:0 0 18px;font-size:clamp(22px,2.8vw,32px)}
+.sec p{margin:0 0 16px;color:#5A6275}
+.sec ul{list-style:none;margin:0 0 16px}
+.sec li{position:relative;padding-left:24px;margin-bottom:9px;color:#5A6275}
+.sec li::before{content:"";position:absolute;left:3px;top:.62em;width:7px;height:7px;border-radius:2px;background:#5B16EE;transform:rotate(45deg)}
+.sec strong{font-weight:700;color:var(--ink,#122A48)}
+.plain{background:#EAF0EB;border-left:3px solid #66786C;border-radius:0 16px 16px 0;padding:16px 22px;margin:0 0 22px}
+.plain .plain-label{display:block;font-family:var(--futura,'Jost',sans-serif);text-transform:uppercase;letter-spacing:.16em;font-size:10.5px;font-weight:600;color:#66786C;margin-bottom:5px}
+.plain p{margin:0;font-size:15.5px;line-height:1.6;color:#33433A}
+.inline-link{color:#5B16EE;font-weight:600;border-bottom:1.5px solid #E2D8F8;transition:border-color .2s,color .2s}
+.inline-link:hover{color:#3D0BA8;border-color:#5B16EE}
+
+@media(max-width:920px){
+  .policy-layout{grid-template-columns:1fr;gap:18px}
+  .directory{position:static;background:#fff;border:1px solid #E9E6DF;border-radius:22px;padding:20px 16px}
+  .directory ol{columns:2;column-gap:18px}
+}
+@media(max-width:560px){
+  .p-hero{padding:128px 0 52px}
+  .directory ol{columns:1}
+}
+</style>
+{% endblock %}
 
 {% block content %}
 <!-- ======================= HERO ======================= -->
-<section class="page-hero">
-  <div class="wrap rv">
-    <p class="eyebrow">Legal</p>
-    <h1>Privacy Policy</h1>
-    <p class="lede">Your trust is our most valuable asset. Learn how we protect and manage your data across the Neighbor Service ecosystem.</p>
-  </div>
-</section>
-
-<!-- ======================= DOCS ======================= -->
-<section style="padding-top:40px">
-  <div class="wrap narrow rv">
+<header class="p-hero">
+  <div class="p-hero-grain" aria-hidden="true"></div>
+  <div class="wrap p-hero-in">
+    <p class="eyebrow rv">Your data · your privacy</p>
+    <h1 class="rv">Privacy Policy</h1>
+    <p class="lede rv">We take your privacy seriously. This policy explains what data we collect, how we use it, and your rights as a user of the Neighbor Service platform.</p>
     {% if docs %}
-        {% for doc in docs %}
-            <article class="doc-card">
-                <h2>{{ doc.title }}</h2>
-                <span class="meta">Updated: {{ doc.updated_at|date:"F d, Y" }}</span>
-                <div class="doc-content">
-                    {{ doc.content|safe|linebreaks }}
-                </div>
-            </article>
-        {% endfor %}
-    {% else %}
-        <div style="text-align:center; padding:60px 0;">
-            <div style="font-size:40px; margin-bottom:20px;">📄</div>
-            <h2>No Documents Found</h2>
-            <p class="lede">The privacy policy is currently being finalized. Please check back soon.</p>
-        </div>
+    <span class="updated rv"><span class="dot" aria-hidden="true"></span> Last updated: {{ docs.0.updated_at|date:"F j, Y" }}</span>
     {% endif %}
   </div>
-</section>
+</header>
 
-<!-- ======================= CTA ======================= -->
-<section style="background:var(--ink); color:#fff; text-align:center; padding:100px 0;">
-  <div class="wrap rv">
-    <h2 style="color:#fff; margin-bottom:20px;">Questions about your data?</h2>
-    <p style="color:#AEB5C6; margin-bottom:40px; font-size:16.5px;">If you have any questions regarding our privacy practices or your data rights, our legal team is here to help.</p>
-    <a href="{% url 'public_site:contact' %}" class="btn btn-primary">CONTACT LEGAL SUPPORT</a>
+<!-- ======================= POLICY ======================= -->
+<div class="policy">
+  <div class="wrap policy-layout">
+    {% if docs %}
+      {{ docs.0.content|safe }}
+    {% else %}
+      <div style="grid-column:1/-1;text-align:center;padding:100px 0;">
+        <p>Privacy policy document not found. Please run the seed script.</p>
+      </div>
+    {% endif %}
   </div>
-</section>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+/* directory scroll-spy */
+var tocLinks = Array.prototype.slice.call(document.querySelectorAll('.directory a'));
+var map = {};
+tocLinks.forEach(function(a){ map[a.getAttribute('href').slice(1)] = a; });
+var sections = Array.prototype.slice.call(document.querySelectorAll('.sec'));
+if('IntersectionObserver' in window){
+  var current = null;
+  var spy = new IntersectionObserver(function(entries){
+    entries.forEach(function(entry){
+      if(entry.isIntersecting){
+        if(current) current.classList.remove('active');
+        var link = map[entry.target.id];
+        if(link){ link.classList.add('active'); current = link; }
+      }
+    });
+  },{rootMargin:'-28% 0px -62% 0px',threshold:0});
+  sections.forEach(function(s){ spy.observe(s); });
+}
+</script>
 {% endblock %}
