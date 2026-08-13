@@ -87,10 +87,16 @@ def contact(request):
 
 def privacy(request):
     docs = LegalDocument.objects.filter(doc_type='PRIVACY', is_active=True).order_by('created_at')
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.warning(f'PRIVACY docs count: {docs.count()} | all privacy: {LegalDocument.objects.filter(doc_type="PRIVACY").count()}')
     return render(request, 'public_site/privacy.html', {'docs': docs})
 
 def terms(request):
     docs = LegalDocument.objects.filter(doc_type='TERMS', is_active=True).order_by('created_at')
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.warning(f'TERMS docs count: {docs.count()} | all terms: {LegalDocument.objects.filter(doc_type="TERMS").count()}')
     return render(request, 'public_site/terms.html', {'docs': docs})
 
 def resolution(request):
