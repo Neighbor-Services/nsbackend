@@ -76,12 +76,20 @@
 
 <!-- ======================= POLICY ======================= -->
 <div class="policy">
-  <div class="wrap policy-layout">
+  <div class="wrap" style="max-width:860px;padding-bottom:80px;">
     {% if docs %}
-      {{ docs.0.content|safe }}
+      {% for doc in docs %}
+      <section style="padding-top:46px;border-top:1px solid #E9E6DF;margin-top:40px">
+        <p style="font-family:'Jost',sans-serif;font-size:12px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:#5B16EE;margin:0 0 10px">Section {{ forloop.counter|stringformat:'02d' }}</p>
+        <h2 style="margin:0 0 20px;font-size:clamp(20px,2.4vw,28px)">{{ doc.title }}</h2>
+        <div style="color:#5A6275;line-height:1.75;">
+          {{ doc.content|safe|linebreaks }}
+        </div>
+      </section>
+      {% endfor %}
     {% else %}
-      <div style="grid-column:1/-1;text-align:center;padding:100px 0;">
-        <p>Privacy policy document not found. Please run the seed script.</p>
+      <div style="text-align:center;padding:100px 0;">
+        <p>Privacy policy document not found.</p>
       </div>
     {% endif %}
   </div>
