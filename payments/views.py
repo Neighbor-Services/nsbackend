@@ -625,6 +625,7 @@ class AppleReceiptValidationView(APIView):
 
         receipt_data = request.data.get('receipt_data')
         if not receipt_data:
+            print("Apple Validation Error: receipt_data is required")
             return Response({'error': 'receipt_data is required'}, status=status.HTTP_400_BAD_REQUEST)
 
         apple_shared_secret = getattr(settings, 'APPLE_SHARED_SECRET', '')
@@ -645,6 +646,7 @@ class AppleReceiptValidationView(APIView):
             
         apple_status = data.get('status', -1)
         if apple_status != 0:
+            print(f"Apple Validation Error: Apple returned status {apple_status}")
             return Response(
                 {'error': f'Apple receipt validation failed with status {apple_status}'},
                 status=status.HTTP_400_BAD_REQUEST
@@ -655,6 +657,7 @@ class AppleReceiptValidationView(APIView):
         if not receipt_info:
             receipt_info = data.get('receipt', {}).get('in_app', [])
         if not receipt_info:
+            print("Apple Validation Error: No receipt info found in Apple response. Data:", data)
             return Response({'error': 'No receipt info found in Apple response'}, status=status.HTTP_400_BAD_REQUEST)
 
         latest = sorted(receipt_info, key=lambda x: int(x.get('expires_date_ms', 0)), reverse=True)[0]

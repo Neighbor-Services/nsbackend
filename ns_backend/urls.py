@@ -20,7 +20,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
 
-from payments.views import SubscriptionViewSet
+from payments.views import SubscriptionViewSet, AppleS2SNotificationView
 from accounts.views import apple_callback_view
 
 urlpatterns = [
@@ -45,6 +45,9 @@ urlpatterns = [
     
     path('callbacks/apple', apple_callback_view, name='apple_callback'),
     
+    # Apple S2S Webhooks (without api/v1 prefix)
+    path('payments/webhook/apple-s2s/', AppleS2SNotificationView.as_view(), name='apple_s2s_webhook_root'),
+
     # API Documentation
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
     path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
