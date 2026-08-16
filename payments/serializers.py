@@ -33,9 +33,10 @@ class SubscriptionPlanSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = SubscriptionPlan
-        fields = ('id', 'name', 'tier', 'interval', 'description', 'price', 'currency', 'formatted_price', 
-                  'features', 'max_catalog_services', 'is_active', 'display_order', 'stripe_price_id', 
-                  'stripe_product_id', 'created_at', 'updated_at')
+        fields = ('id', 'name', 'tier', 'interval', 'description', 'price', 'currency', 'formatted_price',
+                  'features', 'max_catalog_services', 'is_active', 'display_order',
+                  'apple_product_id', 'google_product_id',
+                  'created_at', 'updated_at')
         read_only_fields = ('id', 'created_at', 'updated_at')
 
 class SubscriptionSerializer(serializers.ModelSerializer):
@@ -44,7 +45,7 @@ class SubscriptionSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Subscription
-        fields = ('id', 'user', 'plan', 'plan_details', 'plan_price', 
-                  'stripe_subscription_id', 'stripe_plan_id', 'next_payment', 
-                  'is_active', 'created_at', 'updated_at')
+        fields = ('id', 'user', 'plan', 'plan_details', 'plan_price',
+                  'store_transaction_id', 'next_payment',
+                  'is_active', 'is_sandbox', 'created_at', 'updated_at')
         read_only_fields = ('user', 'created_at', 'updated_at')

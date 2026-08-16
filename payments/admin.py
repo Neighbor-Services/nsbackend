@@ -72,7 +72,7 @@ class SubscriptionPlanAdmin(ModelAdmin):
 class SubscriptionAdmin(ModelAdmin):
     list_display = ('user_email', 'plan_name', 'display_plan_price', 'display_status', 'next_payment', 'created_at')
     list_filter = ('is_active', 'plan', 'created_at')
-    search_fields = ('user__email', 'stripe_subscription_id')
+    search_fields = ('user__email', 'store_transaction_id')
     autocomplete_fields = ['user', 'plan']
     
     fieldsets = (
@@ -82,8 +82,8 @@ class SubscriptionAdmin(ModelAdmin):
         ('Payment Information', {
             'fields': ('next_payment',)
         }),
-        ('Stripe Details', {
-            'fields': ('stripe_subscription_id', 'stripe_plan_id'),
+        ('Store Transaction', {
+            'fields': ('store_transaction_id',),
             'classes': ('collapse',)
         }),
     )

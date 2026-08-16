@@ -1,6 +1,7 @@
 from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.throttling import UserRateThrottle
 
 from accounts.models import Profile
 from notifications.utils import send_notification
@@ -16,6 +17,13 @@ import stripe
 from audit.utils import log_audit_action
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
+
+
+class IAPReceiptThrottle(UserRateThrottle):
+    """Limits receipt validation to 20 calls/minute per user to protect Google/Apple API quotas."""
+    scope = 'iap_receipt'
+    rate = '20/minute'
+
 
 class CustomerViewSet(viewsets.ModelViewSet):
     queryset = Customer.objects.all()
@@ -329,179 +337,18 @@ class SubscriptionViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
 
-    @action(detail=False, methods=['post'], url_path='montly/create')
-    def monthly_create(self, request):
-        # Frontend typo "montly" matched for compatibility
-        plan = SubscriptionPlan.objects.filter(is_active=True).order_by('price').first()
-        if not plan:
-            return Response({'error': 'No active subscription plans found'}, status=status.HTTP_400_BAD_REQUEST)
-            
-        subscription, created = Subscription.objects.get_or_create(user=request.user)
-        subscription.plan = plan
-        subscription.is_active = True
-        subscription.next_payment = timezone.now() + timezone.timedelta(days=30)
-        subscription.save()
-        
-        return Response({"subscription": self.get_serializer(subscription).data})
-
-    @action(detail=False, methods=['post'], url_path='create')
-    def create_subscription(self, request):
-        print(f"DEBUG: create_subscription data: {request.data}")
-        plan_id = request.data.get('plan_id')
-        if not plan_id:
-            return Response({'error': 'Plan ID required'}, status=status.HTTP_400_BAD_REQUEST)
-        
-        try:
-            plan = SubscriptionPlan.objects.get(id=plan_id, is_active=True)
-            print(f"DEBUG: Plan found '{plan.name}', PriceID: {plan.stripe_price_id}")
-            if not plan.stripe_price_id:
-                 print("DEBUG: Missing Stripe Price ID")
-                 return Response({'error': 'Plan has no Stripe Price ID'}, status=status.HTTP_400_BAD_REQUEST)
-        except SubscriptionPlan.DoesNotExist:
-             print("DEBUG: Plan not found or inactive")
-             return Response({'error': 'Invalid or inactive plan'}, status=status.HTTP_400_BAD_REQUEST)
-
-        # Get or Create Customer
-        customer, _ = Customer.objects.get_or_create(user=request.user)
-        if not customer.stripe_customer_id:
-            try:
-                print("DEBUG: Creating Stripe Customer...")
-                stripe_customer = stripe.Customer.create(email=request.user.email)
-                customer.stripe_customer_id = stripe_customer.id
-                customer.save()
-                print(f"DEBUG: Stripe Customer created: {customer.stripe_customer_id}")
-            except Exception as e:
-                print(f"DEBUG: Stripe Customer Error: {e}")
-                return Response({'error': f'Stripe Customer Error: {str(e)}'}, status=status.HTTP_400_BAD_REQUEST)
-
-        # Create Stripe Subscription
-        try:
-            print(f"DEBUG: Creating Subscription for Customer {customer.stripe_customer_id} Price {plan.stripe_price_id}")
-            stripe_sub = stripe.Subscription.create(
-                customer=customer.stripe_customer_id,
-                items=[{'price': plan.stripe_price_id}],
-                payment_behavior='default_incomplete',
-                payment_settings={'save_default_payment_method': 'on_subscription'},
-                expand=['latest_invoice.confirmation_secret'],
-            )
-            print(f"DEBUG: Stripe Subscription Created. Status: {stripe_sub.status}")
-            
-            subscription, created = Subscription.objects.get_or_create(user=request.user)
-            subscription.plan = plan
-            subscription.stripe_subscription_id = stripe_sub.id
-            
-            # If payment is successful/not required immediately (e.g. trial or stored card worked?)
-            # Usually status is 'active' or 'incomplete'.
-            if stripe_sub.status == 'active':
-                subscription.is_active = True
-                if hasattr(stripe_sub, 'current_period_end') and stripe_sub.current_period_end:
-                    subscription.next_payment = timezone.datetime.fromtimestamp(stripe_sub.current_period_end, tz=timezone.utc)
-            else:
-                 # It's incomplete, waiting for payment. Frontend should handle client_secret if needed.
-                 # For backward compatibility with current simple frontend, we might assume user has payment method.
-                 # But if incomplete, we shouldn't mark as active yet? 
-                 # The webhook will handle activation on 'invoice.payment_succeeded'.
-                 subscription.is_active = False # Safest.
-                 
-            subscription.save()
-            profile = Profile.objects.filter(user=request.user).first()
-            profile.subscription_interval = plan.interval
-            profile.save()
-            print("DEBUG: Local Subscription Saved")
-            
-            # Return necessary data for frontend to Complete Payment if needed
-            response_data = {
-                "subscription": self.get_serializer(subscription).data,
-                "customer": customer.stripe_customer_id
-            }
-
-            # Generate Ephemeral Key
-            try:
-                ephemeral_key = stripe.EphemeralKey.create(
-                    customer=customer.stripe_customer_id,
-                    stripe_version='2022-11-15'
-                )
-                response_data['ephemeralKey'] = ephemeral_key.secret
-            except Exception as e:
-                print(f"Error creating ephemeral key: {e}")
-            
-            if stripe_sub.latest_invoice:
-                if hasattr(stripe_sub.latest_invoice, 'confirmation_secret') and stripe_sub.latest_invoice.confirmation_secret:
-                    response_data['client_secret'] = stripe_sub.latest_invoice.confirmation_secret.client_secret
-                elif hasattr(stripe_sub.latest_invoice, 'payment_intent') and stripe_sub.latest_invoice.payment_intent:
-                    # Fallback for older Stripe API versions if any
-                    response_data['client_secret'] = stripe_sub.latest_invoice.payment_intent.client_secret
-                  # Also helpful: publishableKey? frontend usually has it.
-            send_notification(
-                user=request.user,
-                title="Subscription Created",
-                message="You made a subscription plan",
-                notification_type="SYSTEM",
-                data={"ip": request.META.get('REMOTE_ADDR')}
-            )
-            
-            log_audit_action(
-                user=request.user,
-                action='CREATE_SUBSCRIPTION',
-                resource_type='subscription',
-                resource_id=subscription.id,
-                details={'plan_id': str(plan.id), 'stripe_sub_id': stripe_sub.id},
-                request=request
-            )
-                 
-            return Response(response_data)
-
-        except stripe.error.StripeError as e:
-            print(f"DEBUG: Stripe Subscription Error: {e}")
-            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
-    @action(detail=False, methods=['post'], url_path='yearly/create')
-    def yearly_create(self, request):
-        plans = SubscriptionPlan.objects.filter(is_active=True).order_by('-price')
-        plan = plans.first()
-        if not plan:
-            return Response({'error': 'No active subscription plans found'}, status=status.HTTP_400_BAD_REQUEST)
-            
-        subscription, created = Subscription.objects.get_or_create(user=request.user)
-        subscription.plan = plan
-        subscription.is_active = True
-        subscription.next_payment = timezone.now() + timezone.timedelta(days=365)
-        subscription.save()
-        
-        return Response({"subscription": self.get_serializer(subscription).data})
-
     @action(detail=False, methods=['get'], url_path='user/get')
     def user_get(self, request):
         subscription = Subscription.objects.filter(user=request.user).first()
         if not subscription:
             return Response({"subscription": None}, status=status.HTTP_200_OK)
 
-        # Lazy Sync: Check Stripe if local status is inactive but we have a stripe_id
-        if not subscription.is_active and subscription.stripe_subscription_id:
-            try:
-                print(f"DEBUG: Lazy Sync checking Stripe for sub {subscription.stripe_subscription_id}")
-                stripe_sub = stripe.Subscription.retrieve(subscription.stripe_subscription_id)
-                print(f"DEBUG: Stripe Subscription Status: {stripe_sub.status}")
-                
-                # Treat 'active' or 'trialing' as active locally
-                if stripe_sub.status in ['active', 'trialing']:
-                    subscription.is_active = True
-                    if hasattr(stripe_sub, 'current_period_end') and stripe_sub.current_period_end:
-                        subscription.next_payment = timezone.datetime.fromtimestamp(stripe_sub.current_period_end, tz=timezone.utc)
-                    subscription.save()
-                    print(f"DEBUG: Lazy Sync updated subscription to ACTIVE (Status: {stripe_sub.status})")
-                elif stripe_sub.status == 'incomplete':
-                    # Check the latest invoice for payment
-                    if stripe_sub.latest_invoice:
-                        invoice = stripe.Invoice.retrieve(stripe_sub.latest_invoice)
-                        if invoice.status == 'paid':
-                             subscription.is_active = True
-                             if hasattr(stripe_sub, 'current_period_end') and stripe_sub.current_period_end:
-                                 subscription.next_payment = timezone.datetime.fromtimestamp(stripe_sub.current_period_end, tz=timezone.utc)
-                             subscription.save()
-                             print("DEBUG: Lazy Sync updated subscription to ACTIVE (Found PAID invoice)")
-            except Exception as e:
-                print(f"DEBUG: Lazy Sync failed: {e}")
+        # Rec #7: If is_active but next_payment is in the past, proactively mark inactive.
+        # The S2S webhook should have caught this, but this is a safety net.
+        if subscription.is_active and subscription.next_payment:
+            if subscription.next_payment < timezone.now():
+                subscription.is_active = False
+                subscription.save(update_fields=['is_active', 'updated_at'])
 
         serializer = self.get_serializer(subscription)
         return Response({"subscription": serializer.data})
@@ -725,52 +572,9 @@ class StripeWebhookView(APIView):
             return Response({'error': 'Invalid signature'}, status=status.HTTP_400_BAD_REQUEST)
 
         # Handle the event
-        if event['type'] == 'invoice.payment_succeeded':
-            invoice = event['data']['object']
-            subscription_id = invoice.get('subscription')
-            
-            if subscription_id:
-                try:
-                    # Find subscription by stripe_subscription_id
-                    subscription = Subscription.objects.get(stripe_subscription_id=subscription_id)
-                    
-                    # Update status
-                    subscription.is_active = True
-                    
-                    # Update next payment date if available from invoice lines or period_end
-                    if invoice.get('lines') and invoice['lines'].get('data'):
-                        period_end = invoice['lines']['data'][0]['period']['end']
-                        subscription.next_payment = timezone.datetime.fromtimestamp(period_end)
-                    
-                    subscription.save()
-                    print(f"Updated subscription {subscription.id} for invoice payment success.")
-                    
-                except Subscription.DoesNotExist:
-                    print(f"Subscription not found for ID: {subscription_id}")
-                    
-        elif event['type'] == 'customer.subscription.deleted':
-            subscription_data = event['data']['object']
-            subscription_id = subscription_data.get('id')
-            
-            if subscription_id:
-                try:
-                    subscription = Subscription.objects.get(stripe_subscription_id=subscription_id)
-                    subscription.is_active = False
-                    subscription.save()
-                    
-                    # Clear catalog services from the user's profile
-                    profile = Profile.objects.filter(user=subscription.user).first()
-                    if profile:
-                        profile.catalog_services.clear()
-                        profile.service = ""
-                        profile.subscription_tier = 'NONE'
-                        profile.save()
-                    
-                    print(f"Deactivated subscription {subscription.id} due to deletion.")
-                except Subscription.DoesNotExist:
-                    print(f"Subscription not found for ID: {subscription_id}")
-
-        elif event['type'] == 'payment_intent.succeeded':
+        # Note: Stripe is only used for appointment funding and background check payments.
+        # Subscriptions are handled via native IAP (Apple/Google).
+        if event['type'] == 'payment_intent.succeeded':
             payment_intent = event['data']['object']
             metadata = payment_intent.get('metadata', {})
             if metadata.get('type') == 'job_funding':
@@ -801,3 +605,328 @@ class StripeWebhookView(APIView):
                     # We will rely on the frontend calling /initiate/ right after successful payment.
 
         return Response({'status': 'success'})
+
+
+# ─── Apple In-App Purchase Receipt Validation ─────────────────────────────────
+
+class AppleReceiptValidationView(APIView):
+    """
+    Called by the Flutter app after an iOS purchase succeeds.
+    Validates the receipt against Apple's servers and activates the subscription.
+    """
+    permission_classes = (permissions.IsAuthenticated,)
+    authentication_classes = (JWTAuthentication,)
+    throttle_classes = [IAPReceiptThrottle]
+
+    @method_decorator(csrf_exempt)
+    def post(self, request):
+        import requests as http_requests
+        import json
+
+        receipt_data = request.data.get('receipt_data')
+        if not receipt_data:
+            return Response({'error': 'receipt_data is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        apple_shared_secret = getattr(settings, 'APPLE_SHARED_SECRET', '')
+        payload = {'receipt-data': receipt_data, 'password': apple_shared_secret, 'exclude-old-transactions': True}
+
+        # Try production first
+        verify_url = 'https://buy.itunes.apple.com/verifyReceipt'
+        resp = http_requests.post(verify_url, json=payload)
+        data = resp.json()
+
+        # If status 21007, it's a sandbox receipt, try sandbox URL
+        if data.get('status') == 21007:
+            verify_url = 'https://sandbox.itunes.apple.com/verifyReceipt'
+            resp = http_requests.post(verify_url, json=payload)
+            data = resp.json()
+        if apple_status != 0:
+            return Response(
+                {'error': f'Apple receipt validation failed with status {apple_status}'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Extract the most recent receipt info
+        receipt_info = data.get('latest_receipt_info', [])
+        if not receipt_info:
+            receipt_info = data.get('receipt', {}).get('in_app', [])
+        if not receipt_info:
+            return Response({'error': 'No receipt info found in Apple response'}, status=status.HTTP_400_BAD_REQUEST)
+
+        latest = sorted(receipt_info, key=lambda x: int(x.get('expires_date_ms', 0)), reverse=True)[0]
+        original_transaction_id = latest.get('original_transaction_id')
+        expires_ms = int(latest.get('expires_date_ms', 0))
+        product_id = latest.get('product_id', '')
+
+        # Activate the subscription in our DB
+        subscription, _ = Subscription.objects.get_or_create(user=request.user)
+        subscription.is_active = True
+        subscription.is_sandbox = is_sandbox
+        subscription.store_transaction_id = original_transaction_id  # Apple original_transaction_id
+
+        # Look up by Apple product ID first, fall back to interval
+        plan = SubscriptionPlan.objects.filter(apple_product_id=product_id, is_active=True).first()
+        if not plan:
+            interval = 'year' if 'yearly' in product_id.lower() else 'month'
+            plan = SubscriptionPlan.objects.filter(interval=interval, is_active=True).first()
+        else:
+            interval = plan.interval
+
+        if plan:
+            subscription.plan = plan
+
+        if expires_ms:
+            subscription.next_payment = timezone.datetime.fromtimestamp(
+                expires_ms / 1000.0, tz=timezone.utc
+            )
+        subscription.save()
+
+        profile = Profile.objects.filter(user=request.user).first()
+        if profile:
+            profile.subscription_interval = interval
+            profile.subscription_tier = plan.tier if plan else 'GOLD'
+            profile.save()
+
+        return Response({'status': 'active', 'expires_at': expires_ms})
+
+
+# ─── Google Play Purchase Validation ─────────────────────────────────────────
+
+class GooglePlayValidationView(APIView):
+    """
+    Called by the Flutter app after an Android purchase succeeds.
+    Validates the purchase token against the Google Play Developer API.
+    Requires GOOGLE_PLAY_SERVICE_ACCOUNT_JSON in Django settings.
+    """
+    permission_classes = (permissions.IsAuthenticated,)
+    authentication_classes = (JWTAuthentication,)
+    throttle_classes = [IAPReceiptThrottle]
+
+
+    @method_decorator(csrf_exempt)
+    def post(self, request):
+        import json
+        from google.oauth2 import service_account
+        from googleapiclient.discovery import build
+
+        purchase_token = request.data.get('purchase_token')
+        product_id = request.data.get('product_id')
+
+        if not purchase_token or not product_id:
+            return Response({'error': 'purchase_token and product_id are required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        package_name = getattr(settings, 'ANDROID_PACKAGE_NAME', 'com.neighborservice.nsapp')
+        service_account_json = getattr(settings, 'GOOGLE_PLAY_SERVICE_ACCOUNT_JSON', None)
+
+        if not service_account_json:
+            return Response({'error': 'Google Play service account not configured on server'}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+
+        try:
+            credentials = service_account.Credentials.from_service_account_info(
+                json.loads(service_account_json),
+                scopes=['https://www.googleapis.com/auth/androidpublisher'],
+            )
+            service = build('androidpublisher', 'v3', credentials=credentials, cache_discovery=False)
+            result = service.purchases().subscriptions().get(
+                packageName=package_name,
+                subscriptionId=product_id,
+                token=purchase_token,
+            ).execute()
+        except Exception as e:
+            return Response({'error': f'Google Play API error: {str(e)}'}, status=status.HTTP_400_BAD_REQUEST)
+
+        payment_state = result.get('paymentState')  # 1=received, 2=free trial
+        expiry_ms = int(result.get('expiryTimeMillis', 0))
+
+        if payment_state not in [1, 2]:
+            return Response({'error': f'Payment not confirmed (state={payment_state})'}, status=status.HTTP_402_PAYMENT_REQUIRED)
+
+        subscription, _ = Subscription.objects.get_or_create(user=request.user)
+        subscription.is_active = True
+        subscription.is_sandbox = (result.get('purchaseType') == 0) # 0 means test purchase
+        subscription.store_transaction_id = purchase_token  # Google purchaseToken
+
+        # Look up by Google product ID first, fall back to interval
+        plan = SubscriptionPlan.objects.filter(google_product_id=product_id, is_active=True).first()
+        if not plan:
+            interval = 'year' if 'yearly' in product_id.lower() else 'month'
+            plan = SubscriptionPlan.objects.filter(interval=interval, is_active=True).first()
+        else:
+            interval = plan.interval
+
+        if plan:
+            subscription.plan = plan
+
+        if expiry_ms:
+            subscription.next_payment = timezone.datetime.fromtimestamp(
+                expiry_ms / 1000.0, tz=timezone.utc
+            )
+        subscription.save()
+
+        profile = Profile.objects.filter(user=request.user).first()
+        if profile:
+            profile.subscription_interval = interval
+            profile.subscription_tier = plan.tier if plan else 'GOLD'
+            profile.save()
+
+        return Response({'status': 'active', 'expires_at': expiry_ms})
+
+
+# ─── Apple Server-to-Server (S2S) Notifications ───────────────────────────────
+
+class AppleS2SNotificationView(APIView):
+    """
+    Apple calls this endpoint whenever a subscription status changes
+    (renewal, cancellation, billing failure, etc.).
+    Configure this URL in App Store Connect -> App -> Notifications.
+    URL: https://[your-domain]/payments/webhook/apple-s2s/
+    """
+    permission_classes = (permissions.AllowAny,)
+
+    @method_decorator(csrf_exempt)
+    def post(self, request):
+        payload = request.data
+        notification_type = payload.get('notificationType') or payload.get('notification_type')
+        unified_receipt = payload.get('unified_receipt', {})
+        latest_receipt_info = unified_receipt.get('latest_receipt_info', [])
+
+        if not latest_receipt_info:
+            return Response({'status': 'ignored, no receipt info'})
+
+        latest = sorted(latest_receipt_info, key=lambda x: int(x.get('expires_date_ms', 0)), reverse=True)[0]
+        original_tx_id = latest.get('original_transaction_id')
+        expires_ms = int(latest.get('expires_date_ms', 0))
+        product_id = latest.get('product_id', '')
+
+        sub = Subscription.objects.filter(store_transaction_id=original_tx_id).first()
+
+        if notification_type in ['DID_RENEW', 'SUBSCRIBED', 'DID_RECOVER', 'INTERACTIVE_RENEWAL', 'OFFER_REDEEMED']:
+            if sub:
+                sub.is_active = True
+                # Look up by Apple product ID first, fall back to interval
+                plan = SubscriptionPlan.objects.filter(apple_product_id=product_id, is_active=True).first()
+                if not plan:
+                    interval = 'year' if 'yearly' in product_id.lower() else 'month'
+                    plan = SubscriptionPlan.objects.filter(interval=interval, is_active=True).first()
+                else:
+                    interval = plan.interval
+
+                if plan:
+                    sub.plan = plan
+
+                if expires_ms:
+                    sub.next_payment = timezone.datetime.fromtimestamp(expires_ms / 1000.0, tz=timezone.utc)
+                sub.save()
+                profile = Profile.objects.filter(user=sub.user).first()
+                if profile:
+                    profile.subscription_interval = interval
+                    profile.subscription_tier = plan.tier if plan else 'GOLD'
+                    profile.save()
+
+        elif notification_type in ['EXPIRED', 'DID_FAIL_TO_RENEW', 'REVOKE', 'CANCEL']:
+            if sub:
+                sub.is_active = False
+                sub.save()
+                profile = Profile.objects.filter(user=sub.user).first()
+                if profile:
+                    profile.subscription_tier = 'NONE'
+                    profile.catalog_services.clear()
+                    profile.service = ""
+                    profile.save()
+
+        return Response({'status': 'ok'})
+
+
+# ─── Google Play Real-time Developer Notifications (Pub/Sub) ─────────────────
+
+class GooglePubSubNotificationView(APIView):
+    """
+    Google sends subscription lifecycle events via Cloud Pub/Sub push subscriptions.
+    Configure a Pub/Sub push endpoint in Google Cloud Console pointing here.
+    URL: https://[your-domain]/payments/webhook/google-pubsub/
+    Reference: https://developer.android.com/google/play/billing/rtdn-reference
+    """
+    permission_classes = (permissions.AllowAny,)
+
+    # Google Pub/Sub notification types for subscriptions
+    ACTIVE_TYPES = {1, 2, 4, 7}   # RENEWED, RECOVERED, RESTARTED, ON_HOLD_CANCELLED
+    INACTIVE_TYPES = {3, 13}        # CANCELED, EXPIRED
+
+    @method_decorator(csrf_exempt)
+    def post(self, request):
+        import base64
+        import json
+        from google.oauth2 import service_account
+        from googleapiclient.discovery import build
+
+        try:
+            message = request.data.get('message', {})
+            data_b64 = message.get('data', '')
+            decoded = base64.b64decode(data_b64).decode('utf-8')
+            notification = json.loads(decoded)
+        except Exception as e:
+            return Response({'error': f'Failed to decode Pub/Sub message: {e}'}, status=status.HTTP_400_BAD_REQUEST)
+
+        sub_notification = notification.get('subscriptionNotification', {})
+        notification_type = sub_notification.get('notificationType')
+        purchase_token = sub_notification.get('purchaseToken')
+        subscription_id = sub_notification.get('subscriptionId')
+        package_name = notification.get('packageName')
+
+        if not purchase_token:
+            return Response({'status': 'ignored, no purchase token'})
+
+        # Fetch fresh state from Google Play API
+        service_account_json = getattr(settings, 'GOOGLE_PLAY_SERVICE_ACCOUNT_JSON', None)
+        if service_account_json:
+            try:
+                credentials = service_account.Credentials.from_service_account_info(
+                    json.loads(service_account_json),
+                    scopes=['https://www.googleapis.com/auth/androidpublisher'],
+                )
+                service = build('androidpublisher', 'v3', credentials=credentials, cache_discovery=False)
+                result = service.purchases().subscriptions().get(
+                    packageName=package_name,
+                    subscriptionId=subscription_id,
+                    token=purchase_token,
+                ).execute()
+                expiry_ms = int(result.get('expiryTimeMillis', 0))
+                payment_state = result.get('paymentState')
+            except Exception as e:
+                print(f'Google Pub/Sub: API error: {e}')
+                expiry_ms = 0
+                payment_state = None
+        else:
+            expiry_ms = 0
+            payment_state = None
+
+        sub = Subscription.objects.filter(store_transaction_id=purchase_token).first()
+
+        if notification_type in self.ACTIVE_TYPES and payment_state in [1, 2]:
+            if sub:
+                sub.is_active = True
+                # Look up by Google product ID first, fall back to interval
+                plan = SubscriptionPlan.objects.filter(google_product_id=subscription_id, is_active=True).first()
+                if not plan:
+                    interval = 'year' if 'yearly' in subscription_id.lower() else 'month'
+                    plan = SubscriptionPlan.objects.filter(interval=interval, is_active=True).first()
+
+                if plan:
+                    sub.plan = plan
+
+                if expiry_ms:
+                    sub.next_payment = timezone.datetime.fromtimestamp(expiry_ms / 1000.0, tz=timezone.utc)
+                sub.save()
+
+        elif notification_type in self.INACTIVE_TYPES:
+            if sub:
+                sub.is_active = False
+                sub.save()
+                profile = Profile.objects.filter(user=sub.user).first()
+                if profile:
+                    profile.subscription_tier = 'NONE'
+                    profile.catalog_services.clear()
+                    profile.service = ""
+                    profile.save()
+
+        return Response({'status': 'ok'})

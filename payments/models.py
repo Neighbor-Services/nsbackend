@@ -94,8 +94,15 @@ class SubscriptionPlan(models.Model):
     price = models.DecimalField(max_digits=10, decimal_places=2, help_text="Monthly price")
     currency = models.CharField(max_length=3, default='USD', help_text="Currency code")
     features = models.JSONField(default=list, blank=True, help_text="List of plan features")
-    stripe_price_id = models.CharField(max_length=255, blank=True, null=True, help_text="Stripe Price ID")
-    stripe_product_id = models.CharField(max_length=255, blank=True, null=True, help_text="Stripe Product ID")
+    # Native IAP product IDs (must match App Store Connect / Google Play Console exactly)
+    apple_product_id = models.CharField(
+        max_length=255, blank=True, null=True,
+        help_text="Apple App Store product ID (e.g. nsapp_pro_monthly)"
+    )
+    google_product_id = models.CharField(
+        max_length=255, blank=True, null=True,
+        help_text="Google Play product ID (e.g. nsapp_pro_monthly)"
+    )
     max_catalog_services = models.PositiveIntegerField(default=1, help_text="Max catalog services a provider can offer (0 = unlimited)")
     is_active = models.BooleanField(default=True, help_text="Is this plan available for purchase?")
     display_order = models.IntegerField(default=0, help_text="Display order (lower numbers first)")
@@ -109,45 +116,6 @@ class SubscriptionPlan(models.Model):
 
     def __str__(self):
         return f"{self.name} - {self.currency} {self.price}/{self.interval}"
-
-    def save(self, *args, **kwargs):
-        import stripe
-        stripe.api_key = settings.STRIPE_SECRET_KEY
-
-        if not self.stripe_product_id:
-            try:
-                product = stripe.Product.create(
-                    name=self.name,
-                    description=self.description or f"{self.name} Subscription Plan"
-                )
-                self.stripe_product_id = product.id
-            except Exception as e:
-                print(f"Error creating Stripe Product: {e}")
-
-        # Check if price changed or if stripe_price_id is missing.
-        # Ideally, we should check if self.pk exists (update) and if price changed.
-        # But for simplicity, we create a price if stripe_price_id is missing.
-        # If user updates price in Admin, we *should* create a new Stripe Price,
-        # but that requires knowing the old value.
-        # For now, we only handle creation if missing.
-        
-        if self.stripe_product_id and not self.stripe_price_id:
-            try:
-                price = stripe.Price.create(
-                    product=self.stripe_product_id,
-                    unit_amount=int(self.price * 100),
-                    currency=self.currency.lower(),
-                    recurring={"interval": self.interval},
-                )
-                self.stripe_price_id = price.id
-            except Exception as e:
-                print(f"Error creating Stripe Price: {e}")
-
-        # If price was updated (detected by dirty field or similar logic),
-        # we would ideally archive the old price and create a new one.
-        # Here we just ensure we have *a* price.
-        
-        super().save(*args, **kwargs)
 
     def formatted_price(self):
         """Return formatted price with currency symbol"""
@@ -163,10 +131,17 @@ class Subscription(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='subscription')
     plan = models.ForeignKey(SubscriptionPlan, on_delete=models.SET_NULL, null=True, blank=True, related_name='subscriptions', help_text="Subscription plan")
-    stripe_subscription_id = EncryptedCharField(max_length=255, blank=True, null=True)
-    stripe_plan_id = models.CharField(max_length=100, blank=True, null=True)  # Deprecated, use plan.stripe_price_id
+    # Stores the Apple original_transaction_id or Google purchaseToken.
+    store_transaction_id = EncryptedCharField(
+        max_length=512, blank=True, null=True,
+        help_text="Apple original_transaction_id or Google purchaseToken"
+    )
     next_payment = models.DateTimeField(null=True, blank=True)
     is_active = models.BooleanField(default=False)
+    is_sandbox = models.BooleanField(
+        default=False,
+        help_text="True if this subscription was activated via a sandbox/test receipt"
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

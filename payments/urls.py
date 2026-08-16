@@ -1,6 +1,11 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import CustomerViewSet, SubscriptionViewSet, SubscriptionPlanViewSet, WalletViewSet, StripeWebhookView
+from .views import (
+    CustomerViewSet, SubscriptionViewSet, SubscriptionPlanViewSet, WalletViewSet,
+    StripeWebhookView,
+    AppleReceiptValidationView, GooglePlayValidationView,
+    AppleS2SNotificationView, GooglePubSubNotificationView,
+)
 
 router = DefaultRouter()
 router.register(r'customers', CustomerViewSet, basename='customer')
@@ -10,6 +15,12 @@ router.register(r'wallet', WalletViewSet, basename='wallet')
 
 urlpatterns = [
     path('webhook/', StripeWebhookView.as_view(), name='stripe_webhook'),
+    path('webhook/apple-s2s/', AppleS2SNotificationView.as_view(), name='apple_s2s_webhook'),
+    path('webhook/google-pubsub/', GooglePubSubNotificationView.as_view(), name='google_pubsub_webhook'),
+
+    # Native IAP receipt validation
+    path('validate/apple/', AppleReceiptValidationView.as_view(), name='apple_receipt_validate'),
+    path('validate/google/', GooglePlayValidationView.as_view(), name='google_play_validate'),
     
     # Customer specific paths
     path('user/', CustomerViewSet.as_view({'get': 'user'}), name='customer-user'),
@@ -22,11 +33,8 @@ urlpatterns = [
     path('payment-sheet/', CustomerViewSet.as_view({'post': 'payment_sheet'}), name='customer-payment-sheet'),
     
     # Subscription specific paths
-    path('montly/create/', SubscriptionViewSet.as_view({'post': 'monthly_create'}), name='subscription-monthly-create'),
-    path('yearly/create/', SubscriptionViewSet.as_view({'post': 'yearly_create'}), name='subscription-yearly-create'),
     path('user/get/', SubscriptionViewSet.as_view({'get': 'user_get'}), name='subscription-user-get'),
     path('user/delete/', SubscriptionViewSet.as_view({'delete': 'user_delete'}), name='subscription-user-delete'),
-    path('subscription/create/', SubscriptionViewSet.as_view({'post': 'create_subscription'}), name='subscription-create'),
 
     path('', include(router.urls)),
 ]
