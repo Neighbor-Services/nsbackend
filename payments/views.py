@@ -635,11 +635,15 @@ class AppleReceiptValidationView(APIView):
         resp = http_requests.post(verify_url, json=payload)
         data = resp.json()
 
+        is_sandbox = False
         # If status 21007, it's a sandbox receipt, try sandbox URL
         if data.get('status') == 21007:
             verify_url = 'https://sandbox.itunes.apple.com/verifyReceipt'
             resp = http_requests.post(verify_url, json=payload)
             data = resp.json()
+            is_sandbox = True
+            
+        apple_status = data.get('status', -1)
         if apple_status != 0:
             return Response(
                 {'error': f'Apple receipt validation failed with status {apple_status}'},
