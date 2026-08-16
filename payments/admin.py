@@ -26,8 +26,8 @@ class SubscriptionPlanAdmin(ModelAdmin):
             'fields': ('features',),
             'description': 'Enter plan features as a JSON list, e.g., ["Feature 1", "Feature 2"]'
         }),
-        ('Stripe Integration', {
-            'fields': ('stripe_price_id', 'stripe_product_id'),
+        ('App Store / Google Play Integration', {
+            'fields': ('apple_product_id', 'google_product_id'),
             'classes': ('collapse',)
         }),
     )
