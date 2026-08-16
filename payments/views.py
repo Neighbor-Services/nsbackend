@@ -628,6 +628,9 @@ class AppleReceiptValidationView(APIView):
             print("Apple Validation Error: receipt_data is required")
             return Response({'error': 'receipt_data is required'}, status=status.HTTP_400_BAD_REQUEST)
             
+        # Strip newlines and spaces which can cause 21002
+        receipt_data = str(receipt_data).replace('\n', '').replace('\r', '').replace(' ', '')
+            
         print(f"Receipt Data Received: {str(receipt_data)[:50]}... Length: {len(str(receipt_data))}")
 
         apple_shared_secret = getattr(settings, 'APPLE_SHARED_SECRET', '')
