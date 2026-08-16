@@ -627,6 +627,8 @@ class AppleReceiptValidationView(APIView):
         if not receipt_data:
             print("Apple Validation Error: receipt_data is required")
             return Response({'error': 'receipt_data is required'}, status=status.HTTP_400_BAD_REQUEST)
+            
+        print(f"Receipt Data Received: {str(receipt_data)[:50]}... Length: {len(str(receipt_data))}")
 
         apple_shared_secret = getattr(settings, 'APPLE_SHARED_SECRET', '')
         payload = {'receipt-data': receipt_data, 'password': apple_shared_secret, 'exclude-old-transactions': True}
