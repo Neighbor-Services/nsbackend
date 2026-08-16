@@ -159,11 +159,7 @@ class ProfileSerializer(serializers.ModelSerializer):
         else:
             max_services = profile.get_max_catalog_services()
             
-        if len(value) > 0 and max_services == 0:
-            raise serializers.ValidationError(
-                "An active paid subscription plan is required to offer catalog services."
-            )
-        elif max_services > 0 and len(value) > max_services:
+        if max_services > 0 and len(value) > max_services:
             raise serializers.ValidationError(
                 f"You cannot associate more than {max_services} catalog services on your current subscription plan. "
                 f"Please upgrade your subscription for a higher limit."
@@ -195,13 +191,8 @@ class ProfileSerializer(serializers.ModelSerializer):
         new_user_type = validated_data.get('user_type', old_user_type)
 
         if old_user_type == 'SEEKER' and new_user_type == 'PROVIDER':
-            # 1. Subscription is also required (must be a paid active sub, no FREE auto-creation)
-            from payments.models import Subscription
-            sub = Subscription.objects.filter(user=instance.user, is_active=True).first()
-            if not sub:
-                raise serializers.ValidationError(
-                    {"user_type": "An active paid subscription plan is required to become a provider."}
-                )
+            # Subscription is optional now.
+            pass
 
         elif old_user_type == 'PROVIDER' and new_user_type == 'SEEKER':
             # 1. Void previous subscription
