@@ -14,6 +14,7 @@ import decimal
 from django.conf import settings
 from rest_framework_simplejwt.authentication import JWTAuthentication
 import stripe
+import datetime
 from audit.utils import log_audit_action
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
@@ -701,7 +702,7 @@ class AppleReceiptValidationView(APIView):
 
         if expires_ms:
             subscription.next_payment = timezone.datetime.fromtimestamp(
-                expires_ms / 1000.0, tz=timezone.utc
+                expires_ms / 1000.0, tz=datetime.timezone.utc
             )
         subscription.save()
 
@@ -783,7 +784,7 @@ class GooglePlayValidationView(APIView):
 
         if expiry_ms:
             subscription.next_payment = timezone.datetime.fromtimestamp(
-                expiry_ms / 1000.0, tz=timezone.utc
+                expiry_ms / 1000.0, tz=datetime.timezone.utc
             )
         subscription.save()
 
