@@ -622,6 +622,7 @@ class AppleReceiptValidationView(APIView):
     def post(self, request):
         import requests as http_requests
         import json
+        import jwt
 
         receipt_data = request.data.get('receipt_data')
         if not receipt_data:
@@ -633,42 +634,53 @@ class AppleReceiptValidationView(APIView):
             
         print(f"Receipt Data Received: {str(receipt_data)[:50]}... Length: {len(str(receipt_data))}")
 
-        apple_shared_secret = getattr(settings, 'APPLE_SHARED_SECRET', '')
-        payload = {'receipt-data': receipt_data, 'password': apple_shared_secret, 'exclude-old-transactions': True}
-
-        # Try production first
-        verify_url = 'https://buy.itunes.apple.com/verifyReceipt'
-        resp = http_requests.post(verify_url, json=payload)
-        data = resp.json()
-
-        is_sandbox = False
-        # If status 21007, it's a sandbox receipt, try sandbox URL
-        if data.get('status') == 21007:
-            verify_url = 'https://sandbox.itunes.apple.com/verifyReceipt'
+        # Check if it's a StoreKit 2 JWS token
+        if receipt_data.startswith('eyJ'):
+            try:
+                payload_data = jwt.decode(receipt_data, options={"verify_signature": False})
+                original_transaction_id = payload_data.get('originalTransactionId')
+                product_id = payload_data.get('productId')
+                expires_ms = payload_data.get('expiresDate', 0)
+                is_sandbox = payload_data.get('environment') in ['Sandbox', 'Xcode']
+            except Exception as e:
+                return Response({'error': f'Invalid JWS token: {str(e)}'}, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            apple_shared_secret = getattr(settings, 'APPLE_SHARED_SECRET', '')
+            payload = {'receipt-data': receipt_data, 'password': apple_shared_secret, 'exclude-old-transactions': True}
+    
+            # Try production first
+            verify_url = 'https://buy.itunes.apple.com/verifyReceipt'
             resp = http_requests.post(verify_url, json=payload)
             data = resp.json()
-            is_sandbox = True
-            
-        apple_status = data.get('status', -1)
-        if apple_status != 0:
-            print(f"Apple Validation Error: Apple returned status {apple_status}")
-            return Response(
-                {'error': f'Apple receipt validation failed with status {apple_status}'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        # Extract the most recent receipt info
-        receipt_info = data.get('latest_receipt_info', [])
-        if not receipt_info:
-            receipt_info = data.get('receipt', {}).get('in_app', [])
-        if not receipt_info:
-            print("Apple Validation Error: No receipt info found in Apple response. Data:", data)
-            return Response({'error': 'No receipt info found in Apple response'}, status=status.HTTP_400_BAD_REQUEST)
-
-        latest = sorted(receipt_info, key=lambda x: int(x.get('expires_date_ms', 0)), reverse=True)[0]
-        original_transaction_id = latest.get('original_transaction_id')
-        expires_ms = int(latest.get('expires_date_ms', 0))
-        product_id = latest.get('product_id', '')
+    
+            is_sandbox = False
+            # If status 21007, it's a sandbox receipt, try sandbox URL
+            if data.get('status') == 21007:
+                verify_url = 'https://sandbox.itunes.apple.com/verifyReceipt'
+                resp = http_requests.post(verify_url, json=payload)
+                data = resp.json()
+                is_sandbox = True
+                
+            apple_status = data.get('status', -1)
+            if apple_status != 0:
+                print(f"Apple Validation Error: Apple returned status {apple_status}")
+                return Response(
+                    {'error': f'Apple receipt validation failed with status {apple_status}'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+    
+            # Extract the most recent receipt info
+            receipt_info = data.get('latest_receipt_info', [])
+            if not receipt_info:
+                receipt_info = data.get('receipt', {}).get('in_app', [])
+            if not receipt_info:
+                print("Apple Validation Error: No receipt info found in Apple response. Data:", data)
+                return Response({'error': 'No receipt info found in Apple response'}, status=status.HTTP_400_BAD_REQUEST)
+    
+            latest = sorted(receipt_info, key=lambda x: int(x.get('expires_date_ms', 0)), reverse=True)[0]
+            original_transaction_id = latest.get('original_transaction_id')
+            expires_ms = int(latest.get('expires_date_ms', 0))
+            product_id = latest.get('product_id', '')
 
         # Activate the subscription in our DB
         subscription, _ = Subscription.objects.get_or_create(user=request.user)
